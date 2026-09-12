@@ -1,0 +1,11 @@
+{
+  "name": "could-you-tell-if-it-was-wrong",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.72.0"
+  }
+}
