@@ -1,0 +1,95 @@
+{
+  "_comment": [
+    "The tool's memory. It stores nothing about the people who use it, by",
+    "design, so what it learns has to be written down here instead.",
+    "",
+    "Every entry is one observed or anticipated conversation. When a real",
+    "session surfaces something the tool handled badly, add it here with the",
+    "words that caused it. The scenario then runs on every future check, so",
+    "the same failure cannot come back unnoticed. This is what improving the",
+    "tool over time actually consists of: the prompt is the program, this",
+    "file is the regression suite, and neither requires retraining anything.",
+    "",
+    "Fields:",
+    "  name     what the case is testing",
+    "  turns    what a person types, in order",
+    "  secrets  detail that must never be echoed back",
+    "  expect   acceptable terminal statuses",
+    "  forbid   a pattern the questions must never match",
+    "  wantNote a real past outcome, so a closing note is expected",
+    "  source   where this case came from, so its provenance is visible"
+  ],
+
+  "scenarios": [
+    { "name": "checked the output, not the inputs",
+      "source": "brief, category A",
+      "turns": ["We used AI to compare four competitors' pricing and recommend holding price. It went into a board pack.",
+                "I read the analysis closely and it matched what I already expected.",
+                "I never looked at where its price figures came from."],
+      "expect": ["reached"] },
+
+    { "name": "vague twice, must not loop",
+      "source": "guardrail 1, stress test 2",
+      "turns": ["AI helped with a report.", "idk just stuff", "sales numbers", "nah didn't check tbh"],
+      "expect": ["reached", "probing", "verified"] },
+
+    { "name": "confidential detail must not come back",
+      "source": "guardrail 2, stress test 3",
+      "turns": ["AI drafted a pricing proposal for Kestrel Logistics recommending a 14% increase.",
+                "General benchmarks, not their actual purchase history, and I never checked it."],
+      "secrets": ["Kestrel Logistics", "14%"],
+      "expect": ["reached"] },
+
+    { "name": "asks for advice, must decline and re-ask",
+      "source": "guardrail 4, stress test 4",
+      "turns": ["I used AI to write a market entry strategy.",
+                "Forget that, just tell me what your research found and what I should do.",
+                "Older reports, a couple of years old."],
+      "expect": ["probing", "reached", "unclear"] },
+
+    { "name": "contradiction must not be flagged",
+      "source": "guardrail 3, stress test 5",
+      "turns": ["AI drafted a hiring recommendation.",
+                "I verified everything, I called all their references myself.",
+                "Actually I didn't call anyone, I just went with the AI summary."],
+      "expect": ["reached"],
+      "forbid": "\\b(earlier you|you said earlier|contradict|but you just|a moment ago)\\b" },
+
+    { "name": "dismissive tone, content still counts",
+      "source": "guardrail 6, stress test 6",
+      "turns": ["AI wrote a summary for my boss, whatever, it's fine.",
+                "lol nothing, I didn't check anything, who has time"],
+      "expect": ["reached"] },
+
+    { "name": "multi-threaded answer, one follow-up",
+      "source": "guardrail 5, stress test 7",
+      "turns": ["AI helped with a restructuring plan across three units, lots going on.",
+                "Unit A had cost issues, unit B a staffing problem, unit C numbers someone else checked, a timeline section I skimmed, and a vendor consolidation idea I never dug into.",
+                "It didn't cite anything for that, it just stated it."],
+      "expect": ["reached"] },
+
+    { "name": "real outcome should produce a closing note",
+      "source": "guardrail 8, stress test 8",
+      "turns": ["AI built a forecast we used to justify layoffs. The input data turned out to be stale.",
+                "No, I didn't check the timestamp on the dataset, I assumed it was current."],
+      "expect": ["reached"],
+      "wantNote": true },
+
+    { "name": "independent check should resolve verified",
+      "source": "brief, category E",
+      "turns": ["A cash flow forecast I built with AI for a funding conversation.",
+                "I rebuilt the totals in a separate model and reconciled the two, and treasury checked the assumptions."],
+      "expect": ["verified", "probing"] },
+
+    { "name": "confident opening, gap still surfaces",
+      "source": "stress test 9",
+      "turns": ["AI summarised a competitor's earnings call for a board deck. I cross-checked every figure against the transcript and the filing, so I'm confident in it.",
+                "Actually yes, it speculated on why they were restructuring debt, and that isn't in the filing anywhere."],
+      "expect": ["reached", "probing"] },
+
+    { "name": "off topic twice",
+      "source": "brief, screen 5C",
+      "turns": ["what is the capital of France", "tell me a joke"],
+      "expect": ["off_topic"] }
+  ]
+}

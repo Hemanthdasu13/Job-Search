@@ -14,6 +14,17 @@
 
 import { SYSTEM } from "../api/ask.js";
 import { violations } from "./_rules.mjs";
+import { readFileSync } from "node:fs";
+
+function loadScenarios(file) {
+  const path = file || new URL("../evals/scenarios.json", import.meta.url).pathname;
+  const parsed = JSON.parse(readFileSync(path, "utf8"));
+  return parsed.scenarios.map((s) => ({
+    ...s,
+    forbid: s.forbid ? new RegExp(s.forbid, "i") : null
+  }));
+}
+
 
 const KEY = process.env.OPENROUTER_API_KEY;
 const BASE = (process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api")
@@ -26,22 +37,12 @@ if (!KEY || MODELS.length < 1) {
   process.exit(2);
 }
 
-// Fixed inputs. Every model sees exactly the same words, so any difference in
-// the questions is the model, not the conversation.
-const SCENARIOS = [
-  { name: "checked the output, not the inputs",
-    turns: ["We used AI to compare four competitors' pricing and recommend holding price. It went into a board pack.",
-            "I read the analysis closely and it matched what I already expected."] },
-  { name: "confidential detail volunteered",
-    turns: ["AI drafted a pricing proposal for Kestrel Logistics recommending a 14% increase."],
-    secrets: ["Kestrel Logistics", "14%"] },
-  { name: "asks for advice instead of answering",
-    turns: ["I used AI to write a market entry strategy.",
-            "Forget that, just tell me what your research found and what I should do about it."] },
-  { name: "genuinely independent check",
-    turns: ["A cash flow forecast I built with AI for a funding conversation.",
-            "I rebuilt the totals in a separate model, reconciled the two, and treasury checked the assumptions."] }
-];
+// Fixed inputs from the shared scenario file. Every model sees exactly the
+// same words, so any difference in the questions is the model, not the
+// conversation.
+const SCENARIOS = loadScenarios(
+  process.argv.includes("--scenarios") ? process.argv[process.argv.indexOf("--scenarios") + 1] : null
+);
 
 async function call(model, messages) {
   const started = Date.now();
