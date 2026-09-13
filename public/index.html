@@ -244,6 +244,24 @@ textarea:focus{border-color:var(--ink);outline:none}
 }
 main{position:relative;z-index:1}
 
+/* Owner's view only, reached with ?debug=1. The page hides every failure from
+   visitors on purpose, which leaves nowhere to look when something is wrong.
+   This is that place. */
+.debug{
+  margin:2.5rem 0 0;
+  padding:0.9rem 1rem;
+  border:1.5px solid var(--accent);
+  background:var(--bg);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:0.75rem;
+  line-height:1.5;
+  white-space:pre-wrap;
+  word-break:break-word;
+  position:relative;
+  z-index:2;
+}
+.debug b{display:block;margin-bottom:0.4rem;font-weight:700}
+
 [hidden]{display:none !important}
 </style>
 </head>
@@ -365,6 +383,9 @@ main{position:relative;z-index:1}
   <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
 </section>
 
+
+<pre class="debug" id="debug" hidden></pre>
+
 </main>
 
 <script>
@@ -464,21 +485,52 @@ main{position:relative;z-index:1}
 
   /* --------------------------- model plumbing -------------------------- */
 
+  var DEBUG = /[?&]debug=1(&|$)/.test(window.location.search);
+
+  function note(line) {
+    if (!DEBUG) { return; }
+    var panel = $("debug");
+    panel.hidden = false;
+    panel.textContent += line + "\n";
+  }
+
+  if (DEBUG) {
+    note("debug \u2014 turn / http / ms / result");
+  }
+
   function ask() {
     state.calls += 1;
+    var call = state.calls;
+    var started = Date.now();
+
     return fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answers: state.answers, questions: state.questions })
     })
-      .then(function (res) { return res.json(); })
+      .then(function (res) {
+        return res.text().then(function (text) {
+          var elapsed = Date.now() - started;
+          var data = null;
+          try { data = JSON.parse(text); } catch (e) { /* not JSON */ }
+          note(
+            call + "     " + res.status + "   " + elapsed + "   " +
+            (data ? (data.ok ? "ok / " + data.status : "failed / " + (data.reason || "no reason"))
+                  : "not JSON: " + text.slice(0, 120))
+          );
+          return data;
+        });
+      })
+      .catch(function (err) {
+        note(call + "     -     " + (Date.now() - started) + "   request never completed: " + err.message);
+        return null;
+      })
       .then(function (data) {
         if (!data || data.ok !== true || typeof data.question !== "string") {
           return null;
         }
         return data;
-      })
-      .catch(function () { return null; });
+      });
   }
 
   // The screen the person is answering on: "s3" first, then "s4".

@@ -95,7 +95,12 @@ function getClient(key) {
   return client;
 }
 
-const fail = (res) => res.status(200).json({ ok: false });
+// Every failure looks identical to a visitor. The reason rides along so the
+// owner can see it with ?debug=1, and so the platform log and the page agree.
+const fail = (res, reason) => {
+  res.setHeader("X-Fallback-Reason", reason);
+  return res.status(200).json({ ok: false, reason });
+};
 
 // The client sends the transcript back on every turn; the function holds no
 // state. Everything about it is bounded here before it reaches the model.
@@ -126,6 +131,21 @@ function sameOrigin(req) {
     return new URL(origin).host === req.headers.host;
   } catch {
     return false;
+  }
+}
+
+async function readJsonBody(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  if (typeof req.body === "string") return safeParse(req.body);
+  try {
+    let raw = "";
+    for await (const chunk of req) {
+      raw += chunk;
+      if (raw.length > 100000) return null;
+    }
+    return safeParse(raw);
+  } catch {
+    return null;
   }
 }
 
@@ -160,28 +180,27 @@ function extractJson(text) {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
-  if (req.method !== "POST") return fail(res);
-  if (!sameOrigin(req)) return fail(res);
+  if (req.method !== "POST") return fail(res, "method_not_post");
+  if (!sameOrigin(req)) return fail(res, "cross_origin");
 
   const key = process.env.OPENROUTER_API_KEY;
   const model = process.env.MODEL_ID;
   if (!key) {
     console.error("config_missing OPENROUTER_API_KEY");
-    return fail(res);
+    return fail(res, "no_api_key");
   }
   if (!model) {
     console.error("config_missing MODEL_ID");
-    return fail(res);
+    return fail(res, "no_model_id");
   }
 
-  const body = typeof req.body === "string" ? safeParse(req.body) : req.body;
+  const body = await readJsonBody(req);
   const messages = buildMessages(body);
-  if (!messages) return fail(res);
+  if (!messages) return fail(res, "bad_request_shape");
 
   const claim = await claimModelCall(req);
   if (!claim.allowed) {
-    res.setHeader("X-Fallback-Reason", claim.reason);
-    return fail(res);
+    return fail(res, claim.reason);
   }
 
   let response;
@@ -196,18 +215,25 @@ export default async function handler(req, res) {
   } catch (error) {
     // Status and model only. The request body is never logged. A wrong or
     // retired MODEL_ID shows up here as a 400 or 404 naming the slug.
-    console.error(
-      "model_call_failed",
-      error?.status ?? error?.name ?? "unknown",
-      model,
-      Date.now() - started + "ms"
+    // "Error" tells nobody anything. Separate the case that matters most:
+    // no answer in time, which is what a model too slow for the function's
+    // limit looks like from in here.
+    const timedOut = /timeout|timed out|aborted/i.test(
+      String(error?.message) + String(error?.name)
     );
-    return fail(res);
+    const reason = error?.status
+      ? "upstream_" + error.status
+      : timedOut
+        ? "upstream_timeout"
+        : "upstream_" + (error?.name || "unknown");
+    console.error("model_call_failed", reason, model, Date.now() - started + "ms",
+      String(error?.message || "").slice(0, 200));
+    return fail(res, reason);
   }
 
   if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") {
     console.error("model_call_unusable", response.stop_reason, model);
-    return fail(res);
+    return fail(res, "unusable_" + response.stop_reason);
   }
 
   const text = (response.content || [])
@@ -218,7 +244,7 @@ export default async function handler(req, res) {
   const parsed = extractJson(text);
   if (!parsed || typeof parsed.question !== "string" || !STATUSES.includes(parsed.status)) {
     console.error("model_call_unparseable", model);
-    return fail(res);
+    return fail(res, "unparseable_reply");
   }
 
   return res.status(200).json({
