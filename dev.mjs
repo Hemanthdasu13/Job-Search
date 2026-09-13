@@ -6,6 +6,7 @@
 // STUB_SEQUENCE drives the stub through specific statuses, one per turn,
 // so every branch of the client state machine can be exercised by hand:
 //   STUB_SEQUENCE=probing,probing,reached node dev.mjs
+//   STUB_SEQUENCE=probing,verified node dev.mjs
 //   STUB_SEQUENCE=off_topic,off_topic node dev.mjs
 //   STUB_SEQUENCE=fail node dev.mjs
 
