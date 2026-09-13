@@ -97,9 +97,15 @@ const server = createServer(async (req, res) => {
     );
   }
 
-  if (path === "/" || path === "/index.html" || path === "/alt.html") {
-    const file = path === "/alt.html" ? "./alt.html" : "./index.html";
-    const html = await readFile(new URL(file, import.meta.url));
+  // Any .html sitting in the project root, so styling variants can be
+  // compared side by side without editing this file each time.
+  if (path === "/" || /^\/[a-z0-9-]+\.html$/.test(path)) {
+    const file = path === "/" ? "./index.html" : "." + path;
+    const html = await readFile(new URL(file, import.meta.url)).catch(() => null);
+    if (!html) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      return res.end("Not found");
+    }
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     return res.end(html);
   }
