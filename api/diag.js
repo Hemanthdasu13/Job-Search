@@ -13,7 +13,7 @@
 // what the provider returns, including the bodies the SDK would turn into an
 // exception.
 
-import { BASE_URL, REQUEST_TIMEOUT_MS } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
 import { kvEnabled, LIMITS } from "./_limits.js";
 
 export default async function handler(req, res) {
@@ -40,7 +40,8 @@ export default async function handler(req, res) {
         ? { set: true, length: key.length, startsWith_sk_or: key.startsWith("sk-or-") }
         : { set: false },
       MODEL_ID: model || null,
-      endpoint: `${BASE_URL}/v1/messages`,
+      endpointMode: endpointMode(),
+      endpoint: `${BASE_URL}/v1/${endpointMode() === "chat" ? "chat/completions" : "messages"}`,
       requestTimeoutMs: REQUEST_TIMEOUT_MS,
       sharedCounters: kvEnabled ? "upstash" : "in-memory only",
       limits: LIMITS,
@@ -63,54 +64,64 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   }
 
-  const started = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  try {
-    const upstream = await fetch(`${BASE_URL}/v1/messages`, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 16,
-        messages: [{ role: "user", content: "Reply with the single word: ok" }]
-      })
-    });
-    const body = await upstream.text();
-    out.probe = {
-      httpStatus: upstream.status,
-      elapsedMs: Date.now() - started,
-      body: body.slice(0, 800)
-    };
-
-    if (upstream.status === 401) out.problems.push("401: the provider rejected the key.");
-    else if (upstream.status === 402) out.problems.push("402: no credit on the OpenRouter account, or the key's credit limit is spent.");
-    else if (upstream.status === 404) out.problems.push(`404: the endpoint or the model slug "${model}" was not found. Check the slug on openrouter.ai/models.`);
-    else if (upstream.status === 400) out.problems.push("400: the provider rejected the request shape for this model. Try an anthropic/ slug: some models are not served over the Anthropic-compatible endpoint.");
-    else if (upstream.status === 429) out.problems.push("429: rate limited by the provider.");
-    else if (upstream.status >= 500) out.problems.push(`${upstream.status}: provider-side error.`);
-    else if (upstream.ok) out.problems.push("None. The provider answered normally, so the model call itself works.");
-  } catch (error) {
-    out.probe = {
-      elapsedMs: Date.now() - started,
-      failed: error?.name === "AbortError"
-        ? `No answer within ${REQUEST_TIMEOUT_MS}ms`
-        : `${error?.name}: ${error?.message}`
-    };
-    out.problems.push(
-      error?.name === "AbortError"
-        ? "The model did not answer in time. Either this model is too slow for the function's duration limit, or the endpoint is not responding. Try a faster model, or raise REQUEST_TIMEOUT_MS if your plan allows a longer function."
-        : "Could not reach the provider at all. Check OPENROUTER_BASE_URL if you set one."
-    );
-  } finally {
-    clearTimeout(timer);
+  // Probe both shapes, not just the configured one. If one answers and the
+  // other does not, that is the whole diagnosis in a single visit.
+  async function probe(path, body) {
+    const started = Date.now();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const upstream = await fetch(`${BASE_URL}${path}`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify(body)
+      });
+      const text = await upstream.text();
+      return { httpStatus: upstream.status, elapsedMs: Date.now() - started, body: text.slice(0, 400) };
+    } catch (error) {
+      return {
+        elapsedMs: Date.now() - started,
+        failed: error?.name === "AbortError"
+          ? `no answer within ${REQUEST_TIMEOUT_MS}ms`
+          : `${error?.name}: ${error?.message}`
+      };
+    } finally {
+      clearTimeout(timer);
+    }
   }
+
+  const ask = [{ role: "user", content: "Reply with the single word: ok" }];
+  out.probe = {
+    messages: await probe("/v1/messages", { model, max_tokens: 16, messages: ask }),
+    chat: await probe("/v1/chat/completions", { model, max_tokens: 16, messages: ask })
+  };
+
+  const describe = (name, r) => {
+    if (r.failed) return `${name}: ${r.failed}`;
+    if (r.httpStatus === 200) return `${name}: works`;
+    const known = {
+      400: "rejected the request shape for this model",
+      401: "key rejected",
+      402: "no credit on the account or the key's limit is spent",
+      404: `endpoint or model slug "${model}" not found`,
+      429: "rate limited by the provider"
+    };
+    return `${name}: ${r.httpStatus} ${known[r.httpStatus] || (r.httpStatus >= 500 ? "provider-side error" : "unexpected")}`;
+  };
+  out.problems.push(describe("messages endpoint", out.probe.messages));
+  out.problems.push(describe("chat endpoint", out.probe.chat));
+
+  const messagesOk = out.probe.messages.httpStatus === 200;
+  const chatOk = out.probe.chat.httpStatus === 200;
+  out.verdict =
+    messagesOk ? "The configured endpoint works. If the page still fails, the fault is after the call."
+    : chatOk ? "This model is not served over the Anthropic-compatible endpoint but works on OpenRouter's own. Set OPENROUTER_ENDPOINT=chat in Vercel and redeploy."
+    : "Neither endpoint answered. The lines above say why.";
 
   return res.status(200).json(out);
 }

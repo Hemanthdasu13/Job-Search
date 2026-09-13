@@ -18,6 +18,8 @@
 //
 // Optional:
 //   OPENROUTER_BASE_URL  default https://openrouter.ai/api
+//   OPENROUTER_ENDPOINT  "messages" (default, Anthropic-compatible) or
+//                        "chat" (OpenRouter's own shape, widest model support)
 //   REQUEST_TIMEOUT_MS   default 9000, must stay under the platform's
 //                        function duration limit
 //   OPENROUTER_SITE_URL / OPENROUTER_APP_NAME   OpenRouter attribution
@@ -34,7 +36,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { claimModelCall } from "./_limits.js";
-import { BASE_URL, REQUEST_TIMEOUT_MS } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
 
@@ -115,20 +117,24 @@ const MAX_REFLECTION_CHARS = 400;
 const MAX_NOTE_CHARS = 200;
 const MAX_TOTAL_CHARS = 9000;
 
+function attributionHeaders() {
+  const headers = {};
+  if (process.env.OPENROUTER_SITE_URL) headers["HTTP-Referer"] = process.env.OPENROUTER_SITE_URL;
+  if (process.env.OPENROUTER_APP_NAME) headers["X-Title"] = process.env.OPENROUTER_APP_NAME;
+  return headers;
+}
+
 let client = null;
 
 // Built on first use, so a missing key is a quiet fallback rather than a
 // throw while the module loads.
 function getClient(key) {
   if (!client) {
-    const headers = {};
-    if (process.env.OPENROUTER_SITE_URL) headers["HTTP-Referer"] = process.env.OPENROUTER_SITE_URL;
-    if (process.env.OPENROUTER_APP_NAME) headers["X-Title"] = process.env.OPENROUTER_APP_NAME;
     client = new Anthropic({
       apiKey: null,        // no x-api-key: OpenRouter authenticates by bearer token
       authToken: key,
       baseURL: BASE_URL,
-      defaultHeaders: headers,
+      defaultHeaders: attributionHeaders(),
       // No retry: a retry doubles the wait the visitor is already staring at,
       // and the second attempt would be killed by the platform anyway.
       maxRetries: 0,
@@ -140,6 +146,42 @@ function getClient(key) {
 
 // Every failure looks identical to a visitor. The reason rides along so the
 // owner can see it with ?debug=1, and so the platform log and the page agree.
+// OpenRouter's own endpoint, shaped like OpenAI's. Returned in the same
+// shape the Anthropic path produces so the caller does not branch twice.
+async function callChat(key, model, messages) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${BASE_URL}/v1/chat/completions`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        ...attributionHeaders()
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2000,
+        messages: [{ role: "system", content: SYSTEM }, ...messages]
+      })
+    });
+    if (!res.ok) {
+      const error = new Error(`chat completions ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
+    const body = await res.json();
+    const choice = body?.choices?.[0];
+    return {
+      stop_reason: choice?.finish_reason === "length" ? "max_tokens" : "end_turn",
+      content: [{ type: "text", text: choice?.message?.content || "" }]
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const fail = (res, reason) => {
   res.setHeader("X-Fallback-Reason", reason);
   return res.status(200).json({ ok: false, reason });
@@ -249,12 +291,14 @@ export default async function handler(req, res) {
   let response;
   const started = Date.now();
   try {
-    response = await getClient(key).messages.create({
-      model,
-      max_tokens: 2000,
-      system: SYSTEM,
-      messages
-    });
+    response = endpointMode() === "chat"
+      ? await callChat(key, model, messages)
+      : await getClient(key).messages.create({
+          model,
+          max_tokens: 2000,
+          system: SYSTEM,
+          messages
+        });
   } catch (error) {
     // Status and model only. The request body is never logged. A wrong or
     // retired MODEL_ID shows up here as a 400 or 404 naming the slug.
