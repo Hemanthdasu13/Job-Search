@@ -7,11 +7,14 @@
 // Required environment variables:
 //   OPENROUTER_API_KEY   sent as "Authorization: Bearer <key>"
 //   MODEL_ID             OpenRouter model slug, e.g. a free model while
-//                        testing and a Claude model in production. Changing
-//                        it in Vercel takes effect on the next request; no
-//                        code change and no redeploy. There is no default:
-//                        an unset MODEL_ID is a configuration error, not a
-//                        silent call to some other model.
+//                        testing and a Claude model in production. No code
+//                        change to swap it, but Vercel bakes environment
+//                        variables into a deployment, so the new value only
+//                        applies once you redeploy (Deployments -> the three
+//                        dots -> Redeploy; no rebuild of anything by hand).
+//                        There is no default: an unset MODEL_ID is a
+//                        configuration error, not a silent call to some
+//                        other model.
 //
 // Optional:
 //   OPENROUTER_BASE_URL  default https://openrouter.ai/api
