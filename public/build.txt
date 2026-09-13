@@ -1,0 +1,2 @@
+build: 2026-09-13 steel-and-gears, reflection, dual-endpoint diag
+If you can read this, the deployment is current.
