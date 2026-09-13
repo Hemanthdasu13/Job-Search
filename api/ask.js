@@ -18,6 +18,8 @@
 //
 // Optional:
 //   OPENROUTER_BASE_URL  default https://openrouter.ai/api
+//   REQUEST_TIMEOUT_MS   default 9000, must stay under the platform's
+//                        function duration limit
 //   OPENROUTER_SITE_URL / OPENROUTER_APP_NAME   OpenRouter attribution
 //   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN  shared counters
 //   IP_SALT                    stable salt for hashed-IP keys (set one)
@@ -32,15 +34,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { claimModelCall } from "./_limits.js";
-
-// The SDK appends "/v1/messages" itself, so the base must stop short of it.
-// Accept the endpoint as written in OpenRouter's docs too: a base ending in
-// "/v1" or "/v1/messages" is trimmed back rather than doubled up.
-export function normaliseBase(url) {
-  return url.replace(/\/+$/, "").replace(/\/v1(\/messages)?$/, "");
-}
-
-const BASE_URL = normaliseBase(process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api");
+import { BASE_URL, REQUEST_TIMEOUT_MS } from "./_provider.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
 
@@ -92,8 +86,10 @@ function getClient(key) {
       authToken: key,
       baseURL: BASE_URL,
       defaultHeaders: headers,
-      maxRetries: 1,
-      timeout: 25000
+      // No retry: a retry doubles the wait the visitor is already staring at,
+      // and the second attempt would be killed by the platform anyway.
+      maxRetries: 0,
+      timeout: REQUEST_TIMEOUT_MS
     });
   }
   return client;
@@ -189,6 +185,7 @@ export default async function handler(req, res) {
   }
 
   let response;
+  const started = Date.now();
   try {
     response = await getClient(key).messages.create({
       model,
@@ -199,7 +196,12 @@ export default async function handler(req, res) {
   } catch (error) {
     // Status and model only. The request body is never logged. A wrong or
     // retired MODEL_ID shows up here as a 400 or 404 naming the slug.
-    console.error("model_call_failed", error?.status ?? error?.name ?? "unknown", model);
+    console.error(
+      "model_call_failed",
+      error?.status ?? error?.name ?? "unknown",
+      model,
+      Date.now() - started + "ms"
+    );
     return fail(res);
   }
 
