@@ -100,7 +100,7 @@ const server = createServer(async (req, res) => {
   // Any .html sitting in the project root, so styling variants can be
   // compared side by side without editing this file each time.
   if (path === "/" || /^\/[a-z0-9-]+\.html$/.test(path)) {
-    const file = path === "/" ? "./index.html" : "." + path;
+    const file = path === "/" ? "./public/index.html" : "./public" + path;
     const html = await readFile(new URL(file, import.meta.url)).catch(() => null);
     if (!html) {
       res.writeHead(404, { "Content-Type": "text/plain" });
