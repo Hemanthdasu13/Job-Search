@@ -22,8 +22,19 @@ export default async function handler(req, res) {
   const key = process.env.OPENROUTER_API_KEY;
   const model = process.env.MODEL_ID;
 
+  // Vercel injects these into every deployment. They answer "is the code I
+  // pushed the code that is running", which is otherwise guesswork.
+  const deployment = {
+    commit: (process.env.VERCEL_GIT_COMMIT_SHA || "unknown").slice(0, 7),
+    commitMessage: (process.env.VERCEL_GIT_COMMIT_MESSAGE || "").split("\n")[0] || null,
+    branch: process.env.VERCEL_GIT_COMMIT_REF || null,
+    environment: process.env.VERCEL_ENV || "not on Vercel",
+    url: process.env.VERCEL_URL || null
+  };
+
   const out = {
     checkedAt: new Date().toISOString(),
+    deployment,
     config: {
       OPENROUTER_API_KEY: key
         ? { set: true, length: key.length, startsWith_sk_or: key.startsWith("sk-or-") }
