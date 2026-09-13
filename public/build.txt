@@ -1,2 +1,29 @@
-build: 2026-09-13 steel-and-gears, reflection, dual-endpoint diag
-If you can read this, the deployment is current.
+Could you tell if it was wrong? — what is in this build
+
+If you are reading this, the deployment is current. If this 404s, Vercel has
+not picked up the latest push and nothing below is live yet.
+
+Conversation
+  Five statuses: probing, reached, verified, unclear, off_topic.
+  Four probing turns maximum, then the gap-surfaced closing.
+  reached closes on the turn it happens, even the first.
+  verified closes to the independent-check screen.
+  One vague answer buys a narrower question; a second in a row spends a turn,
+  so non-answers cannot loop.
+  Two off-topic replies end on the neutral screen, which offers a way back in.
+
+Closing screens
+  Fixed text, never generated.
+  Your own words are quoted back on the two screens that close on them.
+  A real outcome that already happened adds one short line above everything.
+
+Guarantees, enforced in code rather than asked of the model
+  The model returns a question and a status and nothing else.
+  Every research claim on the page is fixed HTML the model cannot touch.
+  No confidential detail is echoed back, in the question or the quote.
+  Nothing typed is stored or logged by this site.
+
+Checking it yourself
+  /api/diag              configuration, and which commit is running
+  /api/diag?probe=1      one real call to each provider endpoint
+  /?debug=1              every turn's status, timing and failure reason
