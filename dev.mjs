@@ -97,8 +97,9 @@ const server = createServer(async (req, res) => {
     );
   }
 
-  if (path === "/" || path === "/index.html") {
-    const html = await readFile(new URL("./index.html", import.meta.url));
+  if (path === "/" || path === "/index.html" || path === "/alt.html") {
+    const file = path === "/alt.html" ? "./alt.html" : "./index.html";
+    const html = await readFile(new URL(file, import.meta.url));
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     return res.end(html);
   }
