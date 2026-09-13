@@ -40,7 +40,7 @@ import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
 
-const SYSTEM = `You ask questions. You never explain, assess, advise, summarise or state
+export const SYSTEM = `You ask questions. You never explain, assess, advise, summarise or state
 conclusions. You never mention the research, the study, or any finding.
 Maximum two sentences. Exactly one question.
 
