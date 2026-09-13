@@ -65,10 +65,13 @@ async function stubAsk(req, res) {
   if (status === "fail") return json(res, 200, { ok: false });
 
   console.log(`  [stub] turn ${turn} -> ${status}`);
+  const closes = status === "reached" || status === "verified";
   json(res, 200, {
     ok: true,
     question: STUB_QUESTIONS[Math.min(turn, STUB_QUESTIONS.length - 1)],
-    status
+    status,
+    reflection: closes ? (process.env.STUB_REFLECTION || "I never checked what the model had to work from.") : null,
+    closing_note: process.env.STUB_CLOSING_NOTE || null
   });
 }
 
