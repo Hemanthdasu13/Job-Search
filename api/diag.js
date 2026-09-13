@@ -14,7 +14,7 @@
 // exception.
 
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
-import { kvEnabled, LIMITS } from "./_limits.js";
+import { kvEnabled, LIMITS, claimModelCall } from "./_limits.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -61,6 +61,15 @@ export default async function handler(req, res) {
   }
   if (!key || !model) {
     out.next = "Fix the problems above before probing.";
+    return res.status(200).json(out);
+  }
+
+  // The probe spends two real model calls, and this endpoint is public and
+  // unauthenticated. Charge it against the same budget as the tool itself so
+  // it cannot be used to burn credit.
+  const claim = await claimModelCall(req);
+  if (!claim.allowed) {
+    out.problems.push(`Probe skipped: ${claim.reason}. It spends real calls, so it shares the tool's budget.`);
     return res.status(200).json(out);
   }
 
