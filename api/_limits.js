@@ -45,6 +45,28 @@ async function kvIncr(key, ttlSeconds) {
   return Number(incr.result);
 }
 
+// Any Redis command, for callers that need more than a counter. Returns null
+// rather than throwing when there is no store or the store is unreachable:
+// nothing here is allowed to take the site down.
+export async function kvCall(command) {
+  if (!kvEnabled) return null;
+  try {
+    const res = await fetch(KV_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${KV_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(command)
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return body.error ? null : body.result;
+  } catch {
+    return null;
+  }
+}
+
 const memory = new Map();
 
 function memoryIncr(key, ttlSeconds, now) {

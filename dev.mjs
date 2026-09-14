@@ -79,23 +79,25 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const path = url.pathname;
 
-  if (path === "/api/hit") return json(res, 200, { ok: true, counted: false });
-
-  if (path === "/api/ask") {
-    if (req.method !== "POST") return json(res, 405, { ok: false });
-    if (STUB) return stubAsk(req, res);
-    const mod = await import("./api/ask.js");
-    const body = await readBody(req);
+  // Any function in api/, so new endpoints need no change here.
+  const api = path.match(/^\/api\/([a-z0-9-]+)$/);
+  if (api) {
+    if (STUB && api[1] === "ask") {
+      if (req.method !== "POST") return json(res, 405, { ok: false });
+      return stubAsk(req, res);
+    }
+    let mod;
+    try {
+      mod = await import(`./api/${api[1]}.js`);
+    } catch {
+      return json(res, 404, { ok: false });
+    }
+    const body = req.method === "POST" ? await readBody(req) : undefined;
     return mod.default(
       Object.assign(req, { body }),
       Object.assign(res, {
-        status(code) {
-          this.statusCode = code;
-          return this;
-        },
-        json(payload) {
-          json(res, this.statusCode || 200, payload);
-        }
+        status(code) { this.statusCode = code; return this; },
+        json(payload) { json(res, this.statusCode || 200, payload); }
       })
     );
   }

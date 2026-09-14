@@ -1,4 +1,4 @@
-Could you tell if it was wrong? — what is in this build
+Could you tell if it was wrong? — v0.2.0 — what is in this build
 
 If you are reading this, the deployment is current. If this 404s, Vercel has
 not picked up the latest push and nothing below is live yet.
@@ -22,6 +22,14 @@ Guarantees, enforced in code rather than asked of the model
   Every research claim on the page is fixed HTML the model cannot touch.
   No confidential detail is echoed back, in the question or the quote.
   Nothing typed is stored or logged by this site.
+
+Contributing
+  A conversation is kept only if the person ticks the box before typing.
+  The box appears only where there is somewhere to keep one.
+  What is kept: their words, the questions, how it ended, this version.
+  What is never kept: any identifier. No IP, no session, no cookie.
+  Kept conversations expire, and are reviewed by a person, never fed back
+  into the tool automatically.
 
 Checking it yourself
   /api/diag              configuration, and which commit is running

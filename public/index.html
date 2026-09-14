@@ -276,6 +276,27 @@ main{position:relative;z-index:1}
   line-height:1.44;
 }
 
+.consent{
+  margin:1rem 0 0;
+  font-size:0.875rem;
+  line-height:1.45;
+  color:var(--muted);
+}
+.consent label{
+  display:flex;
+  gap:0.6rem;
+  align-items:flex-start;
+  cursor:pointer;
+}
+.consent input{
+  flex:none;
+  width:1.05rem;
+  height:1.05rem;
+  margin:0.13rem 0 0;
+  accent-color:var(--accent);
+}
+#version{color:var(--muted)}
+
 [hidden]{display:none !important}
 </style>
 </head>
@@ -310,7 +331,7 @@ main{position:relative;z-index:1}
     <button type="button" data-go="s2">See a worked example</button>
     <button type="button" data-go="s3">Try it on your own work</button>
   </div>
-  <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.</p>
+  <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.<br><span id="version">Beta, v0.2.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -331,9 +352,16 @@ main{position:relative;z-index:1}
 <!-- Screen 3 - Input -->
 <section class="screen" id="s3" hidden>
   <h2 tabindex="-1" id="s3-prompt">Think of a recent piece of work where AI output fed into something that mattered. A decision, a recommendation, an analysis someone else relied on. What was it?</h2>
-  <p class="note">Please don't include anything confidential. Nothing you type is stored or logged by this site.</p>
+  <p class="note">Please don't include anything confidential.</p>
   <form id="s3-form">
     <textarea id="s3-input" rows="3" aria-labelledby="s3-prompt" required></textarea>
+    <p class="consent" id="consent-row" hidden>
+      <label>
+        <input type="checkbox" id="consent">
+        <span>You can leave this conversation with me, to help improve the questions. I read them myself; nothing is automated. No name, no email, nothing that identifies you.</span>
+      </label>
+    </p>
+    <p class="note" id="privacy-line">Nothing you type is stored or logged by this site.</p>
     <div class="actions">
       <button type="submit">Continue</button>
     </div>
@@ -438,7 +466,8 @@ main{position:relative;z-index:1}
     offTopic: 0,        // off-topic replies received
     unclearRun: 0,      // consecutive unclear replies on the same thread
     reflection: null,   // their own words, shown back on 5A or 5B
-    closingNote: null   // one line, only when a real outcome was described
+    closingNote: null,  // one line, only when a real outcome was described
+    consent: false      // ticked before they typed, or nothing is kept
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -472,17 +501,20 @@ main{position:relative;z-index:1}
     setBusy(false);
     $("s5a-unavailable").hidden = !unavailable;
     paintClosing("s5a");
+    contribute(unavailable ? "unavailable" : (state.probing >= MAX_PROBING_TURNS ? "exhausted" : "reached"));
     show("s5a");
   }
 
   function closeVerified() {
     setBusy(false);
     paintClosing("s5b");
+    contribute("verified");
     show("s5b");
   }
 
   function closeNeutral() {
     setBusy(false);
+    contribute("off_topic");
     show("s5c");
   }
 
@@ -665,6 +697,9 @@ main{position:relative;z-index:1}
     state.unclearRun = 0;
     state.reflection = null;
     state.closingNote = null;
+    state.consent = false;
+    $("consent").checked = false;
+    $("privacy-line").textContent = "Nothing you type is stored or logged by this site.";
     current = "s3";
     $("s3-input").value = "";
     setBusy(false);
@@ -687,6 +722,40 @@ main{position:relative;z-index:1}
     if (!text) { return; }
     submitAnswer(text);
   });
+
+  /* ------------------------------ consent ------------------------------ */
+  // Never ask for permission the site cannot act on: the box only appears
+  // where there is somewhere to keep a conversation.
+  fetch("/api/contribute", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+    .then(function (res) { return res.json(); })
+    .then(function (data) { if (data && data.available) { $("consent-row").hidden = false; } })
+    .catch(function () { /* leave it hidden */ });
+
+  $("consent").addEventListener("change", function () {
+    state.consent = $("consent").checked;
+    $("privacy-line").textContent = state.consent
+      ? "This conversation will be kept, without anything that identifies you."
+      : "Nothing you type is stored or logged by this site.";
+  });
+
+  // Sent once, at the end, and only when the box was ticked.
+  function contribute(endedOn) {
+    if (!state.consent) { return; }
+    try {
+      fetch("/api/contribute", {
+        method: "POST",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          consent: true,
+          endedOn: endedOn,
+          answers: state.answers,
+          questions: state.questions,
+          reflection: state.reflection
+        })
+      }).catch(function () {});
+    } catch (e) { /* nothing here may affect the page */ }
+  }
 
   /* ---------------------------- hit counter ---------------------------- */
   // Aggregate count only. No identifiers, no payload.
