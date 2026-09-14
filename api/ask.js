@@ -37,6 +37,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { claimModelCall } from "./_limits.js";
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
+import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
 
@@ -182,9 +183,13 @@ async function callChat(key, model, messages) {
   }
 }
 
+// Which code is running, so a failure can be attributed to a build without
+// anyone having to find a dashboard.
+const BUILD = `${VERSION}@${(process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}`;
+
 const fail = (res, reason) => {
   res.setHeader("X-Fallback-Reason", reason);
-  return res.status(200).json({ ok: false, reason });
+  return res.status(200).json({ ok: false, reason, build: BUILD });
 };
 
 // The client sends the transcript back on every turn; the function holds no
@@ -342,6 +347,7 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
+    build: BUILD,
     question: parsed.question.slice(0, MAX_QUESTION_CHARS),
     status: parsed.status,
     reflection: closesWithReflection ? text_or_null(parsed.reflection, MAX_REFLECTION_CHARS) : null,

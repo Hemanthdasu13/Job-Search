@@ -276,6 +276,10 @@ main{position:relative;z-index:1}
   line-height:1.44;
 }
 
+.why{
+  font-size:0.8125rem;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
 .consent{
   margin:1rem 0 0;
   font-size:0.875rem;
@@ -383,7 +387,7 @@ main{position:relative;z-index:1}
 
 <!-- Screen 5A - Closing, gap surfaced. Fixed text. -->
 <section class="screen" id="s5a" hidden>
-  <p class="unavailable" id="s5a-unavailable" hidden>The interactive part is unavailable right now.</p>
+  <p class="unavailable" id="s5a-unavailable" hidden>The interactive part is unavailable right now.<br><span class="why" id="s5a-why"></span></p>
   <p class="closing-note" id="s5a-note" hidden></p>
   <p class="reflection" id="s5a-reflection" hidden>You said: “<span id="s5a-reflection-text"></span>”</p>
   <h2 tabindex="-1">The output was checkable. The inputs were not.</h2>
@@ -467,7 +471,9 @@ main{position:relative;z-index:1}
     unclearRun: 0,      // consecutive unclear replies on the same thread
     reflection: null,   // their own words, shown back on 5A or 5B
     closingNote: null,  // one line, only when a real outcome was described
-    consent: false      // ticked before they typed, or nothing is kept
+    consent: false,     // ticked before they typed, or nothing is kept
+    lastFailure: null,  // named on screen while this is in beta
+    build: null
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -500,6 +506,7 @@ main{position:relative;z-index:1}
   function closeGapSurfaced(unavailable) {
     setBusy(false);
     $("s5a-unavailable").hidden = !unavailable;
+    $("s5a-why").textContent = unavailable ? (state.lastFailure || "") : "";
     paintClosing("s5a");
     contribute(unavailable ? "unavailable" : (state.probing >= MAX_PROBING_TURNS ? "exhausted" : "reached"));
     show("s5a");
@@ -597,8 +604,12 @@ main{position:relative;z-index:1}
       })
       .then(function (data) {
         if (!data || data.ok !== true || typeof data.question !== "string") {
+          state.lastFailure = data && data.reason
+            ? data.reason + " · " + (data.build || "unknown build")
+            : "no response from the endpoint";
           return null;
         }
+        state.build = data.build || null;
         return data;
       });
   }
