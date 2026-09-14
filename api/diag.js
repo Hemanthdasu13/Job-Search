@@ -14,7 +14,7 @@
 // exception.
 
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
-import { kvEnabled, LIMITS, claimModelCall } from "./_limits.js";
+import { kvEnabled, kvSource, LIMITS, claimModelCall } from "./_limits.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -43,7 +43,13 @@ export default async function handler(req, res) {
       endpointMode: endpointMode(),
       endpoint: `${BASE_URL}/v1/${endpointMode() === "chat" ? "chat/completions" : "messages"}`,
       requestTimeoutMs: REQUEST_TIMEOUT_MS,
-      sharedCounters: kvEnabled ? "upstash" : "in-memory only",
+      storage: kvEnabled
+        ? `connected, credentials found in ${kvSource}`
+        : "NOT connected: no Upstash credentials on this deployment",
+      contributionsReadable: process.env.ADMIN_TOKEN
+        ? "yes, with your ADMIN_TOKEN"
+        : "no, ADMIN_TOKEN is not set",
+      sharedCounters: kvEnabled ? "shared via Upstash" : "in-memory only, per instance",
       limits: LIMITS,
       nodeVersion: process.version
     },
@@ -53,6 +59,8 @@ export default async function handler(req, res) {
   if (!key) out.problems.push("OPENROUTER_API_KEY is not set on this deployment. Add it in Vercel, then redeploy.");
   else if (!key.startsWith("sk-or-")) out.problems.push("OPENROUTER_API_KEY does not start with sk-or-. It may be the wrong key, or have a stray space or quote around it.");
   if (!model) out.problems.push("MODEL_ID is not set on this deployment. Add it in Vercel, then redeploy.");
+  if (!kvEnabled) out.problems.push("Upstash is not connected, so rate limits are per-instance and the contribute box will not appear. Add the two REST credentials in Vercel, then redeploy.");
+  else if (!process.env.ADMIN_TOKEN) out.problems.push("Upstash is connected but ADMIN_TOKEN is not set, so contributed conversations cannot be read back.");
 
   const url = new URL(req.url, "http://localhost");
   if (url.searchParams.get("probe") !== "1") {

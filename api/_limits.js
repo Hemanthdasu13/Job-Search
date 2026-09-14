@@ -9,10 +9,27 @@
 
 import { createHash } from "node:crypto";
 
-const KV_URL = process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+// Upstash credentials arrive under different names depending on how the
+// database was attached: copied by hand from the Upstash console, added by
+// Vercel's Upstash integration, or provisioned as Vercel KV. Accept all of
+// them, because "I connected it and nothing happened" is otherwise an hour
+// of looking in the wrong place.
+const KV_URL =
+  process.env.UPSTASH_REDIS_REST_URL ||
+  process.env.KV_REST_API_URL ||
+  process.env.REDIS_REST_URL;
+const KV_TOKEN =
+  process.env.UPSTASH_REDIS_REST_TOKEN ||
+  process.env.KV_REST_API_TOKEN ||
+  process.env.REDIS_REST_TOKEN;
 
 export const kvEnabled = Boolean(KV_URL && KV_TOKEN);
+
+// Which pair was actually found, so the diagnostic can say so.
+export const kvSource = process.env.UPSTASH_REDIS_REST_URL ? "UPSTASH_REDIS_REST_*"
+  : process.env.KV_REST_API_URL ? "KV_REST_API_*"
+  : process.env.REDIS_REST_URL ? "REDIS_REST_*"
+  : null;
 
 const num = (value, fallback) => {
   const n = Number(value);
