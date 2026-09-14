@@ -14,7 +14,7 @@
 // exception.
 
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
-import { kvEnabled, kvSource, LIMITS, claimModelCall } from "./_limits.js";
+import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -61,6 +61,20 @@ export default async function handler(req, res) {
   if (!model) out.problems.push("MODEL_ID is not set on this deployment. Add it in Vercel, then redeploy.");
   if (!kvEnabled) out.problems.push("Upstash is not connected, so rate limits are per-instance and the contribute box will not appear. Add the two REST credentials in Vercel, then redeploy.");
   else if (!process.env.ADMIN_TOKEN) out.problems.push("Upstash is connected but ADMIN_TOKEN is not set, so contributed conversations cannot be read back.");
+
+  // How much of the budget is already spent. Reading it costs nothing, and
+  // "rate limited" is otherwise indistinguishable from "broken".
+  const usage = await peekUsage(req);
+  if (usage) {
+    out.config.budgetUsed = usage;
+    const [used, , cap] = usage.thisAddressThisWindow.split(" ");
+    if (Number(used) >= Number(cap)) {
+      out.problems.push(
+        `This address has used its ${cap} calls for the current ${LIMITS.windowSeconds / 60}-minute window, ` +
+        "so the tool will show its closing screen until the window rolls over. Not a fault."
+      );
+    }
+  }
 
   const url = new URL(req.url, "http://localhost");
   if (url.searchParams.get("probe") !== "1") {

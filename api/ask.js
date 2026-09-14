@@ -163,7 +163,7 @@ async function callChat(key, model, messages) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 2000,
+        max_tokens: 800,
         messages: [{ role: "system", content: SYSTEM }, ...messages]
       })
     });
@@ -300,7 +300,7 @@ export default async function handler(req, res) {
       ? await callChat(key, model, messages)
       : await getClient(key).messages.create({
           model,
-          max_tokens: 2000,
+          max_tokens: 800,
           system: SYSTEM,
           messages
         });
@@ -313,10 +313,11 @@ export default async function handler(req, res) {
     const timedOut = /timeout|timed out|aborted/i.test(
       String(error?.message) + String(error?.name)
     );
+    const elapsed = Date.now() - started;
     const reason = error?.status
       ? "upstream_" + error.status
       : timedOut
-        ? "upstream_timeout"
+        ? `upstream_timeout after ${elapsed}ms on ${model}`
         : "upstream_" + (error?.name || "unknown");
     console.error("model_call_failed", reason, model, Date.now() - started + "ms",
       String(error?.message || "").slice(0, 200));

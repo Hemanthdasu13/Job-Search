@@ -37,25 +37,41 @@ const num = (value, fallback) => {
 };
 
 export const LIMITS = {
-  perIp: num(process.env.RATE_LIMIT_PER_IP, 15),
+  perIp: num(process.env.RATE_LIMIT_PER_IP, 40),
   windowSeconds: num(process.env.RATE_LIMIT_WINDOW_MINUTES, 15) * 60,
   perDay: num(process.env.DAILY_CALL_CAP, 300)
 };
 
 /* ------------------------------- backends ------------------------------- */
 
+// Every call here sits in front of a model call, so it gets a short leash.
+// A slow store must cost a few hundred milliseconds and then be ignored, not
+// hold the request until the platform kills it.
+const KV_TIMEOUT_MS = num(process.env.KV_TIMEOUT_MS, 1200);
+
+async function kvFetch(path, body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), KV_TIMEOUT_MS);
+  try {
+    return await fetch(`${KV_URL}${path}`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${KV_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function kvIncr(key, ttlSeconds) {
-  const res = await fetch(`${KV_URL}/pipeline`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${KV_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify([
-      ["INCR", key],
-      ["EXPIRE", key, String(ttlSeconds), "NX"]
-    ])
-  });
+  const res = await kvFetch("/pipeline", [
+    ["INCR", key],
+    ["EXPIRE", key, String(ttlSeconds), "NX"]
+  ]);
   if (!res.ok) throw new Error(`kv ${res.status}`);
   const [incr] = await res.json();
   if (incr.error) throw new Error("kv command failed");
@@ -143,6 +159,23 @@ export async function claimModelCall(req, now = Date.now()) {
   if (dayCount > LIMITS.perDay) return { allowed: false, reason: "daily_cap" };
 
   return { allowed: true };
+}
+
+// Reads the two counters without incrementing either, so the diagnostic can
+// say "you are rate limited" instead of leaving it to be guessed.
+export async function peekUsage(req, now = Date.now()) {
+  if (!kvEnabled) return null;
+  const window = Math.floor(now / (LIMITS.windowSeconds * 1000));
+  const results = await kvCall([
+    "MGET",
+    `ask:ip:${hashIp(req)}:${window}`,
+    `ask:day:${dayKey(now)}`
+  ]);
+  if (!Array.isArray(results)) return null;
+  return {
+    thisAddressThisWindow: `${Number(results[0]) || 0} of ${LIMITS.perIp}`,
+    everyoneToday: `${Number(results[1]) || 0} of ${LIMITS.perDay}`
+  };
 }
 
 export async function countHit(now = Date.now()) {
