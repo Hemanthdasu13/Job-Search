@@ -370,7 +370,7 @@ main{position:relative;z-index:1}
       <button type="submit">Continue</button>
     </div>
   </form>
-  <p class="thinking" data-thinking role="status" hidden>Thinking<i>.</i><i>.</i><i>.</i></p>
+  <p class="thinking" data-thinking role="status" hidden><span data-label>Thinking</span><i>.</i><i>.</i><i>.</i></p>
 </section>
 
 <!-- Screen 4 - Conversation -->
@@ -382,7 +382,7 @@ main{position:relative;z-index:1}
       <button type="submit">Continue</button>
     </div>
   </form>
-  <p class="thinking" data-thinking role="status" hidden>Thinking<i>.</i><i>.</i><i>.</i></p>
+  <p class="thinking" data-thinking role="status" hidden><span data-label>Thinking</span><i>.</i><i>.</i><i>.</i></p>
 </section>
 
 <!-- Screen 5A - Closing, gap surfaced. Fixed text. -->
@@ -619,11 +619,24 @@ main{position:relative;z-index:1}
 
   // Lock the controls in place rather than replacing them, so their own
   // words stay on screen while the question is being written.
+  var patienceTimer = null;
+
   function setBusy(busy) {
     var screen = $(current);
-    screen.querySelector("[data-thinking]").hidden = !busy;
+    var thinking = screen.querySelector("[data-thinking]");
+    thinking.hidden = !busy;
     screen.querySelector("textarea").readOnly = busy;
     screen.querySelector("button[type=submit]").disabled = busy;
+
+    clearTimeout(patienceTimer);
+    var label = thinking.querySelector("[data-label]");
+    if (label) { label.textContent = "Thinking"; }
+    if (busy && label) {
+      // Say so rather than letting a long wait read as a broken page.
+      patienceTimer = setTimeout(function () {
+        label.textContent = "Still thinking, it can take a few seconds";
+      }, 7000);
+    }
   }
 
   function askQuestion(text) {

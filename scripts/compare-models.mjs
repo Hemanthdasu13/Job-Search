@@ -29,12 +29,40 @@ function loadScenarios(file) {
 const KEY = process.env.OPENROUTER_API_KEY;
 const BASE = (process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api")
   .replace(/\/+$/, "").replace(/\/v1(\/messages)?$/, "");
-const MODELS = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+let MODELS = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const RUNS = Number(process.argv[process.argv.indexOf("--runs") + 1]) || 1;
+const FREE_ONLY = process.argv.includes("--free");
+const TOP = Number(process.argv[process.argv.indexOf("--top") + 1]) || 6;
 
-if (!KEY || MODELS.length < 1) {
+if (!KEY || (MODELS.length < 1 && !FREE_ONLY)) {
   console.error("usage: OPENROUTER_API_KEY=... node scripts/compare-models.mjs <model> [<model>...] [--runs N]");
+  console.error("       OPENROUTER_API_KEY=... node scripts/compare-models.mjs --free [--top N]");
   process.exit(2);
+}
+
+// Which free models exist is a live question, answerable only from a machine
+// that can reach OpenRouter. Ask it rather than guessing at slugs.
+if (FREE_ONLY) {
+  const res = await fetch(`${BASE}/v1/models`, { headers: { Authorization: `Bearer ${KEY}` } });
+  if (!res.ok) {
+    console.error(`could not list models: HTTP ${res.status}`);
+    process.exit(1);
+  }
+  const all = (await res.json()).data || [];
+  const free = all.filter((m) => {
+    const p = m.pricing || {};
+    return Number(p.prompt) === 0 && Number(p.completion) === 0;
+  });
+  // Prefer instruction-tuned models over reasoning ones: a model that thinks
+  // at length before answering spends the whole budget before the question
+  // exists. Then prefer smaller, which on a queued free tier clears faster.
+  const penalty = (m) => (/reason|thinking|-r1|qwq|deepseek-r/i.test(m.id) ? 1 : 0);
+  free.sort((a, b) => penalty(a) - penalty(b) ||
+    (a.context_length || 0) - (b.context_length || 0));
+  MODELS = free.slice(0, TOP).map((m) => m.id);
+  console.log(`${free.length} free models available; testing ${MODELS.length}:`);
+  for (const id of MODELS) console.log(`  ${id}`);
+  if (!MODELS.length) { console.error("no free models found"); process.exit(1); }
 }
 
 // Fixed inputs from the shared scenario file. Every model sees exactly the
@@ -117,6 +145,26 @@ for (const [model, t] of Object.entries(tally)) {
     `${t.unusable} unusable replies, median ${median}ms`
   );
 }
+const ranked = Object.entries(tally)
+  .map(([model, t]) => {
+    t.ms.sort((a, b) => a - b);
+    return { model, breaks: t.broken, unusable: t.unusable, median: t.ms[Math.floor(t.ms.length / 2)] || 0 };
+  })
+  .filter((r) => r.unusable === 0)
+  .sort((a, b) => a.breaks - b.breaks || a.median - b.median);
+
+if (ranked.length) {
+  const best = ranked[0];
+  console.log(
+    `\nbest of these: ${best.model}` +
+    `\n  ${best.breaks} rule breaks, median ${best.median}ms` +
+    (best.median > 18000 ? "\n  too slow for the deployed timeout; try another" : "") +
+    `\n  set MODEL_ID to it in Vercel, then redeploy`
+  );
+} else {
+  console.log("\nnone of these answered usably. Try --top 12 for a wider sweep.");
+}
+
 console.log(
   "\nRule breaks measure obedience, not quality. Read the questions above and\n" +
   "judge which model actually found the thing that mattered."

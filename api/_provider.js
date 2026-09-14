@@ -12,13 +12,16 @@ export const BASE_URL = normaliseBase(
   process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api"
 );
 
-// A model call has to finish inside the platform's function limit, which is
-// plan-dependent and can be as low as 10 seconds. Fail before that boundary
-// rather than being killed at it: being killed produces no log line, which is
-// exactly the case that is impossible to diagnose. Raise it with
-// REQUEST_TIMEOUT_MS if the plan allows longer.
+// A model call has to finish inside the platform's function limit, so this
+// must stay below the maxDuration set in vercel.json. Being killed at the
+// boundary produces no log line and no reason on screen, which is the one
+// failure that cannot be diagnosed, so always fail first, by a margin.
+//
+// Twenty seconds is sized for free models, which are queued and throttled
+// and routinely take ten or more. On a paid model two or three is normal and
+// this ceiling is never reached.
 const t = Number(process.env.REQUEST_TIMEOUT_MS);
-export const REQUEST_TIMEOUT_MS = Number.isFinite(t) && t > 0 ? t : 9000;
+export const REQUEST_TIMEOUT_MS = Number.isFinite(t) && t > 0 ? t : 20000;
 
 // OpenRouter serves two shapes. "messages" is the Anthropic-compatible
 // endpoint; "chat" is OpenRouter's own OpenAI-shaped one, which every model
