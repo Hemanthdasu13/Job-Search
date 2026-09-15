@@ -168,7 +168,8 @@ async function callChat(key, model, messages) {
       })
     });
     if (!res.ok) {
-      const error = new Error(`chat completions ${res.status}`);
+      const body = await res.text().catch(() => "");
+      const error = new Error(`chat completions ${res.status}: ${body.slice(0, 300)}`);
       error.status = res.status;
       throw error;
     }
@@ -349,11 +350,21 @@ export default async function handler(req, res) {
       String(error?.message) + String(error?.name)
     );
     const elapsed = Date.now() - started;
-    const reason = error?.status
-      ? "upstream_" + error.status
-      : timedOut
-        ? `upstream_timeout after ${elapsed}ms on ${model}`
-        : "upstream_" + (error?.name || "unknown");
+    const detail = `${error?.message || ""} ${JSON.stringify(error?.error || "")}`;
+    let reason;
+    if (error?.status === 429) {
+      reason = /free-models-per-day|free_tier|per.?day/i.test(detail)
+        // The count lives with the provider, keyed to the account. Nothing
+        // about this deployment can change it.
+        ? "upstream_429 daily free-model allowance spent, resets midnight UTC, redeploying cannot help"
+        : "upstream_429 provider busy, retry in a minute";
+    } else if (error?.status) {
+      reason = "upstream_" + error.status;
+    } else if (timedOut) {
+      reason = `upstream_timeout after ${elapsed}ms on ${model}`;
+    } else {
+      reason = "upstream_" + (error?.name || "unknown");
+    }
     console.error("model_call_failed", reason, model, Date.now() - started + "ms",
       String(error?.message || "").slice(0, 200));
     return fail(res, reason);
