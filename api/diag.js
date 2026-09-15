@@ -76,6 +76,44 @@ export default async function handler(req, res) {
     }
   }
 
+  // What the provider says this key is allowed, rather than what anyone
+  // remembers the free tier to be. Costs no model call.
+  if (key) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${BASE_URL}/v1/auth/key`, {
+        headers: { Authorization: `Bearer ${key}` },
+        signal: controller.signal
+      });
+      const body = await res.json().catch(() => null);
+      const d = body && body.data;
+      if (d) {
+        out.providerAccount = {
+          freeTier: d.is_free_tier,
+          creditLimit: d.limit === null ? "no limit set" : d.limit,
+          spent: d.usage,
+          remaining: d.limit_remaining !== undefined ? d.limit_remaining
+            : (d.limit === null ? "unlimited" : undefined),
+          perKeyRateLimit: d.rate_limit || null
+        };
+        if (d.is_free_tier) {
+          out.problems.push(
+            "This key is on the provider's free tier. Free models share one small daily " +
+            "allowance across the whole account, so a handful of conversations exhausts it " +
+            "and every visitor after that sees the closing screen."
+          );
+        }
+      } else {
+        out.providerAccount = { error: `key lookup returned HTTP ${res.status}` };
+      }
+    } catch (error) {
+      out.providerAccount = { error: `${error && error.name}: ${error && error.message}` };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   const url = new URL(req.url, "http://localhost");
   if (url.searchParams.get("probe") !== "1") {
     out.next = "Add ?probe=1 to this URL to make one real call and see what the provider says.";
