@@ -563,6 +563,8 @@ main{position:relative;z-index:1}
   /* --------------------------- model plumbing -------------------------- */
 
   var DEBUG = /[?&]debug=1(&|$)/.test(window.location.search);
+  // ?stub=1 walks the whole conversation without spending a provider call.
+  var STUB = /[?&]stub=1(&|$)/.test(window.location.search);
 
   function note(line) {
     if (!DEBUG) { return; }
@@ -580,7 +582,7 @@ main{position:relative;z-index:1}
     var call = state.calls;
     var started = Date.now();
 
-    return fetch("/api/ask", {
+    return fetch("/api/ask" + (STUB ? "?stub=1" : ""), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answers: state.answers, questions: state.questions })
@@ -592,8 +594,11 @@ main{position:relative;z-index:1}
           try { data = JSON.parse(text); } catch (e) { /* not JSON */ }
           note(
             call + "     " + res.status + "   " + elapsed + "   " +
-            (data ? (data.ok ? "ok / " + data.status : "failed / " + (data.reason || "no reason"))
-                  : "not JSON: " + text.slice(0, 120))
+            (data
+              ? (data.ok
+                  ? "ok / " + data.status + " / " + (data.build || "unknown build")
+                  : "failed / " + (data.reason || "no reason"))
+              : "not JSON: " + text.slice(0, 120))
           );
           return data;
         });

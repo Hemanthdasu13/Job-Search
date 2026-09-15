@@ -31,7 +31,25 @@ Contributing
   Kept conversations expire, and are reviewed by a person, never fed back
   into the tool automatically.
 
+Testing without spending provider calls
+  /?stub=1               walks the whole conversation on canned questions.
+                         No provider call, so a free daily allowance is not
+                         touched. Put #reached, #verified, #unclear,
+                         #off_topic or #note in an answer to force that
+                         branch. Use this for the screens, the routing, the
+                         consent box and the closing text; spend real calls
+                         only on judging the questions themselves.
+
+What each call costs
+  a conversation         one call per turn, so two to nine
+  /api/diag              none
+  /api/diag?probe=1      one
+  /api/diag?probe=both   two
+  /?stub=1               none
+
 Checking it yourself
-  /api/diag              configuration, and which commit is running
-  /api/diag?probe=1      one real call to each provider endpoint
-  /?debug=1              every turn's status, timing and failure reason
+  /api/diag              configuration, the deployed commit, the provider
+                         account's own tier and limits, and how much of the
+                         day's budget is spent
+  /api/diag?probe=1      one real call to the configured endpoint
+  /?debug=1              every turn's status, timing, build and failure reason

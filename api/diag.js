@@ -115,8 +115,9 @@ export default async function handler(req, res) {
   }
 
   const url = new URL(req.url, "http://localhost");
-  if (url.searchParams.get("probe") !== "1") {
-    out.next = "Add ?probe=1 to this URL to make one real call and see what the provider says.";
+  const probeParam = url.searchParams.get("probe");
+  if (probeParam !== "1" && probeParam !== "both") {
+    out.next = "Add ?probe=1 for one real call to the configured endpoint, or ?probe=both to test the other one too, at the cost of one more call.";
     return res.status(200).json(out);
   }
   if (!key || !model) {
@@ -164,11 +165,19 @@ export default async function handler(req, res) {
     }
   }
 
+  // One call by default. Probing both doubles what a diagnosis costs, and on
+  // a small free allowance that matters. ?probe=both when the question is
+  // specifically which endpoint serves this model.
   const ask = [{ role: "user", content: "Reply with the single word: ok" }];
-  out.probe = {
-    messages: await probe("/v1/messages", { model, max_tokens: 16, messages: ask }),
-    chat: await probe("/v1/chat/completions", { model, max_tokens: 16, messages: ask })
-  };
+  const both = probeParam === "both";
+  const configured = endpointMode() === "chat" ? "chat" : "messages";
+  const paths = { messages: "/v1/messages", chat: "/v1/chat/completions" };
+
+  out.probe = {};
+  for (const which of both ? ["messages", "chat"] : [configured]) {
+    out.probe[which] = await probe(paths[which], { model, max_tokens: 16, messages: ask });
+  }
+  out.probeCost = `${Object.keys(out.probe).length} provider call(s)`;
 
   const describe = (name, r) => {
     if (r.failed) return `${name}: ${r.failed}`;
@@ -182,15 +191,18 @@ export default async function handler(req, res) {
     };
     return `${name}: ${r.httpStatus} ${known[r.httpStatus] || (r.httpStatus >= 500 ? "provider-side error" : "unexpected")}`;
   };
-  out.problems.push(describe("messages endpoint", out.probe.messages));
-  out.problems.push(describe("chat endpoint", out.probe.chat));
+  for (const [which, r] of Object.entries(out.probe)) {
+    out.problems.push(describe(`${which} endpoint`, r));
+  }
 
-  const messagesOk = out.probe.messages.httpStatus === 200;
-  const chatOk = out.probe.chat.httpStatus === 200;
+  const messagesOk = out.probe.messages && out.probe.messages.httpStatus === 200;
+  const chatOk = out.probe.chat && out.probe.chat.httpStatus === 200;
   out.verdict =
     messagesOk ? "The configured endpoint works. If the page still fails, the fault is after the call."
     : chatOk ? "This model is not served over the Anthropic-compatible endpoint but works on OpenRouter's own. Set OPENROUTER_ENDPOINT=chat in Vercel and redeploy."
-    : "Neither endpoint answered. The lines above say why.";
+    : both
+      ? "Neither endpoint answered. The lines above say why."
+      : "The configured endpoint did not answer. Add ?probe=both to test the other one, at the cost of one more call.";
 
   return res.status(200).json(out);
 }

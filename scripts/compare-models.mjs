@@ -32,7 +32,7 @@ const BASE = (process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api")
 let MODELS = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const RUNS = Number(process.argv[process.argv.indexOf("--runs") + 1]) || 1;
 const FREE_ONLY = process.argv.includes("--free");
-const TOP = Number(process.argv[process.argv.indexOf("--top") + 1]) || 6;
+const TOP = Number(process.argv[process.argv.indexOf("--top") + 1]) || 2;
 
 if (!KEY || (MODELS.length < 1 && !FREE_ONLY)) {
   console.error("usage: OPENROUTER_API_KEY=... node scripts/compare-models.mjs <model> [<model>...] [--runs N]");

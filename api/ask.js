@@ -267,11 +267,50 @@ function extractJson(text) {
   return null;
 }
 
+// Test the whole conversation without spending a provider call. A free daily
+// allowance is small, and burning it on the screens, the routing, the consent
+// box and the closing text is waste: none of that involves a model.
+//
+// Add ?stub=1 to the page URL. Put #reached, #verified, #unclear, #off_topic
+// or #note in an answer to force that branch, so every path can be walked on
+// demand rather than hoped for.
+const STUB_QUESTIONS = [
+  "What did the system actually have in front of it when it produced that?",
+  "Which part of that could you check, and which part could you not?",
+  "If it had been wrong, how would you have found out?",
+  "Who else saw it, and what could they see that you could not?"
+];
+
+function stubbedReply(answers) {
+  const last = (answers[answers.length - 1] || "").toLowerCase();
+  const forced = ["reached", "verified", "unclear", "off_topic"]
+    .find((name) => last.includes("#" + name));
+  const turn = answers.length;
+  const status = forced || (turn >= 3 ? "reached" : "probing");
+  const closes = status === "reached" || status === "verified";
+  return {
+    question: STUB_QUESTIONS[Math.min(turn - 1, STUB_QUESTIONS.length - 1)],
+    status,
+    reflection: closes ? "I never checked what the system had to work from." : null,
+    closing_note: last.includes("#note") ? "That's a hard thing to find out after the fact." : null
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   if (req.method !== "POST") return fail(res, "method_not_post");
   if (!sameOrigin(req)) return fail(res, "cross_origin");
+
+  const body = await readJsonBody(req);
+  const messages = buildMessages(body);
+  if (!messages) return fail(res, "bad_request_shape");
+
+  // Costs nothing upstream, so it is neither budgeted nor metered.
+  if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {
+    const reply = stubbedReply(body.answers);
+    return res.status(200).json({ ok: true, build: BUILD + "+stub", ...reply });
+  }
 
   const key = process.env.OPENROUTER_API_KEY;
   const model = process.env.MODEL_ID;
@@ -283,10 +322,6 @@ export default async function handler(req, res) {
     console.error("config_missing MODEL_ID");
     return fail(res, "no_model_id");
   }
-
-  const body = await readJsonBody(req);
-  const messages = buildMessages(body);
-  if (!messages) return fail(res, "bad_request_shape");
 
   const claim = await claimModelCall(req);
   if (!claim.allowed) {
