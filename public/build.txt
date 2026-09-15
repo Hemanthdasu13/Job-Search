@@ -1,5 +1,8 @@
 Could you tell if it was wrong? — v0.2.0 — what is in this build
 
+Beta. The page is set to noindex, and the failing screen shows a reason code
+for diagnosis. Both come out before the link is public.
+
 If you are reading this, the deployment is current. If this 404s, Vercel has
 not picked up the latest push and nothing below is live yet.
 
