@@ -280,6 +280,16 @@ main{position:relative;z-index:1}
   line-height:1.44;
 }
 
+.testmode{
+  margin:2.5rem 0 0;
+  padding:0.85rem 1rem;
+  border:1.5px solid var(--accent);
+  background:var(--bg);
+  font-size:0.8125rem;
+  line-height:1.5;
+  position:relative;
+  z-index:2;
+}
 .why{
   font-size:0.8125rem;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -438,6 +448,8 @@ main{position:relative;z-index:1}
 </section>
 
 
+<p class="testmode" id="testmode" hidden>Test mode. The questions below are fixed placeholders and no model is being called, so nothing is spent. Judge the screens and the routing here, not the questions.</p>
+
 <pre class="debug" id="debug" hidden></pre>
 
 </main>
@@ -569,6 +581,7 @@ main{position:relative;z-index:1}
   var DEBUG = /[?&]debug=1(&|$)/.test(window.location.search);
   // ?stub=1 walks the whole conversation without spending a provider call.
   var STUB = /[?&]stub=1(&|$)/.test(window.location.search);
+  if (STUB) { document.getElementById("testmode").hidden = false; }
 
   function note(line) {
     if (!DEBUG) { return; }
