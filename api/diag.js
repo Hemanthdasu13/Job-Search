@@ -15,6 +15,7 @@
 
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
 import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
+import { SYSTEM } from "./ask.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -168,20 +169,55 @@ export default async function handler(req, res) {
   // One call by default. Probing both doubles what a diagnosis costs, and on
   // a small free allowance that matters. ?probe=both when the question is
   // specifically which endpoint serves this model.
-  const ask = [{ role: "user", content: "Reply with the single word: ok" }];
+  // Ask what the tool asks, with the ceiling the tool uses. A sixteen-token
+  // probe truncates every model, so it could only ever report that the
+  // endpoint accepted a request, which is not the question. The question is
+  // whether this model can do this job.
+  const ask = [{ role: "user", content: "A pricing analysis I ran with AI that went into a board pack." }];
   const both = probeParam === "both";
   const configured = endpointMode() === "chat" ? "chat" : "messages";
   const paths = { messages: "/v1/messages", chat: "/v1/chat/completions" };
 
   out.probe = {};
   for (const which of both ? ["messages", "chat"] : [configured]) {
-    out.probe[which] = await probe(paths[which], { model, max_tokens: 16, messages: ask });
+    out.probe[which] = await probe(paths[which], which === "chat"
+      ? { model, max_tokens: 800, messages: [{ role: "system", content: SYSTEM }, ...ask] }
+      : { model, max_tokens: 800, system: SYSTEM, messages: ask });
   }
   out.probeCost = `${Object.keys(out.probe).length} provider call(s)`;
 
+  // Judge the reply, not the status code.
+  for (const r of Object.values(out.probe)) {
+    if (r.httpStatus !== 200 || !r.body) continue;
+    try {
+      const parsed = JSON.parse(r.body);
+      r.stopReason = parsed.stop_reason || parsed.choices?.[0]?.finish_reason || null;
+      const text = (parsed.content || [])
+        .filter((b) => b.type === "text").map((b) => b.text).join("") ||
+        parsed.choices?.[0]?.message?.content || "";
+      r.thoughtOutLoud = (parsed.content || []).some((b) => b.type === "thinking") ||
+        /^(here'?s (my|a) (thinking|reasoning)|let me think|<think)/i.test(text.trim());
+      const start = text.indexOf("{"), end = text.lastIndexOf("}");
+      const obj = start !== -1 && end > start ? JSON.parse(text.slice(start, end + 1)) : null;
+      r.usable = Boolean(obj && typeof obj.question === "string" && obj.status);
+      r.reply = text.slice(0, 200);
+    } catch {
+      r.usable = false;
+    }
+  }
+
   const describe = (name, r) => {
     if (r.failed) return `${name}: ${r.failed}`;
-    if (r.httpStatus === 200) return `${name}: works`;
+    if (r.httpStatus === 200 && r.usable) return `${name}: works, and the reply is usable`;
+    if (r.httpStatus === 200) {
+      const why = r.stopReason === "max_tokens"
+        ? "it ran out of tokens before finishing"
+        : "the reply was not the required JSON";
+      const thinking = r.thoughtOutLoud
+        ? " This model writes its reasoning out loud, which spends the budget before the answer exists. Choose a model that is not a reasoning model."
+        : "";
+      return `${name}: answered, but unusably: ${why}.${thinking}`;
+    }
     const known = {
       400: "rejected the request shape for this model",
       401: "key rejected",
@@ -195,10 +231,10 @@ export default async function handler(req, res) {
     out.problems.push(describe(`${which} endpoint`, r));
   }
 
-  const messagesOk = out.probe.messages && out.probe.messages.httpStatus === 200;
-  const chatOk = out.probe.chat && out.probe.chat.httpStatus === 200;
+  const messagesOk = out.probe.messages && out.probe.messages.usable;
+  const chatOk = out.probe.chat && out.probe.chat.usable;
   out.verdict =
-    messagesOk ? "The configured endpoint works. If the page still fails, the fault is after the call."
+    messagesOk ? "This model answers usably on the configured endpoint. If the page still fails, the fault is after the call."
     : chatOk ? "This model is not served over the Anthropic-compatible endpoint but works on OpenRouter's own. Set OPENROUTER_ENDPOINT=chat in Vercel and redeploy."
     : both
       ? "Neither endpoint answered. The lines above say why."
