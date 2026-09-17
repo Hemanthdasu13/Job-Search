@@ -13,7 +13,7 @@
 // what the provider returns, including the bodies the SDK would turn into an
 // exception.
 
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl } from "./_provider.js";
 import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
 import { SYSTEM } from "./ask.js";
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         : { set: false },
       MODEL_ID: model || null,
       endpointMode: endpointMode(),
-      endpoint: `${BASE_URL}/v1/${endpointMode() === "chat" ? "chat/completions" : "messages"}`,
+      endpoint: endpointMode() === "chat" ? chatCompletionsUrl() : `${BASE_URL}/v1/messages`,
       requestTimeoutMs: REQUEST_TIMEOUT_MS,
       storage: kvEnabled
         ? `connected, credentials found in ${kvSource}`
@@ -137,12 +137,12 @@ export default async function handler(req, res) {
 
   // Probe both shapes, not just the configured one. If one answers and the
   // other does not, that is the whole diagnosis in a single visit.
-  async function probe(path, body) {
+  async function probe(fullUrl, body) {
     const started = Date.now();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const upstream = await fetch(`${BASE_URL}${path}`, {
+      const upstream = await fetch(fullUrl, {
         method: "POST",
         signal: controller.signal,
         headers: {
@@ -176,11 +176,11 @@ export default async function handler(req, res) {
   const ask = [{ role: "user", content: "A pricing analysis I ran with AI that went into a board pack." }];
   const both = probeParam === "both";
   const configured = endpointMode() === "chat" ? "chat" : "messages";
-  const paths = { messages: "/v1/messages", chat: "/v1/chat/completions" };
+  const urls = { messages: `${BASE_URL}/v1/messages`, chat: chatCompletionsUrl() };
 
   out.probe = {};
   for (const which of both ? ["messages", "chat"] : [configured]) {
-    out.probe[which] = await probe(paths[which], which === "chat"
+    out.probe[which] = await probe(urls[which], which === "chat"
       ? { model, max_tokens: 800, messages: [{ role: "system", content: SYSTEM }, ...ask] }
       : { model, max_tokens: 800, system: SYSTEM, messages: ask });
   }

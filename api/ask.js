@@ -19,7 +19,11 @@
 // Optional:
 //   OPENROUTER_BASE_URL  default https://openrouter.ai/api
 //   OPENROUTER_ENDPOINT  "messages" (default, Anthropic-compatible) or
-//                        "chat" (OpenRouter's own shape, widest model support)
+//                        "chat" (OpenAI-shaped, which most providers offer)
+//   CHAT_COMPLETIONS_URL full URL of an OpenAI-shaped endpoint, for a
+//                        provider whose path differs. Setting this plus
+//                        OPENROUTER_ENDPOINT=chat, MODEL_ID and the key moves
+//                        the tool to another provider without a code change.
 //   REQUEST_TIMEOUT_MS   default 9000, must stay under the platform's
 //                        function duration limit
 //   OPENROUTER_SITE_URL / OPENROUTER_APP_NAME   OpenRouter attribution
@@ -36,7 +40,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { claimModelCall } from "./_limits.js";
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl } from "./_provider.js";
 import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
@@ -153,7 +157,7 @@ async function callChat(key, model, messages) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE_URL}/v1/chat/completions`, {
+    const res = await fetch(chatCompletionsUrl(), {
       method: "POST",
       signal: controller.signal,
       headers: {

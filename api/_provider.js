@@ -34,3 +34,13 @@ export const REQUEST_TIMEOUT_MS = Number.isFinite(t) && t > 0 ? t : 20000;
 export function endpointMode() {
   return process.env.OPENROUTER_ENDPOINT === "chat" ? "chat" : "messages";
 }
+
+// The OpenAI-shaped path is not specific to OpenRouter: Google, Groq, Together
+// and others expose one, and they do not agree on where it lives. OpenRouter
+// is at <base>/v1/chat/completions; Google's compatibility layer sits under a
+// different prefix entirely. So allow the full URL to be given outright,
+// which makes moving provider a change of environment variables rather than
+// a change of code.
+export function chatCompletionsUrl() {
+  return process.env.CHAT_COMPLETIONS_URL || `${BASE_URL}/v1/chat/completions`;
+}

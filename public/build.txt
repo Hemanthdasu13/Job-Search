@@ -43,6 +43,14 @@ Testing without spending provider calls
                          consent box and the closing text; spend real calls
                          only on judging the questions themselves.
 
+Changing provider
+  The OpenAI-shaped path is not specific to one provider. Setting
+  OPENROUTER_ENDPOINT=chat, CHAT_COMPLETIONS_URL to that provider's full
+  endpoint, MODEL_ID to one of its models, and the key, moves the tool
+  without a code change. Check what the provider does with what people type
+  before doing it: a free tier that trains on inputs would contradict what
+  this page promises.
+
 What each call costs
   a conversation         one call per turn, so two to nine
   /api/diag              none
