@@ -43,6 +43,16 @@ Testing without spending provider calls
                          consent box and the closing text; spend real calls
                          only on judging the questions themselves.
 
+What the page promises about data
+  The privacy line is not fixed text. /api/config reports whether the
+  configured provider uses what people type to train on, and the page says so
+  itself when it does. Set PROVIDER_TRAINS_ON_INPUT=1 for a provider or tier
+  that does. Google's Gemini API terms say unpaid use is used to "provide,
+  improve, and develop Google products and services" and may be read by human
+  reviewers, while paid use is not; Anthropic's API does not train on API
+  inputs. A promise about data written once into HTML goes out of date in
+  silence, which is the worst way for this page in particular to be wrong.
+
 Changing provider
   The OpenAI-shaped path is not specific to one provider. Setting
   OPENROUTER_ENDPOINT=chat, CHAT_COMPLETIONS_URL to that provider's full

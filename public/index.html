@@ -745,7 +745,7 @@ main{position:relative;z-index:1}
     state.closingNote = null;
     state.consent = false;
     $("consent").checked = false;
-    $("privacy-line").textContent = "Nothing you type is stored or logged by this site.";
+    writePrivacyLine();
     current = "s3";
     $("s3-input").value = "";
     setBusy(false);
@@ -769,19 +769,37 @@ main{position:relative;z-index:1}
     submitAnswer(text);
   });
 
-  /* ------------------------------ consent ------------------------------ */
-  // Never ask for permission the site cannot act on: the box only appears
-  // where there is somewhere to keep a conversation.
-  fetch("/api/contribute", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+  /* -------------------------- what to promise -------------------------- */
+  // The page says what is true of this deployment, not what was true when the
+  // HTML was written. Both halves come from the server: whether a conversation
+  // can be kept, and whether the provider behind the questions trains on what
+  // people type.
+  var trainsOnInput = false;
+
+  function writePrivacyLine() {
+    var kept = state.consent
+      ? "This conversation will be kept, without anything that identifies you."
+      : "Nothing you type is stored or logged by this site.";
+    var sent = trainsOnInput
+      ? " It is sent to a model provider to write the question, and on their free tier they may use it to train their models."
+      : "";
+    $("privacy-line").textContent = kept + sent;
+  }
+
+  fetch("/api/config")
     .then(function (res) { return res.json(); })
-    .then(function (data) { if (data && data.available) { $("consent-row").hidden = false; } })
-    .catch(function () { /* leave it hidden */ });
+    .then(function (data) {
+      if (!data) { return; }
+      // Never ask for permission the site cannot act on.
+      if (data.contributionsPossible) { $("consent-row").hidden = false; }
+      trainsOnInput = data.providerTrainsOnInput === true;
+      writePrivacyLine();
+    })
+    .catch(function () { /* the written-in default stands */ });
 
   $("consent").addEventListener("change", function () {
     state.consent = $("consent").checked;
-    $("privacy-line").textContent = state.consent
-      ? "This conversation will be kept, without anything that identifies you."
-      : "Nothing you type is stored or logged by this site.";
+    writePrivacyLine();
   });
 
   // Sent once, at the end, and only when the box was ticked.
