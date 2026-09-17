@@ -13,14 +13,14 @@
 // what the provider returns, including the bodies the SDK would turn into an
 // exception.
 
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey, isOpenRouter } from "./_provider.js";
 import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
 import { SYSTEM } from "./ask.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
-  const key = process.env.OPENROUTER_API_KEY;
+  const key = modelApiKey();
   const model = process.env.MODEL_ID;
 
   // Vercel injects these into every deployment. They answer "is the code I
@@ -37,8 +37,11 @@ export default async function handler(req, res) {
     checkedAt: new Date().toISOString(),
     deployment,
     config: {
-      OPENROUTER_API_KEY: key
-        ? { set: true, length: key.length, startsWith_sk_or: key.startsWith("sk-or-") }
+      apiKey: key
+        // The first few characters identify the provider and are not secret:
+        // Google's keys begin AIza, OpenRouter's sk-or. Enough to catch a key
+        // pasted from the wrong place, without revealing anything.
+        ? { set: true, length: key.length, prefix: key.slice(0, 4) + "..." }
         : { set: false },
       MODEL_ID: model || null,
       endpointMode: endpointMode(),
@@ -57,8 +60,9 @@ export default async function handler(req, res) {
     problems: []
   };
 
-  if (!key) out.problems.push("OPENROUTER_API_KEY is not set on this deployment. Add it in Vercel, then redeploy.");
-  else if (!key.startsWith("sk-or-")) out.problems.push("OPENROUTER_API_KEY does not start with sk-or-. It may be the wrong key, or have a stray space or quote around it.");
+  if (!key) out.problems.push("MODEL_API_KEY is not set on this deployment. Add it in Vercel, then redeploy.");
+  else if (/\s|["']/.test(key)) out.problems.push("The key contains a space or a quote character. Paste it without surrounding quotes.");
+  else if (isOpenRouter() && !key.startsWith("sk-or-")) out.problems.push("The base URL points at OpenRouter but the key does not look like an OpenRouter key. Either the key or PROVIDER_BASE_URL is from a different provider.");
   if (!model) out.problems.push("MODEL_ID is not set on this deployment. Add it in Vercel, then redeploy.");
   if (!kvEnabled) out.problems.push("Upstash is not connected, so rate limits are per-instance and the contribute box will not appear. Add the two REST credentials in Vercel, then redeploy.");
   else if (!process.env.ADMIN_TOKEN) out.problems.push("Upstash is connected but ADMIN_TOKEN is not set, so contributed conversations cannot be read back.");
@@ -79,7 +83,7 @@ export default async function handler(req, res) {
 
   // What the provider says this key is allowed, rather than what anyone
   // remembers the free tier to be. Costs no model call.
-  if (key) {
+  if (key && isOpenRouter()) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {

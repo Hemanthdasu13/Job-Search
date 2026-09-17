@@ -5,7 +5,9 @@
 // given a bearer token rather than an x-api-key.
 //
 // Required environment variables:
-//   OPENROUTER_API_KEY   sent as "Authorization: Bearer <key>"
+//   MODEL_API_KEY        sent as "Authorization: Bearer <key>", for whichever
+//                        provider is configured. OPENROUTER_API_KEY is still
+//                        read, for deployments set up under the old name.
 //   MODEL_ID             OpenRouter model slug, e.g. a free model while
 //                        testing and a Claude model in production. No code
 //                        change to swap it, but Vercel bakes environment
@@ -17,12 +19,12 @@
 //                        other model.
 //
 // Optional:
-//   OPENROUTER_BASE_URL  default https://openrouter.ai/api
-//   OPENROUTER_ENDPOINT  "messages" (default, Anthropic-compatible) or
+//   PROVIDER_BASE_URL    default https://openrouter.ai/api
+//   PROVIDER_ENDPOINT    "messages" (default, Anthropic-compatible) or
 //                        "chat" (OpenAI-shaped, which most providers offer)
 //   CHAT_COMPLETIONS_URL full URL of an OpenAI-shaped endpoint, for a
 //                        provider whose path differs. Setting this plus
-//                        OPENROUTER_ENDPOINT=chat, MODEL_ID and the key moves
+//                        PROVIDER_ENDPOINT=chat, MODEL_ID and the key moves
 //                        the tool to another provider without a code change.
 //   REQUEST_TIMEOUT_MS   default 9000, must stay under the platform's
 //                        function duration limit
@@ -40,7 +42,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { claimModelCall } from "./_limits.js";
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey } from "./_provider.js";
 import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
@@ -317,10 +319,10 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, build: BUILD + "+stub", ...reply });
   }
 
-  const key = process.env.OPENROUTER_API_KEY;
+  const key = modelApiKey();
   const model = process.env.MODEL_ID;
   if (!key) {
-    console.error("config_missing OPENROUTER_API_KEY");
+    console.error("config_missing MODEL_API_KEY");
     return fail(res, "no_api_key");
   }
   if (!model) {

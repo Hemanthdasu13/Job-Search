@@ -9,8 +9,30 @@ export function normaliseBase(url) {
 }
 
 export const BASE_URL = normaliseBase(
-  process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api"
+  process.env.PROVIDER_BASE_URL ||
+  process.env.OPENROUTER_BASE_URL ||
+  "https://openrouter.ai/api"
 );
+
+// The key is just "the key", whatever provider it belongs to. Putting a
+// Google key in a variable called OPENROUTER_API_KEY works but reads as a
+// mistake, so the provider-neutral name is preferred and the old one still
+// answers, because renaming a variable should not require a redeploy to
+// discover.
+export function modelApiKey() {
+  return process.env.MODEL_API_KEY || process.env.OPENROUTER_API_KEY || "";
+}
+
+// Which provider the base URL points at, for the few checks that are
+// provider-specific rather than shape-specific.
+export function isOpenRouter() {
+  // Sniffing the host covers the normal case. The override exists for a
+  // gateway or proxy in front of OpenRouter, where the host says nothing
+  // about who is behind it.
+  if (process.env.PROVIDER_IS_OPENROUTER === "1") return true;
+  if (process.env.PROVIDER_IS_OPENROUTER === "0") return false;
+  return /(^|\.)openrouter\.ai/i.test(BASE_URL);
+}
 
 // A model call has to finish inside the platform's function limit, so this
 // must stay below the maxDuration set in vercel.json. Being killed at the
@@ -32,7 +54,8 @@ export const REQUEST_TIMEOUT_MS = Number.isFinite(t) && t > 0 ? t : 20000;
 // of the process, which makes the setting untestable and unswitchable
 // locally, and hides that fact until someone tries.
 export function endpointMode() {
-  return process.env.OPENROUTER_ENDPOINT === "chat" ? "chat" : "messages";
+  const mode = process.env.PROVIDER_ENDPOINT || process.env.OPENROUTER_ENDPOINT;
+  return mode === "chat" ? "chat" : "messages";
 }
 
 // The OpenAI-shaped path is not specific to OpenRouter: Google, Groq, Together

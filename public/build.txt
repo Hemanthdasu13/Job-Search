@@ -54,12 +54,17 @@ What the page promises about data
   silence, which is the worst way for this page in particular to be wrong.
 
 Changing provider
-  The OpenAI-shaped path is not specific to one provider. Setting
-  OPENROUTER_ENDPOINT=chat, CHAT_COMPLETIONS_URL to that provider's full
-  endpoint, MODEL_ID to one of its models, and the key, moves the tool
-  without a code change. Check what the provider does with what people type
-  before doing it: a free tier that trains on inputs would contradict what
-  this page promises.
+  Four variables, no code change:
+    MODEL_API_KEY         the key, whichever provider it belongs to
+    MODEL_ID              a model that provider serves
+    PROVIDER_ENDPOINT     chat, for an OpenAI-shaped endpoint
+    CHAT_COMPLETIONS_URL  that provider's full completions URL
+  For Google's Gemini API the last is
+    https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+  The older OPENROUTER_ prefixed names are still read, so an existing
+  deployment does not break. Check what the provider does with what people
+  type before moving: a tier that trains on inputs contradicts what this page
+  promises unless PROVIDER_TRAINS_ON_INPUT=1 is set too.
 
 What each call costs
   a conversation         one call per turn, so two to nine
