@@ -1,102 +1,157 @@
 # Screening test protocol
 
 DO NOT upload this file into the Project. It is your script, not the model's.
-If the model reads the test design it will read the answers too.
+If the model reads how it is being graded, the test is worthless.
 
-Upload only these two into Project knowledge:
-  - 01_candidate_profile.md
-  - 02_screening_rubric.md
-
----
-
-## What is being tested
-
-Not "is Claude any good". Claude is fine. The question is narrower:
-
-    Does screening quality survive being done in batches?
-
-The API version makes one call per role with nothing shared between roles.
-The chat version puts many roles in one conversation. That is the only
-difference worth measuring, so hold everything else identical: same profile,
-same rubric, same output format, same roles, same model.
+Into Project knowledge, these two only:
+  01_candidate_profile.md
+  02_screening_rubric.md
 
 ---
 
-## Arm A - ten roles, ten separate chats
+## The one question being tested
 
-In the Project, open a new chat per role. Paste the ROLE PROMPT with one
-advert. Save the output. Ten chats, ten verdicts, no shared context.
+Does screening quality survive being done in bulk?
 
-This is the control. It reproduces the API's statelessness on your
-subscription, at no cost, so you can run it before buying any credit.
+Nothing else. Claude can screen a job advert well - that is not in doubt.
+What is in doubt is whether the 90th advert in a single conversation gets
+read as carefully as the 1st, or whether the model slips into list mode and
+starts producing verdicts that match the rhythm of its own earlier answers
+instead of reading the advert in front of it.
 
-## Arm B - ten roles, one chat
-
-One chat in the same Project. Paste the BATCH PROMPT with all ten adverts.
-Save the output.
-
-## Arm C - one hundred roles, one chat
-
-Same as B, one hundred adverts. This arm has no right answers and does not
-need any. It exists to measure whether verdict 95 is as thorough as verdict 5.
+If quality holds, split the workbook into sheets, screen them in chat, and
+never pay for API credit. If it does not, the money buys back the quality.
 
 ---
 
-## Choosing the roles
+# TEST 1 - THE HUNDRED
 
-Do not use ten roles you feel the same way about. The test needs spread.
+Do this one first. It is the cheapest way to get a decisive answer, it needs
+no known outcomes, and it can settle the whole question on its own.
 
+## Setup
+
+1. claude.ai, Projects, Create project. Call it "Job screening".
+2. Project knowledge: upload 01_candidate_profile.md and 02_screening_rubric.md.
+3. In Excel, open your roles workbook. Copy the first 100 rows into a new
+   file, keeping the header row and the full Job Description column.
+   Save it as test_100.xlsx.
+
+   Watch for this: very long adverts spill into continuation columns, because
+   a single Excel cell caps at 32,767 characters. If your sheet has columns
+   like "Job Description 2", bring them too, or you are testing the model on
+   truncated adverts and proving nothing.
+
+## Run
+
+4. New chat inside the Project.
+5. Attach test_100.xlsx.
+6. Paste the BATCH PROMPT (bottom of this file).
+7. When it stops, type "continue" until all 100 are done. Count the turns
+   this took - that number is itself a finding.
+8. Copy every verdict into one document.
+
+## Score it - count, do not eyeball
+
+Compare the first ten verdicts against the last ten:
+
+  a. Advert quotes per verdict. The rubric requires a quote behind every
+     claim. Falling quote counts are the model failing to follow instructions,
+     which is measurable, not a matter of taste.
+  b. Word count per verdict.
+  c. How many late verdicts name no ESSENTIAL gap at all.
+  d. Any verdict quoting an advert that belongs to a different role. Even one
+     is disqualifying - it means the roles have started bleeding together.
+  e. How many "continue" turns it needed, and whether quality dropped after
+     each one.
+
+## Read the result
+
+Quotes and word counts flat across all 100, no cross-contamination:
+  Bulk screening works. Build the splitter, skip the API. I was wrong.
+
+Quality holds early and fades late:
+  Bulk works, but not at 100. Re-run at 25 and find where it breaks.
+  Split the workbook to that size instead.
+
+Quotes disappear, verdicts turn generic, or roles bleed into each other:
+  Bulk screening is the thing that was making your results sloppy.
+  Per-role calls are worth paying for.
+
+---
+
+# TEST 2 - THE TEN
+
+Only worth running if Test 1 passed. Test 1 asks whether the method survives
+volume; this asks whether the method is right at all.
+
+## Pick the roles
+
+Ten roles, deliberately spread:
   3 you are confident are a good fit
   3 you are confident are wrong for you
   4 you genuinely cannot call
 
-The confident six catch false negatives and false positives. The uncertain
-four are where the tool either earns its place or does not.
+The confident six catch false positives and false negatives. The uncertain
+four are the only ones where the tool can tell you something you did not
+already know - which is the real test of whether it is worth running.
 
-Use the roles from Profile Bank section 8 where you still have the advert
+Prefer roles from Profile Bank section 8 where you still have the advert
 text, since you know how those ended. Where you do not have the advert, take
-a row from the current workbook instead - outcomes are noisy anyway, because
-a rejection at 400 applicants says little about fit.
+rows from the workbook. Outcomes are noisy anyway: a rejection against 400
+applicants says very little about fit.
+
+## Seal your own verdicts first
+
+Before any model output, write for each of the ten:
+  your verdict, your ceiling percent, the one thing that worries you
+
+Put it away. If you read the model's reasoning first you will find it
+convincing, because it is written to be, and you will lose the ability to
+tell a correct verdict from a well-argued one.
+
+## Run it twice, the same ten roles both times
+
+Round 1 - one at a time.
+  Ten separate new chats in the Project. Each chat gets the ROLE PROMPT and
+  one advert. Nothing is shared between them.
+  This is the control. It reproduces on your subscription exactly what the
+  API version does - a fresh, uncontaminated read per role - so you can
+  compare against it without buying credit.
+
+Round 2 - all together.
+  One new chat. The BATCH PROMPT with all ten adverts in it.
+  Same ten roles. Same Project. Same rubric. The only thing that changed is
+  that they now share a conversation.
+
+That is the whole design: identical work, done two ways, so any difference
+in the output is caused by the batching and nothing else.
+
+## Score it
+
+  1. On how many of the ten do Round 1 and Round 2 give a different verdict?
+     A different ceiling percent?
+  2. On your six confident roles, how many did each round get right?
+  3. On your four uncertain roles, did either round tell you something you
+     had not already thought of? If neither did, the tool is not earning its
+     place regardless of which plumbing you choose.
+
+## Read the result
+
+Rounds agree, and both match your sealed verdicts:
+  The rubric is sound and batching is not hurting it at this size.
+
+Rounds agree with each other but contradict you on the confident six:
+  The rubric is wrong, not the plumbing. Fix that before scaling anything.
+
+Rounds disagree with each other:
+  Batching is costing accuracy, not just polish. Per-role calls.
 
 ---
 
-## Write your own verdict first
+# PROMPTS
 
-Before you read any model output, write down for each of the ten:
-
-  your verdict, your ceiling percent, and the one thing that worries you
-
-Seal it. If you read the model's reasoning first you will find it persuasive,
-because it is written to be, and you will lose the ability to tell a good
-verdict from a plausible one.
-
----
-
-## Scoring
-
-Accuracy, Arm A against Arm B:
-
-  1. How many of the ten verdicts differ between the two arms
-  2. On the six you were confident about, how many did each arm get right
-  3. On the four you were unsure about, did the reasoning tell you something
-     you had not already thought of - this is the only question that matters
-     for whether the tool is worth running at all
-
-Degradation, Arm C - count these, do not eyeball them:
-
-  4. Number of advert quotes in verdicts 1-10 vs verdicts 91-100
-  5. Word count of verdicts 1-10 vs verdicts 91-100
-  6. Number of late verdicts that name no ESSENTIAL gap at all
-  7. Whether any late verdict quotes an advert belonging to a different role
-
-Prediction on the record, so this test can prove it wrong: verdicts 1-10 will
-carry two or more quotes each and read specifically; by verdict 90 the quotes
-thin out and the language turns generic. If quotes and word counts hold flat
-across all one hundred, batching is fine and the cheap route wins.
-
----
-
-## ROLE PROMPT - Arm A, one role per chat
+## ROLE PROMPT - Test 2, Round 1, one role per chat
 
 Screen this role against the profile and rubric in this Project.
 Follow the rubric's method in order and use its output format exactly.
@@ -110,48 +165,23 @@ Link:
 Advert:
 <paste the full advert text>
 
----
+## BATCH PROMPT - Test 1, and Test 2 Round 2
 
-## BATCH PROMPT - Arms B and C, all roles in one chat
-
-Screen each role below against the profile and rubric in this Project.
+Screen every role in the attached file against the profile and rubric in
+this Project.
 
 Rules for this batch:
-- Treat every role as if it were the only one you had been given.
+- Treat each role as if it were the only one you had been given.
 - Use the rubric's output format exactly, once per role, numbered by row.
 - Every MATCHING EVIDENCE and GENUINE GAPS line carries a verbatim quote from
-  that role's own advert. Never carry a quote across roles.
+  that role's own advert. Never carry a quote from one role to another.
 - Do not summarise, rank or compare the roles against each other.
 - Do not get shorter as you go. The last role gets the same treatment as the
-  first. If you are running out of room, stop at a role boundary and say which
-  row you stopped at, rather than compressing the ones that remain.
+  first. If you are running out of room, stop at a role boundary and tell me
+  which row you stopped at, rather than compressing what remains.
+- Read the Job Description column in full, including any continuation
+  columns. Tell me if any advert reaches you truncated.
 
-ROLES
-
-ROW 1
-Title:
-Company:
-Location:
-Link:
-Advert:
-<paste>
-
-ROW 2
-...
-
----
-
-## Deciding
-
-Arm B matches Arm A on the ten, and Arm C holds quality to role 100:
-  batching works. Build the splitter, skip the API, done.
-
-Arm B matches on the ten but Arm C degrades:
-  batching works only in small batches. Find the size where it breaks -
-  try 25 - and split to that instead of 100.
-
-Arm B differs from Arm A on roles you were confident about:
-  batching is costing accuracy, not just polish. Use per-role calls.
-
-Any arm contradicts your sealed verdicts on the confident six:
-  the rubric is wrong, not the plumbing. Fix that before scaling anything.
+(If you are pasting adverts rather than attaching a file, replace the first
+line with "Screen each role below" and list them as ROW 1, ROW 2 and so on,
+each with Title, Company, Location, Link and Advert.)
