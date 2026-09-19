@@ -1,94 +1,190 @@
-# Profile extraction prompt
+# Full history extraction - verbatim dump protocol
 
-Paste this into each old Perplexity or Claude chat that discussed your career.
-One chat at a time. Do not show it your current Profile Bank - if it can see
-the existing doc it will pattern-match against it and report "already covered",
-which is the recency bias moved rather than removed.
+Replaces the earlier version of this file.
 
-Run it everywhere, collect the outputs, then merge.
+Purpose: pull the complete raw career material out of an old chat - every CV
+version, every bullet, every cover letter, every interview story, in the exact
+words they were written in. Not a summary. The tailoring tool needs real
+approved bullets to select and adapt from, and a summary destroys exactly the
+thing it needs.
+
+Why it runs in passes: a long conversation asked to "reproduce everything" will
+compress. Asked for one category at a time it will not. Run the passes in
+order, in the same chat, one message each.
 
 ---
 
-## THE PROMPT - copy everything below this line
+## STANDING RULES - the model must be given these in every pass
 
-You are extracting facts from this conversation. You are not writing a profile,
-a summary, or a CV. Do not improve, polish, or reframe anything.
+Paste this block at the top of every pass below.
 
-SCOPE - read this whole conversation from its first message to its last.
+    STANDING RULES for this and every following request:
+    - VERBATIM. Reproduce text exactly as written in this conversation,
+      character for character. Do not rewrite, tighten, correct grammar,
+      fix typos, modernise phrasing, or "improve" anything.
+    - NO SUMMARISING. Never write "and so on", "similar bullets follow",
+      "(3 more)", or any placeholder. Every item in full.
+    - NO DEDUPLICATION. If a bullet appears four times with small edits,
+      reproduce all four as separate items. The differences are the point.
+    - ONLY THIS CONVERSATION. Nothing from web results, nothing from your
+      general knowledge, nothing inferred.
+    - IF YOU RUN OUT OF ROOM: stop at a clean boundary, then write
+      "STOPPED AT: <document name> / <item number>" as the last line and
+      nothing else. I will reply "continue". Never compress to fit.
+    - ORDER: earliest in the conversation first, latest last.
 
-Three rules that override everything else:
+---
 
-1. ONLY this conversation. Nothing from web search results, nothing from your
-   general knowledge, nothing you infer. If it was not said in this thread, it
-   does not exist.
+## PASS 0 - inventory first
 
-2. TAG EVERY ITEM by who said it. This is the most important instruction here:
-     [SAID]      I stated it myself, in my own message.
-     [PROPOSED]  You or the assistant suggested it and I never confirmed it.
-     [AGREED]    You or the assistant suggested it and I explicitly accepted it.
-   If you cannot tell which, tag it [UNCLEAR]. Never guess. An unconfirmed
-   suggestion recorded as fact is the single worst outcome of this exercise.
+    [STANDING RULES]
 
-3. NUMBERS VERBATIM. Copy every figure exactly as it appears - the percentage,
-   the headcount, the currency, the timeframe, the hedge. "about 30 percent"
-   stays "about 30 percent". Never round, merge two figures, or convert units.
+    Do not reproduce any content yet. Read this entire conversation and give
+    me an inventory of the career material in it.
 
-EXTRACT, under these headings. Skip any heading with nothing under it - do not
-pad. One fact per line.
+    List, in the order they appear:
+    1. Every complete or partial CV / resume version. For each: a label, where
+       in the conversation it sits, roughly how long it is, and what made it
+       different from the version before it.
+    2. Every cover letter or application email.
+    3. Every LinkedIn headline, About section, or profile text.
+    4. Every interview answer or STAR story written out in narrative form.
+    5. Every standalone set of bullets that was not part of a full CV.
+    6. Every table, matrix or framework (skills mappings, competency grids,
+       role comparisons).
+    7. Anything else substantial I would want preserved.
 
-A. ROLES AND EMPLOYERS
-   Employer, job title, dates, location, team size, who I reported to, who
-   reported to me, scope of the remit.
+    For each entry give me a one-line description only. Then tell me the total
+    count per category. This is a checklist, not the content.
 
-B. QUANTIFIED RESULTS
-   Every number, with what it measured, over what period, at which employer,
-   and what I did that produced it.
+Keep this inventory. It is how you verify nothing was silently dropped later.
 
-C. WHAT I ACTUALLY DID
-   Decisions, diagnoses, things I built, problems I reframed, cases I argued,
-   negotiations I ran. The action, not the outcome.
+---
 
-D. WORK OUTSIDE THE JOB
-   MBA projects and clients, dissertation, independent research and frameworks,
-   clubs and societies, things I built myself, sponsorships raised, events run.
+## PASS 1 - full CV versions
 
-E. EDUCATION AND CREDENTIALS
-   Degrees, institutions, dates, certifications, programmes.
+    [STANDING RULES]
 
-F. TOOLS AND SYSTEMS I ACTUALLY USED
-   Only ones I said I used. Note the level I claimed if I qualified it.
+    Reproduce every complete or partial CV / resume version from this
+    conversation, in full, verbatim, oldest first.
 
-G. NAMED PEOPLE AND CONTACTS
-   Name, organisation, how I know them, what the relationship is, whether a
-   conversation or referral actually happened or was only planned.
+    Before each one write:
+    === CV VERSION <n> ===
+    CONTEXT: <what it was written for, if the conversation says>
+    WHO WROTE IT: mine / drafted by the assistant / assistant draft I edited
+    STATUS: <did I say I used it, rejected it, or never say>
 
-H. APPLICATIONS AND OUTCOMES
-   Role, employer, what stage it reached, what the feedback was, and any fit
-   percentage or verdict I settled on at the time.
+    Then the document itself, exactly as written, including section headings,
+    dates, formatting and any bracketed notes.
 
-I. STATED PREFERENCES AND CONSTRAINTS
-   Locations, sectors, role types, seniority, salary, visa and right to work,
-   anything I said I would not do.
+    Do not merge versions. Do not skip one because it looks like a small edit
+    of another.
 
-J. THINGS I DENIED, CORRECTED OR RULED OUT
-   Every time I said a claim was wrong, an inference was off, a tool was not
-   mine, or a role was not for me. Quote my correction. These matter as much
-   as the positives - they are what stops a future document overreaching.
+---
 
-K. HOW I SAID I WANT TO BE REPRESENTED
-   Anything about tone, honesty, hedging, what to never claim.
+## PASS 2 - the bullet inventory
 
-THEN, at the end, three short lists:
+This is the pass that matters most for tailoring.
 
-CONTRADICTIONS - anywhere the conversation gives two different versions of the
-same fact. Quote both. Do not resolve them.
+    [STANDING RULES]
 
-UNIQUE TO THIS THREAD - the three to five items here most likely to be missing
-from a profile written later, because they came up once and were not repeated.
+    Extract every achievement bullet that appears anywhere in this
+    conversation - inside CVs, in standalone lists, in drafts, in rewrites,
+    in options you offered me, in versions I rejected.
 
-UNVERIFIED - everything tagged [PROPOSED] or [UNCLEAR], gathered in one place,
-so it can be checked before it goes anywhere near a document.
+    One per line, in this shape:
 
-FORMAT - plain text, headed sections, one fact per line, the tag at the start
-of each line. No prose, no introduction, no closing summary. If this
-conversation contains nothing about my career, say exactly that and stop.
+    [n] "<the bullet, verbatim, complete>"
+        EMPLOYER: <which role it belongs to>
+        SOURCE: my own wording / assistant draft / assistant draft I edited
+        STATUS: I used it / I rejected it / I edited it into something else /
+                never said
+        MY COMMENT: <anything I said about this specific bullet, quoted>
+        VARIANT OF: <bullet number, if it is a rewrite of another one here>
+
+    Include weak ones, early ones and rejected ones. A rejected bullet plus
+    the reason I rejected it is more useful than a polished one on its own,
+    because it tells a future draft what not to do.
+
+    Number them continuously. Do not group, rank or tidy.
+
+---
+
+## PASS 3 - positioning text
+
+    [STANDING RULES]
+
+    Reproduce verbatim, oldest first:
+    - Every CV summary or personal-statement paragraph, every version.
+    - Every LinkedIn headline and About section, every version.
+    - Every short self-description I wrote or approved - "I am a ...",
+      elevator pitches, opening lines for outreach.
+
+    Label each with where it was used and whether I said I used, edited or
+    rejected it.
+
+---
+
+## PASS 4 - cover letters and outreach
+
+    [STANDING RULES]
+
+    Reproduce in full, verbatim, every cover letter, application email,
+    LinkedIn message, referral request and networking message in this
+    conversation.
+
+    For each: the role and company it was for, whether it was sent, and any
+    reply or outcome mentioned.
+
+---
+
+## PASS 5 - interview answers and stories
+
+    [STANDING RULES]
+
+    Reproduce in full, verbatim, every interview answer, STAR story, "tell me
+    about a time" narrative, competency example and question-preparation note.
+
+    For each: the competency or question it answers, and whether I said it was
+    actually used in a real interview and how that went.
+
+---
+
+## PASS 6 - my corrections and constraints
+
+    [STANDING RULES]
+
+    Two lists.
+
+    FIRST - every time in this conversation I corrected, rejected or pushed
+    back on something: a wrong fact, an inflated number, a tool I do not have,
+    a phrasing I disliked, a framing I refused, a role type I ruled out.
+    Quote my exact words, and quote what I was responding to.
+
+    SECOND - every instruction I gave about how I want to be written about:
+    tone, honesty, hedging, formatting, length, what must never be claimed,
+    words to avoid.
+
+    These are rules, not facts. Reproduce them exactly.
+
+---
+
+## PASS 7 - applications and outcomes
+
+    [STANDING RULES]
+
+    Every role I applied to or considered in this conversation:
+    role title, employer, which CV version I used, what I said about fit, the
+    stage it reached, and any feedback quoted. Verbatim where I quoted it.
+
+---
+
+## Checking the dump
+
+Against the PASS 0 inventory:
+  - Does the CV version count match what came out of PASS 1?
+  - Does anything in the inventory have no content anywhere in passes 1 to 7?
+  - Did any pass end without a "STOPPED AT" line and also look short? That is
+    silent truncation - ask it to redo that pass.
+
+Then move to the next chat and start again at PASS 0.
