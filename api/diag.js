@@ -206,7 +206,18 @@ export default async function handler(req, res) {
         body: JSON.stringify(body)
       });
       const text = await upstream.text();
-      return { httpStatus: upstream.status, elapsedMs: Date.now() - started, body: text.slice(0, 400) };
+      // Two different jobs, and conflating them is how a probe comes to lie.
+      // "body" is for a person to read, so it is short. "full" is what the
+      // verdict is computed from, so it is whole: a provider that appends a
+      // long field of its own (Google sends a thought signature) pushes the
+      // JSON past any truncation point, and judging the offcut reports a
+      // perfectly good model as broken.
+      return {
+        httpStatus: upstream.status,
+        elapsedMs: Date.now() - started,
+        body: text.slice(0, 400),
+        full: text
+      };
     } catch (error) {
       return {
         elapsedMs: Date.now() - started,
@@ -241,9 +252,9 @@ export default async function handler(req, res) {
 
   // Judge the reply, not the status code.
   for (const r of Object.values(out.probe)) {
-    if (r.httpStatus !== 200 || !r.body) continue;
+    if (r.httpStatus !== 200 || !r.full) continue;
     try {
-      const parsed = JSON.parse(r.body);
+      const parsed = JSON.parse(r.full);
       r.stopReason = parsed.stop_reason || parsed.choices?.[0]?.finish_reason || null;
       const text = (parsed.content || [])
         .filter((b) => b.type === "text").map((b) => b.text).join("") ||
@@ -256,6 +267,9 @@ export default async function handler(req, res) {
       r.reply = text.slice(0, 200);
     } catch {
       r.usable = false;
+    } finally {
+      // Served its purpose; printing it twice helps nobody.
+      delete r.full;
     }
   }
 
