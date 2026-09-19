@@ -3,6 +3,8 @@
 // purpose, so there has to be one place that does not.
 //
 //   /api/diag            configuration only, no model call
+//   /api/diag?models=1   lists the models the configured key can reach, which
+//                        is how MODEL_ID gets set without guessing
 //   /api/diag?probe=1    also makes one tiny real call and reports the raw
 //                        response, which is what actually identifies the fault
 //
@@ -121,6 +123,53 @@ export default async function handler(req, res) {
 
   const url = new URL(req.url, "http://localhost");
   const probeParam = url.searchParams.get("probe");
+
+  // "Which models will this key actually serve?" MODEL_ID is the one setting
+  // that cannot be checked by reading it: a wrong slug looks exactly like a
+  // dead key until the call comes back. Listing costs no tokens on every
+  // provider that offers it, so this is the cheap step before a probe, and it
+  // ends the guess-redeploy-guess loop that a renamed model otherwise causes.
+  if (url.searchParams.get("models") === "1") {
+    if (!key) {
+      out.next = "No key is set, so there is nothing to list models with.";
+      return res.status(200).json(out);
+    }
+    // Providers do not agree on where the listing lives, but every
+    // OpenAI-shaped one puts it beside the completions path.
+    const listUrl = chatCompletionsUrl().replace(/\/chat\/completions\/?$/, "/models");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const r = await fetch(listUrl, {
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${key}` }
+      });
+      const body = await r.json().catch(() => null);
+      const ids = Array.isArray(body?.data)
+        ? body.data.map((m) => m?.id).filter(Boolean)
+        : null;
+      out.models = {
+        url: listUrl,
+        status: r.status,
+        // Strip the prefix some providers put on every id, so what is
+        // printed is what MODEL_ID should be set to.
+        ids: ids ? ids.map((id) => id.replace(/^models\//, "")).sort() : null
+      };
+      // Only when the shape was not understood, and then in full: a reader
+      // who cannot act on the ids needs the provider's own words instead.
+      if (!ids) out.models.raw = body;
+      out.next = ids
+        ? `Set MODEL_ID to one of these. Prefer a small, fast, non-reasoning model: a model that thinks out loud spends the whole budget before it writes the JSON, which reaches the page as "unavailable".`
+        : "The provider did not return a model list in the expected shape; see raw.";
+    } catch (error) {
+      out.models = { url: listUrl, error: `${error && error.name}: ${error && error.message}` };
+      out.next = "Could not reach the model listing.";
+    } finally {
+      clearTimeout(timer);
+    }
+    return res.status(200).json(out);
+  }
+
   if (probeParam !== "1" && probeParam !== "both") {
     out.next = "Add ?probe=1 for one real call to the configured endpoint, or ?probe=both to test the other one too, at the cost of one more call.";
     return res.status(200).json(out);
