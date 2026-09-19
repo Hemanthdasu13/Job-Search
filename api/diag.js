@@ -298,11 +298,19 @@ export default async function handler(req, res) {
     out.problems.push(describe(`${which} endpoint`, r));
   }
 
-  const messagesOk = out.probe.messages && out.probe.messages.usable;
-  const chatOk = out.probe.chat && out.probe.chat.usable;
+  // The verdict has to be written in terms of which endpoint is configured,
+  // not which one used to be the default. Assuming "messages" means that once
+  // the tool moved provider, a working setup was told to go and set a
+  // variable it had already set, naming a provider it was no longer using —
+  // advice that is wrong in every particular and still sounds authoritative.
+  const other = configured === "chat" ? "messages" : "chat";
+  const configuredOk = out.probe[configured] && out.probe[configured].usable;
+  const otherOk = out.probe[other] && out.probe[other].usable;
   out.verdict =
-    messagesOk ? "This model answers usably on the configured endpoint. If the page still fails, the fault is after the call."
-    : chatOk ? "This model is not served over the Anthropic-compatible endpoint but works on OpenRouter's own. Set OPENROUTER_ENDPOINT=chat in Vercel and redeploy."
+    configuredOk
+      ? `This model answers usably on the configured endpoint (${configured}). If the page still fails, the fault is after the call.`
+    : otherOk
+      ? `This model is not served on the configured endpoint (${configured}) but works on the other shape. Set PROVIDER_ENDPOINT=${other} in Vercel and redeploy.`
     : both
       ? "Neither endpoint answered. The lines above say why."
       : "The configured endpoint did not answer. Add ?probe=both to test the other one, at the cost of one more call.";
