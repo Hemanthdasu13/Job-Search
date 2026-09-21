@@ -42,37 +42,38 @@
    rule at the top of the page, and a real jump between display and body
    sizes. Same markup and same script as index.html: only this block differs. */
 :root{
-  /* A workbench in daylight. The ruler tone is boxwood; the text is a warm
-     near-black rather than #000, which on warm paper reads as printed rather
-     than as a screen. Brass is for the instruments, oxide for the single
-     thing on any screen that wants attention. */
-  --paper:#F6F1E6;
-  --ink:#1C1813;
-  --muted:#6C6252;
-  --rule:#CBBCA0;
-  --faint:rgba(28,24,19,0.045);
+  /* Near-white paper, not beige. The wood belongs to the instruments lying on
+     the page - the rule, its graduations, the calipers - and not to the page
+     itself. A warm field makes the whole thing look tinted; a white field with
+     one wooden object on it looks like a desk. */
+  --paper:#FCFBF8;
+  --ink:#1A1713;
+  --muted:#6E665A;
+  --rule:#E0DACD;
+  --faint:rgba(26,23,19,0.035);
   --accent:#8A6A2F;
-  --brass:#9A7B3F;
+  --brass:#A98B50;
   --oxide:#A6432A;
-  --ruler:#E2C892;
-  --ruler-edge:#C9A863;
+  /* Pale boxwood. Saturated wood at this size reads as a warning stripe. */
+  --ruler:#EEE0C0;
+  --ruler-edge:#DDCBA2;
   --bg:var(--paper);
-  --grid:rgba(28,24,19,0.04);
+  --grid:rgba(26,23,19,0.03);
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#15120E;
-    --ink:#EDE5D6;
-    --muted:#9A8E79;
-    --rule:#3A3126;
-    --faint:rgba(237,229,214,0.045);
+    --paper:#131210;
+    --ink:#EFEBE2;
+    --muted:#958D80;
+    --rule:#2E2A24;
+    --faint:rgba(239,235,226,0.035);
     --accent:#C9A253;
-    --brass:#C9A253;
-    --oxide:#D0714A;
-    --ruler:#4A3C26;
-    --ruler-edge:#6B5836;
+    --brass:#BD9A54;
+    --oxide:#CF7049;
+    --ruler:#4C412C;
+    --ruler-edge:#6A5B3C;
     --bg:var(--paper);
-    --grid:rgba(237,229,214,0.035);
+    --grid:rgba(239,235,226,0.03);
   }
 }
 
@@ -81,17 +82,13 @@ html{-webkit-text-size-adjust:100%}
 
 body{
   margin:0;
-  /* Two layers: the ruled sheet the work sits on, and the paper under it.
-     Both are gradients, so the page still weighs nothing. */
-  background:
-    repeating-linear-gradient(180deg, transparent 0 31px, var(--faint) 31px 32px),
-    var(--paper);
+  background:var(--paper);
   color:var(--ink);
   font-family:"IBM Plex Sans",ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:1.0625rem;
   line-height:1.62;
   -webkit-font-smoothing:antialiased;
-  padding:26px 0 0;
+  padding:19px 0 0;
 }
 
 /* A boxwood rule pinned to the top of the window. Three gradients: minor
@@ -101,12 +98,12 @@ body::before{
   content:"";
   position:fixed;
   top:0; left:0; right:0;
-  height:26px;
+  height:19px;
   background:
-    repeating-linear-gradient(90deg, rgba(28,24,19,0.38) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(90deg, rgba(28,24,19,0.55) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(26,23,19,0.26) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(26,23,19,0.42) 0 1px, transparent 1px 48px),
     linear-gradient(180deg, var(--ruler) 0%, var(--ruler-edge) 100%);
-  background-size:100% 7px, 100% 13px, 100% 100%;
+  background-size:100% 5px, 100% 10px, 100% 100%;
   background-repeat:repeat-x;
   background-position:left bottom, left bottom, left top;
   border-bottom:1px solid var(--ruler-edge);
@@ -116,10 +113,10 @@ body::before{
 @media (prefers-color-scheme: dark){
   body::before{
     background:
-      repeating-linear-gradient(90deg, rgba(237,229,214,0.22) 0 1px, transparent 1px 8px),
-      repeating-linear-gradient(90deg, rgba(237,229,214,0.38) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(90deg, rgba(239,235,226,0.18) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(90deg, rgba(239,235,226,0.30) 0 1px, transparent 1px 48px),
       linear-gradient(180deg, var(--ruler) 0%, var(--ruler-edge) 100%);
-    background-size:100% 7px, 100% 13px, 100% 100%;
+    background-size:100% 5px, 100% 10px, 100% 100%;
     background-repeat:repeat-x;
     background-position:left bottom, left bottom, left top;
   }
@@ -522,12 +519,12 @@ h1::before,h2::before{
    page this is and quiet enough not to be a cartoon. */
 .instrument{
   display:block;
-  margin:2.2rem 0 0;
+  margin:2.4rem 0 0;
   color:var(--brass);
-  opacity:0.5;
+  opacity:0.34;
 }
-.instrument svg{ display:block; width:100%; height:auto; max-width:26rem; }
-@media (prefers-color-scheme: dark){ .instrument{ opacity:0.38; } }
+.instrument svg{ display:block; width:100%; height:auto; max-width:15rem; }
+@media (prefers-color-scheme: dark){ .instrument{ opacity:0.30; } }
 
 .testmode{
   margin:2.5rem 0 0;
