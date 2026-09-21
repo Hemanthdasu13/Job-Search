@@ -14,6 +14,7 @@
 
 import { kvEnabled } from "./_limits.js";
 import { accessEnabled } from "./_access.js";
+import { whatsappConfigured } from "./whatsapp.js";
 
 export default function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -23,6 +24,8 @@ export default function handler(req, res) {
     // Whether a pin is needed. Saying so here rather than in the HTML means
     // the gate can be turned on and off without a code change, and the page
     // never shows a pin screen for a tool that is not actually locked.
-    accessRequired: accessEnabled()
+    accessRequired: accessEnabled(),
+    // The number itself never comes down here. Only whether the link works.
+    whatsappAvailable: whatsappConfigured()
   });
 }

@@ -18,6 +18,7 @@
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey, isOpenRouter } from "./_provider.js";
 import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
 import { accessEnabled, accessHours } from "./_access.js";
+import { timingSafeEqual } from "node:crypto";
 import { SYSTEM } from "./ask.js";
 
 export default async function handler(req, res) {
@@ -154,7 +155,30 @@ export default async function handler(req, res) {
   // dead key until the call comes back. Listing costs no tokens on every
   // provider that offers it, so this is the cheap step before a probe, and it
   // ends the guess-redeploy-guess loop that a renamed model otherwise causes.
+  // The probe and the model listing both reach the provider on a real key.
+  // Everything else here is read-only, but these two are a stranger spending
+  // the owner's allowance, so they are the ones that lock.
+  const adminOk = (supplied) => {
+    const expected = process.env.ADMIN_TOKEN;
+    if (!expected) return true;          // nothing set: behave as before
+    if (!supplied) return false;
+    const a = Buffer.from(String(supplied));
+    const b = Buffer.from(expected);
+    return a.length === b.length && timingSafeEqual(a, b);
+  };
+  const spendingAllowed = adminOk(url.searchParams.get("token"));
+
+  if (!process.env.ADMIN_TOKEN) {
+    out.problems.push(
+      "ADMIN_TOKEN is not set, so ?probe=1 and ?models=1 are open to anyone who finds this URL " +
+      "and each one spends a real model call. Set it before the link goes anywhere public.");
+  }
+
   if (url.searchParams.get("models") === "1") {
+    if (!spendingAllowed) {
+      out.next = "This needs ?token=<ADMIN_TOKEN>, because it calls the provider.";
+      return res.status(200).json(out);
+    }
     if (!key) {
       out.next = "No key is set, so there is nothing to list models with.";
       return res.status(200).json(out);
@@ -195,6 +219,10 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   }
 
+  if ((probeParam === "1" || probeParam === "both") && !spendingAllowed) {
+    out.next = "This needs ?token=<ADMIN_TOKEN>, because it spends a real model call.";
+    return res.status(200).json(out);
+  }
   if (probeParam !== "1" && probeParam !== "both") {
     out.next = "Add ?probe=1 for one real call to the configured endpoint, or ?probe=both to test the other one too, at the cost of one more call.";
     return res.status(200).json(out);

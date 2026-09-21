@@ -635,11 +635,12 @@ main{position:relative;z-index:1}
     // How someone asks for a key. Any left empty are removed from the page
     // rather than rendered dead, so filling in one channel is enough.
     //
-    // WhatsApp: "https://wa.me/<country code and number, digits only>?text=..."
-    //   e.g. https://wa.me/447700900123?text=Hi%20Hemanth%2C%20could%20I%20have%20a%20key%20for%20the%20AI%20verification%20tool%3F
-    //   Note this puts the number in the page source, where it can be
-    //   scraped. LinkedIn and email cost you nothing in that respect.
-    whatsapp: "",
+    // WhatsApp goes through our own path, which redirects. A wa.me link
+    // carries the number in the URL, so putting one here would publish it to
+    // every crawler that reads the page. Set WHATSAPP_NUMBER in Vercel
+    // instead and the number never appears in what the browser downloads.
+    // The link is removed entirely when that variable is unset.
+    whatsapp: "/api/whatsapp",
     linkedin: "",                       // e.g. https://www.linkedin.com/in/<handle>/
     email: "mailto:hemanth.dasu@warwick.ac.uk?subject=Key%20for%20the%20AI%20verification%20tool&body=Who%20I%20am:%0AWhere%20I%20found%20this:%0A"
   };
@@ -1195,6 +1196,12 @@ main{position:relative;z-index:1}
       if (data.contributionsPossible) { $("consent-row").hidden = false; }
       trainsOnInput = data.providerTrainsOnInput === true;
       writePrivacyLine();
+
+      // A contact link that 404s is worse than one that is not there.
+      if (data.whatsappAvailable !== true) {
+        var wrap = document.querySelector('[data-linkwrap="whatsapp"]');
+        if (wrap) { wrap.remove(); }
+      }
 
       access.required = data.accessRequired === true;
       if (access.required) {

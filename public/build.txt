@@ -23,6 +23,24 @@ Access
   A key is never tied to anything anyone types. What the owner learns is
   who asked them for one.
 
+Contact
+  The WhatsApp link points at /api/whatsapp on this domain, which redirects.
+  A wa.me link carries the number in the URL itself, so putting one in the
+  page would publish it to every crawler that harvests public pages. Set
+  WHATSAPP_NUMBER in Vercel and it never appears in what a browser
+  downloads; unset, the link is removed rather than left dead.
+  This is not secrecy: anyone who clicks sees the number, because WhatsApp
+  needs it. What it removes is the case where nobody clicked and it was
+  collected anyway.
+
+Bots
+  The two endpoints that spend money, /api/ask and /api/close, refuse
+  without a key once ACCESS_PINS is set, so traffic that does not have one
+  costs nothing but a static file.
+  /api/unlock allows ten attempts an hour per address.
+  /api/diag?probe=1 and ?models=1 each spend a real model call, so they
+  require ADMIN_TOKEN once one is set, and say so loudly while it is not.
+
 Conversation
   Five statuses: probing, reached, verified, unclear, off_topic.
   Six probing turns maximum, then the gap-surfaced closing.
