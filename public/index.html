@@ -280,6 +280,73 @@ main{position:relative;z-index:1}
   line-height:1.44;
 }
 
+/* The selected practices. Numbered because the order is the one judgement
+   the model is allowed to make: which gap matters most in this account. */
+.practices{
+  margin:2rem 0 0;
+  padding:0;
+  list-style:none;
+  counter-reset:practice;
+}
+.practices>li{
+  counter-increment:practice;
+  margin:0 0 2.6rem;
+  padding:0 0 0 2.6rem;
+  position:relative;
+}
+.practices>li::before{
+  content:counter(practice);
+  position:absolute;
+  left:0;
+  top:0.1rem;
+  width:1.7rem;
+  height:1.7rem;
+  border:1.5px solid var(--accent);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0.8125rem;
+  font-variant-numeric:tabular-nums;
+  color:var(--accent);
+}
+.practices h3{
+  margin:0 0 0.35rem;
+  font-size:1.0625rem;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+/* Their sentence, before anything is said about it. */
+.practice-said{
+  margin:0 0 1rem;
+  padding:0 0 0 1rem;
+  border-left:3px solid var(--rule);
+  color:var(--muted);
+  font-size:0.9375rem;
+  line-height:1.5;
+}
+.practice-principle{
+  margin:0 0 0.9rem;
+  font-weight:600;
+}
+.practice-action{
+  margin:1rem 0 0;
+  padding:0.8rem 1rem;
+  border:1.5px solid var(--rule);
+  font-size:0.9375rem;
+  line-height:1.5;
+}
+.practices blockquote{
+  margin:1.1rem 0 0.4rem;
+  font-size:1em;
+}
+.practices .footnote{
+  margin:0;
+}
+@media (max-width:30rem){
+  .practices>li{ padding-left:2.2rem; }
+}
+
 .testmode{
   margin:2.5rem 0 0;
   padding:0.85rem 1rem;
@@ -349,7 +416,7 @@ main{position:relative;z-index:1}
     <button type="button" data-go="s2">See a worked example</button>
     <button type="button" data-go="s3">Try it on your own work</button>
   </div>
-  <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.<br><span id="version">Beta, v0.2.0</span></p>
+  <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -404,6 +471,21 @@ main{position:relative;z-index:1}
   <p class="unavailable" id="s5a-unavailable" hidden>The interactive part is unavailable right now.<br><span class="why" id="s5a-why"></span></p>
   <p class="closing-note" id="s5a-note" hidden></p>
   <p class="reflection" id="s5a-reflection" hidden>You said: “<span id="s5a-reflection-text"></span>”</p>
+
+  <!-- Shown when the selector named practices this account did not touch.
+       Every word of research in here is written above, in PRACTICES. The
+       model chose which of them to show and quoted the person back; it
+       wrote none of the text. -->
+  <div id="s5a-selected" hidden>
+    <h2 tabindex="-1" id="s5a-selected-head"></h2>
+    <p class="lede">Not things you got wrong. Things that ran through the interviews and did not come up in what you described.</p>
+    <ol class="practices" id="s5a-practices"></ol>
+  </div>
+
+  <!-- The general closing. Shown when nothing was selected, when the
+       selection could not be made, and whenever the library has no filled
+       card to show for it. -->
+  <div id="s5a-general">
   <h2 tabindex="-1">The output was checkable. The inputs were not.</h2>
   <p>This is the most common position in the study. People check what the system produced, because that is what is in front of them. Almost nobody checks what it had to work from, because that is invisible.</p>
   <p>A group finance director described building a pension model with AI over a weekend. It looked sensible. He then built a separate reconciliation to test it against, and found around six errors:</p>
@@ -411,6 +493,7 @@ main{position:relative;z-index:1}
   <p>He did not find them because something looked wrong. He found them because he built something to check against.</p>
   <p><strong>Worth trying:</strong> before accepting an analysis, ask what the system actually had, what it is assuming, and what might be missing. That sequence came from one of the participants, not from the research design.</p>
   <p><strong>One more thing from the study:</strong> in twelve of the interviews, four people had a rule they could state for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a decision rule they already used for something else and applied it to AI without anyone telling them to.</p>
+  </div>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
@@ -468,11 +551,83 @@ main{position:relative;z-index:1}
     interview: "mailto:hemanth.dasu@warwick.ac.uk?subject=Interview%20interest&body=Name:%0AEmail:%0A"
   };
 
-  var MAX_PROBING_TURNS = 4;   // hard ceiling on probing questions
-  // An unclear turn does not count toward the four but still costs a call, so
-  // the backstop has to allow one narrowing attempt per probing turn.
-  var MAX_MODEL_CALLS  = 9;
+  /* --------------------------- the library ----------------------------
+     Every research claim the tool makes lives here, in text a person wrote.
+     The model's only job at the close is to choose ids out of this list and
+     quote the visitor's own words; it cannot write a sentence that appears
+     on screen, because the schema it answers in has nowhere to put one.
+
+     Fields:
+       concept    the academic name for the thing
+       principle  one line, no hedging
+       why        what the interviews actually showed. THIS IS THE RESEARCH.
+                  An empty string means "not written yet", and a card with
+                  an empty why is never shown: the tool falls back to the
+                  general closing instead. Nothing here is generated, and
+                  nothing here should be filled in by anyone who has not
+                  read the transcripts.
+       quote      a participant's words, plus a role-level attribution
+       action     the concrete thing to do differently next time
+
+     The ids must match api/_practices.js exactly. A test asserts it, because
+     a card the server can select and the page cannot render is an invisible
+     hole in the ending.
+  -------------------------------------------------------------------- */
+  var PRACTICES = {
+    "constructed-check": {
+      concept: "a constructed check, not a careful read",
+      principle: "Attention does not catch errors. Something independent for the output to fail against does.",
+      why: "This is what the practitioners in this study who caught real errors had in common. Not more care, but something built for the answer to be tested against: a reconciliation, a check written before the output existed, a colleague who knows the area. The study also found it is the first thing to go under time pressure, which is when the high-stakes decisions tend to get made.",
+      quote: {
+        text: "I could have just looked at the first output and I thought, yeah, that says I'm going to have a comfortable retirement. I've got enough. My plan is on track.",
+        who: "a group finance director, who built a separate reconciliation and found around six errors"
+      },
+      action: "Before accepting an analysis, build the thing you will test it against \u2014 and build it before you read the answer."
+    },
+    "reliance-not-trust":           { concept: "reliance, not trust",            principle: "", why: "", quote: null, action: "" },
+    "independent-source-check":     { concept: "an independent source",          principle: "", why: "", quote: null, action: "" },
+    "constrain-the-generation":     { concept: "telling it what not to do",       principle: "", why: "", quote: null, action: "" },
+    "named-triggers":               { concept: "named triggers",                 principle: "", why: "", quote: null, action: "" },
+    "silence-is-not-safety":        { concept: "silence is not safety",          principle: "", why: "", quote: null, action: "" },
+    "two-failure-modes":            { concept: "both directions of error",       principle: "", why: "", quote: null, action: "" },
+    "borrowed-rule":                { concept: "a borrowed rule",                principle: "", why: "", quote: null, action: "" },
+    "gut-feel-signal":              { concept: "gut feel as a signal",           principle: "", why: "", quote: null, action: "" },
+    "interaction-audit":            { concept: "an auditable interaction",       principle: "", why: "", quote: null, action: "" },
+    "domain-goes-silent":           { concept: "where your domain goes silent",  principle: "", why: "", quote: null, action: "" },
+    "reproduction-gap":             { concept: "the reproduction gap",           principle: "", why: "", quote: null, action: "" },
+    "manufactured-divergence":      { concept: "manufactured divergence",        principle: "", why: "", quote: null, action: "" },
+    "speed-not-advantage":          { concept: "speed is not advantage",         principle: "", why: "", quote: null, action: "" },
+    "junior-heuristic":             { concept: "an untested rule of thumb",      principle: "", why: "", quote: null, action: "" },
+    "examiner-not-originator":      { concept: "examiner, not originator",       principle: "", why: "", quote: null, action: "" },
+    "structural-not-instructional": { concept: "a gate, not a better prompt",    principle: "", why: "", quote: null, action: "" }
+  };
+
+  // A card is only shown once someone has written the research into it. Until
+  // then the ending is the general closing, which is true and was written by
+  // the researcher. The alternative — shipping a plausible-sounding finding
+  // the interviews may not support — would break the one promise this tool
+  // makes, on the one screen a visitor is most likely to quote back.
+  function practiceReady(id) {
+    var c = PRACTICES[id];
+    return Boolean(c && c.principle && c.why && c.action);
+  }
+
+  // Six, not four. A closing that names what did not come up can only do
+  // that honestly if the conversation had room to come up with it: four
+  // turns cannot cross six dimensions, and a gap the tool never asked
+  // about is not a gap the person left.
+  var MAX_PROBING_TURNS = 6;   // hard ceiling on probing questions
+  // An unclear turn does not count toward the six but still costs a call, so
+  // the backstop has to allow one narrowing attempt per probing turn, plus
+  // the single closing-selection call at the end.
+  var MAX_MODEL_CALLS  = 14;
   var MAX_INPUT_CHARS  = 1500;
+
+  // Three replies with nothing in them, in any mix, and there is nothing to
+  // work from. Deliberately a total rather than a streak: a person who
+  // answers one question properly and four with "fine" has not given an
+  // account, and the closing screen must not pretend otherwise.
+  var MAX_UNUSABLE = 3;
 
   var OFF_TOPIC_TEXT =
     "This only works on something you actually did. " +
@@ -484,6 +639,7 @@ main{position:relative;z-index:1}
     probing: 0,         // probing questions shown
     calls: 0,           // model calls made
     offTopic: 0,        // off-topic replies received
+    unusable: 0,        // off-topic and unclear replies, over the whole run
     unclearRun: 0,      // consecutive unclear replies on the same thread
     reflection: null,   // their own words, shown back on 5A or 5B
     closingNote: null,  // one line, only when a real outcome was described
@@ -519,6 +675,84 @@ main{position:relative;z-index:1}
     }
   }
 
+  // One call, at the end, whose only output is a list of ids from PRACTICES
+  // and a quote of the person's own words. Deliberately not part of ask():
+  // the questioner is never shown the library, so a question can never start
+  // carrying the research.
+  function selectPractices() {
+    return fetch("/api/close" + (STUB ? "?stub=1" : ""), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers: state.answers })
+    }).then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data && data.build) { state.build = data.build; }
+        if (data && data.ok === false) { state.lastFailure = data.reason || "close_failed"; }
+        return (data && Array.isArray(data.selected)) ? data.selected : [];
+      })
+      .catch(function () { return []; });
+  }
+
+  var PRACTICE_HEADS = ["One thing", "Two things", "Three things"];
+
+  function paintPractices(selected) {
+    // Only cards someone has written the research into. A selected card with
+    // an empty why is dropped here rather than rendered blank.
+    var show = selected.filter(function (s) { return s && practiceReady(s.id); });
+    if (!show.length) { return false; }
+
+    var list = $("s5a-practices");
+    list.textContent = "";
+    show.forEach(function (sel) {
+      var card = PRACTICES[sel.id];
+      var li = document.createElement("li");
+
+      // Their words first. This is the only part of the screen that is about
+      // them, and it is verbatim: the server refused anything that was not.
+      var said = document.createElement("p");
+      said.className = "practice-said";
+      said.textContent = "\u201c" + sel.evidence + "\u201d";
+      li.appendChild(said);
+
+      var name = document.createElement("h3");
+      name.textContent = card.concept;
+      li.appendChild(name);
+
+      var principle = document.createElement("p");
+      principle.className = "practice-principle";
+      principle.textContent = card.principle;
+      li.appendChild(principle);
+
+      var why = document.createElement("p");
+      why.textContent = card.why;
+      li.appendChild(why);
+
+      if (card.quote && card.quote.text) {
+        var bq = document.createElement("blockquote");
+        bq.textContent = card.quote.text;
+        li.appendChild(bq);
+        if (card.quote.who) {
+          var who = document.createElement("p");
+          who.className = "footnote";
+          who.textContent = card.quote.who;
+          li.appendChild(who);
+        }
+      }
+
+      var action = document.createElement("p");
+      action.className = "practice-action";
+      action.textContent = card.action;
+      li.appendChild(action);
+
+      list.appendChild(li);
+    });
+
+    $("s5a-selected-head").textContent =
+      (PRACTICE_HEADS[show.length - 1] || show.length + " things") +
+      " ran through the interviews that did not come up in your answers.";
+    return true;
+  }
+
   function closeGapSurfaced(unavailable) {
     setBusy(false);
     $("s5a-unavailable").hidden = !unavailable;
@@ -526,6 +760,19 @@ main{position:relative;z-index:1}
     paintClosing("s5a");
     contribute(unavailable ? "unavailable" : (state.probing >= MAX_PROBING_TURNS ? "exhausted" : "reached"));
     show("s5a");
+
+    // The screen is already on the general closing, which is complete and
+    // true on its own. If the selection arrives and has something to show,
+    // it replaces that; if it fails, times out, or selects nothing, the
+    // visitor never learns there was supposed to be more.
+    if (unavailable) { return; }
+    selectPractices().then(function (selected) {
+      if (paintPractices(selected)) {
+        $("s5a-selected").hidden = false;
+        $("s5a-general").hidden = true;
+        $("s5a-selected-head").focus({ preventScroll: true });
+      }
+    });
   }
 
   function closeVerified() {
@@ -693,16 +940,30 @@ main{position:relative;z-index:1}
         return;
       }
 
+      // Unusable input gets one redirect, then the conversation closes on the
+      // neutral screen. The scenario set splits twenty kinds of unusable
+      // opening into ones a single redirect can recover and ones nothing
+      // recovers — but the tool cannot tell which it is looking at, and
+      // building something that guesses would be both unreliable and a
+      // classification of the person, which this tool does not do. So it
+      // spends one redirect on all of them. That is the behaviour both halves
+      // of that split actually ask for: try once, and do not grind.
       if (data.status === "off_topic") {
         state.unclearRun = 0;
         state.offTopic += 1;
-        if (state.offTopic > 1) { closeNeutral(); return; }
+        state.unusable += 1;
+        if (state.offTopic > 1 || state.unusable >= MAX_UNUSABLE) { closeNeutral(); return; }
         state.questions.push(OFF_TOPIC_TEXT);
         askQuestion(OFF_TOPIC_TEXT);
         return;
       }
 
       if (data.status === "unclear") {
+        state.unusable += 1;
+        // A whole conversation of non-answers must not arrive at the closing
+        // screen, which would then be naming gaps in four words of input.
+        // Six probing turns made that reachable; this closes it off.
+        if (state.unusable >= MAX_UNUSABLE) { closeNeutral(); return; }
         // Guardrail 1. The first unclear buys one narrower question for free.
         // A second in a row does not buy a third: the model moves to a new
         // angle and the turn is spent, so a string of non-answers cannot run
@@ -740,6 +1001,7 @@ main{position:relative;z-index:1}
     state.probing = 0;
     state.calls = 0;
     state.offTopic = 0;
+    state.unusable = 0;
     state.unclearRun = 0;
     state.reflection = null;
     state.closingNote = null;

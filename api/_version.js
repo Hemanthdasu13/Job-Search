@@ -3,4 +3,4 @@
 // version is not evidence about another: it came from a different instrument.
 // public/index.html carries the same string in its landing footnote and a
 // test asserts the two agree, so they cannot drift apart.
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";

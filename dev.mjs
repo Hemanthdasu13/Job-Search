@@ -86,6 +86,13 @@ const server = createServer(async (req, res) => {
       if (req.method !== "POST") return json(res, 405, { ok: false });
       return stubAsk(req, res);
     }
+    // The closing selector has its own stub, inside the real module, so it
+    // needs no stand-in here — only telling. Without this, STUB=1 stops
+    // meaning "nothing reaches a provider" the moment a conversation ends,
+    // which is exactly the turn a local walk is usually testing.
+    if (STUB && api[1] === "close" && !url.searchParams.has("stub")) {
+      req.url = path + "?stub=1";
+    }
     let mod;
     try {
       mod = await import(`./api/${api[1]}.js`);

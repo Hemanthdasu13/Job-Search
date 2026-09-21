@@ -40,9 +40,9 @@
 // or { ok: false }. The page treats every ok:false the same way, so no
 // failure here can put an error on the screen.
 
-import Anthropic from "@anthropic-ai/sdk";
 import { claimModelCall } from "./_limits.js";
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey } from "./_provider.js";
+import { modelApiKey } from "./_provider.js";
+import { callModel, describeFailure, extractJson, safeParse, textOf } from "./_model.js";
 import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
@@ -54,6 +54,19 @@ Maximum two sentences. Exactly one question.
 Your aim: find one specific thing the AI could not have known, and that the
 person did not check, and get them to see it in their own words. Work from
 what they wrote, never from general knowledge about their industry.
+
+Ground to cover. Over the conversation, try to reach across these, roughly
+one per turn, always taking whichever the last answer opens onto rather than
+working down the list in order. Do not ask about one they have already
+answered, and do not force one that their account gives you no purchase on.
+- What the output was used for, and what happened next because of it.
+- What, outside the tool's own answer, they checked it against.
+- What they told it to do, and what they told it not to do or had to keep.
+- Where this sat relative to what they know well enough to judge.
+- What would have happened, and to whom, if it had been wrong.
+- What using it actually bought them, beyond the time it saved.
+These are directions to ask in. They are not claims, they are not a
+checklist to read out, and you never name them or say why you are asking.
 
 Direction, based on what they describe checking:
 - Checked the output but not the inputs: ask what the system actually had to
@@ -124,72 +137,6 @@ const MAX_REFLECTION_CHARS = 400;
 const MAX_NOTE_CHARS = 200;
 const MAX_TOTAL_CHARS = 9000;
 
-function attributionHeaders() {
-  const headers = {};
-  if (process.env.OPENROUTER_SITE_URL) headers["HTTP-Referer"] = process.env.OPENROUTER_SITE_URL;
-  if (process.env.OPENROUTER_APP_NAME) headers["X-Title"] = process.env.OPENROUTER_APP_NAME;
-  return headers;
-}
-
-let client = null;
-
-// Built on first use, so a missing key is a quiet fallback rather than a
-// throw while the module loads.
-function getClient(key) {
-  if (!client) {
-    client = new Anthropic({
-      apiKey: null,        // no x-api-key: OpenRouter authenticates by bearer token
-      authToken: key,
-      baseURL: BASE_URL,
-      defaultHeaders: attributionHeaders(),
-      // No retry: a retry doubles the wait the visitor is already staring at,
-      // and the second attempt would be killed by the platform anyway.
-      maxRetries: 0,
-      timeout: REQUEST_TIMEOUT_MS
-    });
-  }
-  return client;
-}
-
-// Every failure looks identical to a visitor. The reason rides along so the
-// owner can see it with ?debug=1, and so the platform log and the page agree.
-// OpenRouter's own endpoint, shaped like OpenAI's. Returned in the same
-// shape the Anthropic path produces so the caller does not branch twice.
-async function callChat(key, model, messages) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    const res = await fetch(chatCompletionsUrl(), {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...attributionHeaders()
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 800,
-        messages: [{ role: "system", content: SYSTEM }, ...messages]
-      })
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const error = new Error(`chat completions ${res.status}: ${body.slice(0, 300)}`);
-      error.status = res.status;
-      throw error;
-    }
-    const body = await res.json();
-    const choice = body?.choices?.[0];
-    return {
-      stop_reason: choice?.finish_reason === "length" ? "max_tokens" : "end_turn",
-      content: [{ type: "text", text: choice?.message?.content || "" }]
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 // Which code is running, so a failure can be attributed to a build without
 // anyone having to find a dashboard.
 const BUILD = `${VERSION}@${(process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}`;
@@ -244,34 +191,6 @@ async function readJsonBody(req) {
   } catch {
     return null;
   }
-}
-
-function safeParse(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
-// OpenRouter passes the model's text through as-is and the swappable model
-// may be a small one, so accept a fenced or padded object rather than
-// discarding an otherwise good answer. Anything still unreadable falls back.
-function extractJson(text) {
-  if (!text) return null;
-  const direct = safeParse(text.trim());
-  if (direct) return direct;
-
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) {
-    const parsed = safeParse(fenced[1].trim());
-    if (parsed) return parsed;
-  }
-
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start !== -1 && end > start) return safeParse(text.slice(start, end + 1));
-  return null;
 }
 
 // Test the whole conversation without spending a provider call. A free daily
@@ -338,39 +257,14 @@ export default async function handler(req, res) {
   let response;
   const started = Date.now();
   try {
-    response = endpointMode() === "chat"
-      ? await callChat(key, model, messages)
-      : await getClient(key).messages.create({
-          model,
-          max_tokens: 800,
-          system: SYSTEM,
-          messages
-        });
+    response = await callModel(key, model, SYSTEM, messages);
   } catch (error) {
     // Status and model only. The request body is never logged. A wrong or
     // retired MODEL_ID shows up here as a 400 or 404 naming the slug.
     // "Error" tells nobody anything. Separate the case that matters most:
     // no answer in time, which is what a model too slow for the function's
     // limit looks like from in here.
-    const timedOut = /timeout|timed out|aborted/i.test(
-      String(error?.message) + String(error?.name)
-    );
-    const elapsed = Date.now() - started;
-    const detail = `${error?.message || ""} ${JSON.stringify(error?.error || "")}`;
-    let reason;
-    if (error?.status === 429) {
-      reason = /free-models-per-day|free_tier|per.?day/i.test(detail)
-        // The count lives with the provider, keyed to the account. Nothing
-        // about this deployment can change it.
-        ? "upstream_429 daily free-model allowance spent, resets midnight UTC, redeploying cannot help"
-        : "upstream_429 provider busy, retry in a minute";
-    } else if (error?.status) {
-      reason = "upstream_" + error.status;
-    } else if (timedOut) {
-      reason = `upstream_timeout after ${elapsed}ms on ${model}`;
-    } else {
-      reason = "upstream_" + (error?.name || "unknown");
-    }
+    const reason = describeFailure(error, model, Date.now() - started);
     console.error("model_call_failed", reason, model, Date.now() - started + "ms",
       String(error?.message || "").slice(0, 200));
     return fail(res, reason);
@@ -381,12 +275,7 @@ export default async function handler(req, res) {
     return fail(res, "unusable_" + response.stop_reason);
   }
 
-  const text = (response.content || [])
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("");
-
-  const parsed = extractJson(text);
+  const parsed = extractJson(textOf(response));
   if (!parsed || typeof parsed.question !== "string" || !STATUSES.includes(parsed.status)) {
     console.error("model_call_unparseable", model);
     return fail(res, "unparseable_reply");

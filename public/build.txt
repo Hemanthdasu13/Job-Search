@@ -1,4 +1,4 @@
-Could you tell if it was wrong? — v0.2.0 — what is in this build
+Could you tell if it was wrong? — v0.3.0 — what is in this build
 
 Beta. The page is set to noindex, and the failing screen shows a reason code
 for diagnosis. Both come out before the link is public.
@@ -8,20 +8,48 @@ not picked up the latest push and nothing below is live yet.
 
 Conversation
   Five statuses: probing, reached, verified, unclear, off_topic.
-  Four probing turns maximum, then the gap-surfaced closing.
+  Six probing turns maximum, then the gap-surfaced closing.
+  The questions are steered across six dimensions: what the output was used
+  for, what it was checked against, what it was told not to do, where it sat
+  relative to what the person knows, what would have happened if it was
+  wrong, and what using it actually bought them. Directions to ask in, never
+  claims, never read out.
   reached closes on the turn it happens, even the first.
   verified closes to the independent-check screen.
   One vague answer buys a narrower question; a second in a row spends a turn,
   so non-answers cannot loop.
   Two off-topic replies end on the neutral screen, which offers a way back in.
+  Three replies with nothing in them, in any mix, do the same: a conversation
+  of non-answers must not arrive at a screen that names what did not come up.
 
 Closing screens
   Fixed text, never generated.
   Your own words are quoted back on the two screens that close on them.
   A real outcome that already happened adds one short line above everything.
 
+  The gap-surfaced screen can also name up to three practices from a library
+  of seventeen. How that works, and what it cannot do:
+    The library lives in the page. Every word of research in it was written
+    by the researcher. There are seventeen cards; a card is shown only once
+    its research has been written, and until then the screen falls back to
+    the general closing. Nothing is generated.
+    A second model call, to a separate endpoint, returns only a list of card
+    ids and a quote from what you typed. It has no field to put a sentence
+    of its own in.
+    The server rejects any id outside the library, anything past three, and
+    any quote that is not a span of your own text, character for character.
+    A paraphrase is thrown away. Whitespace damage is forgiven; nothing else.
+    The questioner is never shown the library, so a question cannot start
+    carrying the research. A test asserts this.
+    The screen says these are things that did not come up in your answers.
+    It does not say you did not do them, because six questions cannot
+    establish that.
+    No type, no category, no score. The cards describe what is absent from
+    one account of one decision, never the person who gave it.
+
 Guarantees, enforced in code rather than asked of the model
   The model returns a question and a status and nothing else.
+  At the close it returns card ids and your own words and nothing else.
   Every research claim on the page is fixed HTML the model cannot touch.
   No confidential detail is echoed back, in the question or the quote.
   Nothing typed is stored or logged by this site.

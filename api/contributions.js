@@ -5,7 +5,7 @@
 //
 //   /api/contributions?token=...            newest 50
 //   /api/contributions?token=...&limit=200
-//   /api/contributions?token=...&version=0.2.0
+//   /api/contributions?token=...&version=0.3.0
 //
 // Curating these is a person's job. Nothing here feeds back into the tool.
 
