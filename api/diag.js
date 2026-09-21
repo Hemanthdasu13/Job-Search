@@ -15,7 +15,8 @@
 // what the provider returns, including the bodies the SDK would turn into an
 // exception.
 
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey, isOpenRouter } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey, isOpenRouter,
+         isAnthropicDirect, effort, maxOutputTokens } from "./_provider.js";
 import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
 import { accessEnabled, accessHours } from "./_access.js";
 import { timingSafeEqual } from "node:crypto";
@@ -49,6 +50,9 @@ export default async function handler(req, res) {
         : { set: false },
       MODEL_ID: model || null,
       endpointMode: endpointMode(),
+      auth: isAnthropicDirect() ? "x-api-key (Anthropic direct)" : "Authorization: Bearer",
+      effort: effort() || "not set",
+      maxOutputTokens: maxOutputTokens(),
       endpoint: endpointMode() === "chat" ? chatCompletionsUrl() : `${BASE_URL}/v1/messages`,
       requestTimeoutMs: REQUEST_TIMEOUT_MS,
       storage: kvEnabled
@@ -252,7 +256,13 @@ export default async function handler(req, res) {
         method: "POST",
         signal: controller.signal,
         headers: {
-          "Authorization": `Bearer ${key}`,
+          // Same rule as the real call: Anthropic's own API reads x-api-key,
+          // a compatible endpoint in front of it reads a bearer token. A
+          // probe that authenticates differently from the tool proves
+          // nothing about the tool.
+          ...(isAnthropicDirect()
+            ? { "x-api-key": key }
+            : { "Authorization": `Bearer ${key}` }),
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01"
         },
@@ -298,8 +308,11 @@ export default async function handler(req, res) {
   out.probe = {};
   for (const which of both ? ["messages", "chat"] : [configured]) {
     out.probe[which] = await probe(urls[which], which === "chat"
-      ? { model, max_tokens: 800, messages: [{ role: "system", content: SYSTEM }, ...ask] }
-      : { model, max_tokens: 800, system: SYSTEM, messages: ask });
+      // The probe has to spend the same budget the tool does, or it reports
+      // that a model works at a ceiling the tool never uses.
+      ? { model, max_tokens: maxOutputTokens(), messages: [{ role: "system", content: SYSTEM }, ...ask] }
+      : { model, max_tokens: maxOutputTokens(), system: SYSTEM, messages: ask,
+          ...(effort() ? { output_config: { effort: effort() } } : {}) });
   }
   out.probeCost = `${Object.keys(out.probe).length} provider call(s)`;
 

@@ -6,6 +6,16 @@ for diagnosis. Both come out before the link is public.
 If you are reading this, the deployment is current. If this 404s, Vercel has
 not picked up the latest push and nothing below is live yet.
 
+Provider
+  Anthropic's own API authenticates with x-api-key; the compatible endpoints
+  other providers put in front of the same wire format authenticate with a
+  bearer token. Chosen from the base URL, overridable with PROVIDER_AUTH.
+  Sending the wrong one is a 401 that reads exactly like an invalid key.
+  Current models think before answering, and that thinking is spent from the
+  same budget as the answer, so MAX_OUTPUT_TOKENS defaults to 4000 rather
+  than a ceiling sized for the JSON alone. MODEL_EFFORT, when set, is sent
+  as output_config.effort and is not sent at all when unset.
+
 Access
   Off unless ACCESS_PINS is set, so the tool is open by default.
   When on: the landing page and the worked example stay open to everyone,

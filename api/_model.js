@@ -7,7 +7,8 @@
 // distinguish it from a dead key.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl } from "./_provider.js";
+import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl,
+         isAnthropicDirect, effort, maxOutputTokens } from "./_provider.js";
 
 export function attributionHeaders() {
   const headers = {};
@@ -22,9 +23,15 @@ let client = null;
 // throw while the module loads.
 function getClient(key) {
   if (!client) {
+    // The two headers are not interchangeable. Anthropic's own API reads
+    // x-api-key and ignores a bearer token; the compatible endpoints in front
+    // of the same wire format do the opposite. Sending the wrong one is a 401
+    // that reads exactly like an invalid key, which is a day of looking in
+    // the wrong place.
+    const direct = isAnthropicDirect();
     client = new Anthropic({
-      apiKey: null,        // no x-api-key: the provider authenticates by bearer token
-      authToken: key,
+      apiKey: direct ? key : null,
+      authToken: direct ? null : key,
       baseURL: BASE_URL,
       defaultHeaders: attributionHeaders(),
       // No retry: a retry doubles the wait the visitor is already staring at,
@@ -73,10 +80,16 @@ async function callChat(key, model, system, messages, maxTokens) {
   }
 }
 
-export async function callModel(key, model, system, messages, maxTokens = 800) {
-  return endpointMode() === "chat"
-    ? callChat(key, model, system, messages, maxTokens)
-    : getClient(key).messages.create({ model, max_tokens: maxTokens, system, messages });
+export async function callModel(key, model, system, messages, maxTokens = maxOutputTokens()) {
+  if (endpointMode() === "chat") {
+    return callChat(key, model, system, messages, maxTokens);
+  }
+  const body = { model, max_tokens: maxTokens, system, messages };
+  // Only sent when configured, so nothing here breaks a provider that has
+  // never heard of it.
+  const level = effort();
+  if (level) body.output_config = { effort: level };
+  return getClient(key).messages.create(body);
 }
 
 // Every failure looks identical to a visitor, so the reason has to be named

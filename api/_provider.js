@@ -34,6 +34,35 @@ export function isOpenRouter() {
   return /(^|\.)openrouter\.ai/i.test(BASE_URL);
 }
 
+// Anthropic's own API authenticates with x-api-key; the compatible endpoints
+// other providers expose in front of the same wire format authenticate with a
+// bearer token. That is not a detail the SDK can guess, and getting it wrong
+// looks exactly like a dead key, so it is decided here from the base URL and
+// overridable for a gateway that sits in front of one and speaks the other.
+export function isAnthropicDirect() {
+  if (process.env.PROVIDER_AUTH === "x-api-key") return true;
+  if (process.env.PROVIDER_AUTH === "bearer") return false;
+  return /(^|\.)anthropic\.com$/i.test(new URL(BASE_URL).hostname);
+}
+
+// How hard the model should work. Anthropic's current models think before
+// answering, and this task does not need much of it: one short question, or a
+// list of ids. Left unset on a provider that has no such setting, where it is
+// simply not sent.
+export function effort() {
+  return process.env.MODEL_EFFORT || "";
+}
+
+// Thinking happens inside the output budget, so a ceiling sized for the JSON
+// alone starves the answer: the model spends the budget reasoning and stops
+// before writing anything. That is the exact failure this tool shipped with
+// on a reasoning model, reaching the page as "unavailable" with nothing to
+// say why, so the default here is generous rather than tight.
+export function maxOutputTokens() {
+  const n = Number(process.env.MAX_OUTPUT_TOKENS);
+  return Number.isFinite(n) && n > 0 ? n : 4000;
+}
+
 // A model call has to finish inside the platform's function limit, so this
 // must stay below the maxDuration set in vercel.json. Being killed at the
 // boundary produces no log line and no reason on screen, which is the one
