@@ -3,6 +3,8 @@
 //   node scripts/token-cost.mjs              every bucket B and C scenario
 //   node scripts/token-cost.mjs --only B3
 //   node scripts/token-cost.mjs --exact      count tokens via the provider
+//   node scripts/token-cost.mjs --shapes     price a mix of conversation
+//                                            shapes instead of one average
 //
 // Replays whole conversations through the real ask.js and close.js against a
 // mock provider, records every request body byte for byte, and prices the
@@ -44,6 +46,9 @@ const CACHE_WRITE = 1.25;
 
 const estimate = (text) => Math.round(String(text).length / 3.7);
 
+const price = (model, input, output) =>
+  (input * PRICES[model].in + output * PRICES[model].out) / 1e6;
+
 // ---------------------------------------------------------------- the mock
 //
 // Answers every call with a plausible question so the conversation runs its
@@ -61,6 +66,9 @@ const QUESTIONS = [
 
 const recorded = [];
 let turn = 0;
+// A shape forces the statuses the mock returns, so a conversation that bounces
+// at the door and one that runs to the ceiling can both be priced.
+let statuses = null;
 
 const mock = createServer(async (req, res) => {
   let raw = ""; for await (const c of req) raw += c;
@@ -68,12 +76,16 @@ const mock = createServer(async (req, res) => {
   recorded.push(body);
 
   const isSelector = JSON.stringify(body).includes("Your only job is to choose");
+  const status = statuses ? (statuses[turn] || "probing") : "probing";
   const text = isSelector
     ? JSON.stringify({ selected: [], evidence: {} })
     : JSON.stringify({
         question: QUESTIONS[Math.min(turn++, QUESTIONS.length - 1)],
-        status: "probing", reflection: null, closing_note: null
+        status: isSelector ? "probing" : status,
+        reflection: status === "reached" ? "I never checked what it had to work from." : null,
+        closing_note: null
       });
+  if (!isSelector && statuses) turn = Math.min(turn, statuses.length);
 
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text }] }));
@@ -125,45 +137,8 @@ async function measure(scenario) {
   }
   await post(close, { answers });
 
-  // Price what was actually sent.
-  let cachedIn = 0, uncachedIn = 0, out = 0, cacheWrites = 0, cacheReads = 0;
-  const seenPrefixes = new Set();
-
-  for (const body of recorded) {
-    const cacheable = Array.isArray(body.system);
-    const systemText = cacheable ? body.system.map((b) => b.text).join("") : String(body.system || "");
-    const messagesText = JSON.stringify(body.messages || "");
-
-    const systemTokens = await countTokens(systemText);
-    const messageTokens = await countTokens(messagesText);
-
-    uncachedIn += systemTokens + messageTokens;
-
-    if (cacheable) {
-      if (seenPrefixes.has(systemText)) {
-        cachedIn += systemTokens * CACHE_READ + messageTokens;
-        cacheReads += systemTokens;
-      } else {
-        seenPrefixes.add(systemText);
-        cachedIn += systemTokens * CACHE_WRITE + messageTokens;
-        cacheWrites += systemTokens;
-      }
-    } else {
-      cachedIn += systemTokens + messageTokens;
-    }
-
-    // Output is what the model writes: the JSON plus whatever thinking it did
-    // before it. Thinking is not visible here, so this is the floor.
-    out += 120;
-  }
-
-  return {
-    id: scenario.id, name: scenario.name,
-    calls: recorded.length,
-    uncachedIn: Math.round(uncachedIn),
-    cachedIn: Math.round(cachedIn),
-    out, cacheWrites, cacheReads
-  };
+  const priced = await priceRecorded();
+  return { id: scenario.id, name: scenario.name, ...priced };
 }
 
 // Exact when a real key is available and --exact was asked for; estimated
@@ -191,10 +166,135 @@ async function countTokens(text) {
   return (await res.json()).input_tokens;
 }
 
+// ------------------------------------------------------------- shape model
+//
+// An average over thirty polished case studies is one number about one kind
+// of conversation. Real traffic is a mix, and the cheap shapes are cheap by a
+// lot: someone who types nonsense twice costs two calls and never reaches the
+// closing selector at all. This prices each shape and weights them.
+//
+// The weights are a guess and are meant to be argued with. They are stated
+// here rather than buried so that disagreeing with the answer means
+// disagreeing with a number you can see.
+const SHAPES = [
+  { name: "bounces at the door", weight: 0.10,
+    statuses: ["off_topic", "off_topic"], answers: ["what is the capital of france", "tell me a joke"],
+    note: "two off-topic replies, neutral close, selector never runs" },
+  { name: "answers in six words", weight: 0.15,
+    statuses: ["unclear", "unclear", "unclear"],
+    answers: ["used ai for a report", "maybe", "it was fine"],
+    note: "three non-answers, neutral close" },
+  { name: "reaches it early", weight: 0.20,
+    statuses: ["probing", "reached"],
+    answers: ["I used AI to draft a pricing recommendation that went into a board pack.",
+              "I never checked where its competitor numbers came from."],
+    note: "gap surfaced on the second turn" },
+  { name: "typical", weight: 0.35,
+    statuses: ["probing", "probing", "probing", "reached"],
+    answers: ["I used AI to summarise a supplier questionnaire before a steering meeting.",
+              "I skimmed the headings and nothing looked alarming.",
+              "I did not open the contract schedules.",
+              "Nobody else looked at it before it went in the pack."],
+    note: "four turns, gap surfaced" },
+  { name: "runs to the ceiling", weight: 0.15,
+    statuses: Array(MAX_PROBING + 1).fill("probing"),
+    answers: null,   // filled from a real scenario account
+    note: "all six probing turns, then the closing" },
+  { name: "writes an essay", weight: 0.05,
+    statuses: Array(MAX_PROBING + 1).fill("probing"),
+    answers: null, verbose: true,
+    note: "six turns at the input ceiling of 1500 characters" }
+];
+
+async function measureShape(shape, sample) {
+  recorded.length = 0;
+  turn = 0;
+  statuses = shape.statuses;
+
+  let replies = shape.answers;
+  if (!replies) {
+    const base = shape.verbose
+      ? sample.account.join(" ").padEnd(1500, " and there was more to it than that.").slice(0, 1500)
+      : sample.account.join(" ");
+    const rest = Object.values(sample.pressed).map((r) =>
+      shape.verbose ? r.padEnd(1500, " and there was more to it than that.").slice(0, 1500) : r);
+    replies = [base, ...rest];
+  }
+
+  const answers = [replies[0]];
+  const questions = [];
+  let neutral = false;
+
+  for (let i = 0; i < MAX_PROBING + 2; i++) {
+    const reply = await post(ask, { answers, questions });
+    if (!reply.ok) break;
+    // Mirror the page's routing closely enough to get the call count right:
+    // a conversation that closes neutrally never reaches the selector.
+    if (reply.status === "off_topic" || reply.status === "unclear") {
+      if (i >= shape.statuses.length - 1) { neutral = true; break; }
+    }
+    if (reply.status === "reached" || reply.status === "verified") break;
+    questions.push(reply.question);
+    if (i + 1 < replies.length) answers.push(replies[i + 1]);
+    else break;
+  }
+  if (!neutral) await post(close, { answers });
+  statuses = null;
+  return priceRecorded();
+}
+
+// Pulled out of measure() so a scenario replay and a shape replay are priced
+// by identical arithmetic.
+async function priceRecorded() {
+  let cachedIn = 0, uncachedIn = 0, out = 0;
+  const seen = new Set();
+  for (const body of recorded) {
+    const cacheable = Array.isArray(body.system);
+    const systemText = cacheable ? body.system.map((b) => b.text).join("") : String(body.system || "");
+    const sys = await countTokens(systemText);
+    const msg = await countTokens(JSON.stringify(body.messages || ""));
+    uncachedIn += sys + msg;
+    if (cacheable && seen.has(systemText)) cachedIn += sys * CACHE_READ + msg;
+    else if (cacheable) { seen.add(systemText); cachedIn += sys * CACHE_WRITE + msg; }
+    else cachedIn += sys + msg;
+    out += 120;
+  }
+  return { calls: recorded.length, uncachedIn: Math.round(uncachedIn),
+           cachedIn: Math.round(cachedIn), out };
+}
+
 // ------------------------------------------------------------------- run it
 const set = JSON.parse(await readFile(new URL("../evals/buckets.json", import.meta.url), "utf8"));
 let scenarios = set.scenarios.filter((s) => s.bucket !== "A");
 if (ONLY.length) scenarios = scenarios.filter((s) => ONLY.includes(s.id));
+
+if (args.includes("--shapes")) {
+  const sample = scenarios.find((x) => x.bucket === "B") || scenarios[0];
+  console.log("Pricing conversation shapes rather than one average.");
+  console.log(EXACT ? "Token counts: exact." : "Token counts: estimated from length (about 15%).");
+  console.log("");
+  console.log("shape                   w    calls   input(cached)   Sonnet 5");
+  let expected = 0, expectedCalls = 0;
+  for (const shape of SHAPES) {
+    const r = await measureShape(shape, sample);
+    const cost = price("claude-sonnet-5", r.cachedIn, r.out);
+    expected += shape.weight * cost;
+    expectedCalls += shape.weight * r.calls;
+    console.log(`${shape.name.padEnd(22)} ${shape.weight.toFixed(2)}  ${String(r.calls).padStart(5)}   ` +
+      `${String(r.cachedIn).padStart(8)}       ${("$" + cost.toFixed(4)).padStart(8)}   ${shape.note}`);
+  }
+  mock.close();
+  const w = SHAPES.reduce((n, x) => n + x.weight, 0);
+  console.log("");
+  console.log(`weights sum to ${w.toFixed(2)}${Math.abs(w - 1) > 0.001 ? " - NOT 1, the expectation below is wrong" : ""}`);
+  console.log(`Expected: ${expectedCalls.toFixed(1)} calls and ${("$" + expected.toFixed(4))} per visitor on Sonnet 5.`);
+  console.log(`GBP 5 buys about ${Math.floor(6.35 / expected)} visitors at that mix.`);
+  console.log("");
+  console.log("The weights are a guess, stated in the source so that disagreeing");
+  console.log("with this number means changing a number you can see. Replace them");
+  console.log("with real proportions as soon as there are any.");
+  process.exit(0);
+}
 
 console.log(`Replaying ${scenarios.length} conversation(s) against a mock provider.`);
 console.log(EXACT
@@ -205,9 +305,6 @@ console.log("");
 const rows = [];
 for (const s of scenarios) rows.push(await measure(s));
 mock.close();
-
-const price = (model, input, output) =>
-  (input * PRICES[model].in + output * PRICES[model].out) / 1e6;
 
 console.log("id    calls   input (uncached -> cached)   output    Sonnet 5   Opus 5");
 for (const r of rows) {
