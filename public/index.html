@@ -10,7 +10,7 @@
      is. Change to "index, follow" when the research page and the consent
      wording are both ready. -->
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='26' text-anchor='middle' fill='%23141412'%3E%3F%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23E2C892'/%3E%3Cg fill='none' stroke='%231C1813' stroke-width='2'%3E%3Cpath d='M3 25h26M7 25v-4M13 25v-3M19 25v-4M25 25v-3'/%3E%3Ccircle cx='16' cy='12' r='6.5'/%3E%3Cpath d='M21 17l5 5'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Could you tell if it was wrong?">
 <meta property="og:description" content="Senior practitioners across sixteen sectors described enforced rules about what they could put into AI. Not one described a rule about when to believe what comes out.">
@@ -22,25 +22,57 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Could you tell if it was wrong? A tool that asks questions instead of answering them.">
 <style>
+/* Self-hosted rather than fetched from Google. A page that promises not to
+   log what you type should not hand your address to a third party to draw
+   its headings, and 115KB of latin woff2 is cheaper than the round trip.
+   IBM Plex Sans is variable across 400-600, so one file covers three
+   weights; the duplicates Google served were byte-identical. */
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/IBMPlexMono-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/IBMPlexMono-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/IBMPlexMono-500-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/IBMPlexMono-500-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/IBMPlexSans-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/IBMPlexSans-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400i-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400i-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
 /* Editorial grotesque. White ground, one sans, a left-set column, a hard
    rule at the top of the page, and a real jump between display and body
    sizes. Same markup and same script as index.html: only this block differs. */
 :root{
-  --bg:#dde2e6;
-  --ink:#171d21;
-  --muted:#5a656c;
-  --rule:#b7c0c7;
-  --accent:#2f3c44;
-  --grid:rgba(23,29,33,0.055);
+  /* A workbench in daylight. The ruler tone is boxwood; the text is a warm
+     near-black rather than #000, which on warm paper reads as printed rather
+     than as a screen. Brass is for the instruments, oxide for the single
+     thing on any screen that wants attention. */
+  --paper:#F6F1E6;
+  --ink:#1C1813;
+  --muted:#6C6252;
+  --rule:#CBBCA0;
+  --faint:rgba(28,24,19,0.045);
+  --accent:#8A6A2F;
+  --brass:#9A7B3F;
+  --oxide:#A6432A;
+  --ruler:#E2C892;
+  --ruler-edge:#C9A863;
+  --bg:var(--paper);
+  --grid:rgba(28,24,19,0.04);
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#12171a;
-    --ink:#e3e8eb;
-    --muted:#8b969d;
-    --rule:#283136;
-    --accent:#93a7b3;
-    --grid:rgba(227,232,235,0.05);
+    --paper:#15120E;
+    --ink:#EDE5D6;
+    --muted:#9A8E79;
+    --rule:#3A3126;
+    --faint:rgba(237,229,214,0.045);
+    --accent:#C9A253;
+    --brass:#C9A253;
+    --oxide:#D0714A;
+    --ruler:#4A3C26;
+    --ruler-edge:#6B5836;
+    --bg:var(--paper);
+    --grid:rgba(237,229,214,0.035);
   }
 }
 
@@ -49,23 +81,53 @@ html{-webkit-text-size-adjust:100%}
 
 body{
   margin:0;
-  background:var(--bg);
+  /* Two layers: the ruled sheet the work sits on, and the paper under it.
+     Both are gradients, so the page still weighs nothing. */
+  background:
+    repeating-linear-gradient(180deg, transparent 0 31px, var(--faint) 31px 32px),
+    var(--paper);
   color:var(--ink);
-  font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  font-size:1rem;
-  line-height:1.55;
+  font-family:"IBM Plex Sans",ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:1.0625rem;
+  line-height:1.62;
   -webkit-font-smoothing:antialiased;
+  padding:26px 0 0;
 }
+
+/* A boxwood rule pinned to the top of the window. Three gradients: minor
+   ticks every 8px, major ticks every 48px, and the wood itself. Nothing is
+   an image, so it costs nothing and stays sharp at any zoom. */
 body::before{
   content:"";
-  display:block;
-  height:4px;
-  background:var(--accent);
+  position:fixed;
+  top:0; left:0; right:0;
+  height:26px;
+  background:
+    repeating-linear-gradient(90deg, rgba(28,24,19,0.38) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(28,24,19,0.55) 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, var(--ruler) 0%, var(--ruler-edge) 100%);
+  background-size:100% 7px, 100% 13px, 100% 100%;
+  background-repeat:repeat-x;
+  background-position:left bottom, left bottom, left top;
+  border-bottom:1px solid var(--ruler-edge);
+  z-index:40;
+  pointer-events:none;
+}
+@media (prefers-color-scheme: dark){
+  body::before{
+    background:
+      repeating-linear-gradient(90deg, rgba(237,229,214,0.22) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(90deg, rgba(237,229,214,0.38) 0 1px, transparent 1px 48px),
+      linear-gradient(180deg, var(--ruler) 0%, var(--ruler-edge) 100%);
+    background-size:100% 7px, 100% 13px, 100% 100%;
+    background-repeat:repeat-x;
+    background-position:left bottom, left bottom, left top;
+  }
 }
 
 main{
-  max-width:33rem;
-  padding:3rem 1.25rem 5rem;
+  max-width:34rem;
+  padding:3.2rem 1.5rem 5rem;
 }
 @media (min-width:48rem){
   body{font-size:1.0625rem}
@@ -256,7 +318,7 @@ main{position:relative;z-index:1}
   padding:0.9rem 1rem;
   border:1.5px solid var(--accent);
   background:var(--bg);
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.75rem;
   line-height:1.5;
   white-space:pre-wrap;
@@ -407,6 +469,66 @@ main{position:relative;z-index:1}
   .practices>li{ padding-left:2.2rem; }
 }
 
+/* ------------------------- type ------------------------- */
+h1,h2,h3,.lede{
+  font-family:"Instrument Serif",Georgia,"Times New Roman",serif;
+  font-weight:400;
+  letter-spacing:-0.005em;
+}
+h1{
+  font-size:clamp(2.35rem,7.5vw,3.5rem);
+  line-height:1.06;
+  margin:0 0 1.1rem;
+}
+h2{
+  font-size:clamp(1.7rem,5vw,2.3rem);
+  line-height:1.14;
+  margin:0 0 1rem;
+}
+h3{ font-size:1.25rem; line-height:1.2; }
+.lede{
+  font-size:clamp(1.2rem,3.4vw,1.45rem);
+  line-height:1.38;
+  color:var(--ink);
+  font-style:italic;
+  margin:0 0 1.6rem;
+}
+p{ margin:0 0 1.15rem; max-width:34em; }
+
+/* A measurement mark beside every heading: the page is an instrument, and
+   an instrument has graduations on it. */
+h1,h2{ position:relative; }
+h1::before,h2::before{
+  content:"";
+  position:absolute;
+  left:-1.15rem; top:0.36em;
+  width:0.5rem; height:1px;
+  background:var(--brass);
+}
+@media (max-width:34rem){ h1::before,h2::before{ display:none; } }
+
+/* Field labels, the way an inspection sheet writes them. */
+.note,.footnote,.gate-label,.quote-source,.invited{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.footnote,.note{
+  font-size:0.8125rem;
+  line-height:1.5;
+  color:var(--muted);
+}
+
+/* --------------------- the instruments ---------------------
+   Inline SVG, one colour, low contrast. Present enough to say what kind of
+   page this is and quiet enough not to be a cartoon. */
+.instrument{
+  display:block;
+  margin:2.2rem 0 0;
+  color:var(--brass);
+  opacity:0.5;
+}
+.instrument svg{ display:block; width:100%; height:auto; max-width:26rem; }
+@media (prefers-color-scheme: dark){ .instrument{ opacity:0.38; } }
+
 .testmode{
   margin:2.5rem 0 0;
   padding:0.85rem 1rem;
@@ -469,13 +591,22 @@ main{position:relative;z-index:1}
 
 <!-- Screen 1 - Landing -->
 <section class="screen" id="s1">
-  <h1 tabindex="-1">Could you tell if it was wrong?</h1>
-  <p class="lede">Most people can describe how they use AI. Far fewer can describe how they would know it had failed them.</p>
-  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Most described detailed, enforced rules about what data they were allowed to put in. Not one described a rule about when to believe what comes out.</p>
+  <h1 tabindex="-1">Convincing and correct look the same.</h1>
+  <p class="lede">AI can make you faster. It can make your work better. It can also hand you an answer that is wrong in a way you cannot see — and that one arrives looking exactly like the others.</p>
+  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Most described detailed, enforced rules about what data they were allowed to put <em>in</em>. Not one described a rule for when to believe what came <em>out</em>.</p>
+  <p>The people who handled that best were not the ones who knew most about AI. They were the ones who had something to bring to bear when they could not tell.</p>
+  <p>None of which is new, and none of it is really about AI. Deferring to something that sounds authoritative is the oldest human habit there is — we agree with seniority before we have decided whether we agree. The machine did not introduce that. It removed the name, the track record and the stake in being right, and kept the certainty.</p>
   <div class="actions">
     <button type="button" data-go="s2">See a worked example</button>
     <button type="button" data-go="s3">Try it on your own work</button>
   </div>
+  <span class="instrument" aria-hidden="true"><svg viewBox="0 0 420 64" fill="none" stroke="currentColor" stroke-width="1.4">
+  <path d="M8 40h404"/>
+  <path d="M8 40V20M56 40V28M104 40V20M152 40V28M200 40V20M248 40V28M296 40V20M344 40V28M392 40V20"/>
+  <path d="M150 12h96a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6h-96a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6Z" stroke-width="1.8"/>
+  <path d="M198 12v46" stroke-width="1.8"/>
+  <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
+</svg></span>
   <p class="invited" id="s1-invited" hidden>The worked example is open to anyone. Running it on your own work needs a key.</p>
   <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
 </section>

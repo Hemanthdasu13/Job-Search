@@ -109,6 +109,21 @@ const server = createServer(async (req, res) => {
     );
   }
 
+  // Fonts. Vercel serves everything under public/ by itself; this server
+  // only served .html, so locally the page silently fell back to the system
+  // font - which is exactly the look the fonts were added to escape, and
+  // would have made every local screenshot a lie.
+  const font = path.match(/^\/fonts\/([A-Za-z0-9._-]+\.woff2)$/);
+  if (font) {
+    const bytes = await readFile(new URL("./public/fonts/" + font[1], import.meta.url)).catch(() => null);
+    if (!bytes) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      return res.end("Not found");
+    }
+    res.writeHead(200, { "Content-Type": "font/woff2", "Cache-Control": "no-store" });
+    return res.end(bytes);
+  }
+
   // Any .html sitting in the project root, so styling variants can be
   // compared side by side without editing this file each time.
   if (path === "/" || /^\/[a-z0-9-]+\.html$/.test(path)) {
