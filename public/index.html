@@ -135,6 +135,13 @@ body::before{
     background-position:left bottom, left bottom, left top, left top;
   }
 }
+/* The gutter. Without this the column runs flush into the screen edge on a
+   phone, which is where most of this page's traffic arrives from. */
+main{
+  max-width:35rem;
+  padding:3.25rem 1.25rem 5rem;
+}
+
 @media (min-width:48rem){
   body{font-size:1.0625rem}
   main{
@@ -505,6 +512,16 @@ h3{ font-size:1.25rem; line-height:1.2; }
 }
 p{ margin:0 0 1.15rem; max-width:34em; }
 
+/* The question the whole tool exists to ask, set on its own line in the
+   heading face. It is the turn into the two buttons, not another sentence
+   of the argument, and at body size it read as one. */
+.ask{
+  font-family:"Instrument Serif",Georgia,"Times New Roman",serif;
+  font-size:clamp(1.35rem,4vw,1.7rem);
+  line-height:1.2;
+  margin:2rem 0 1.5rem;
+}
+
 /* A measurement mark beside every heading: the page is an instrument, and
    an instrument has graduations on it. */
 h1,h2{ position:relative; }
@@ -602,10 +619,12 @@ h1::before,h2::before{
 <!-- Screen 1 - Landing -->
 <section class="screen" id="s1">
   <h1 tabindex="-1">Convincing and correct look the same.</h1>
-  <p class="lede">AI can make you faster. It can make your work better. It can also hand you an answer that is wrong in a way you cannot see — and that one arrives looking exactly like the others.</p>
-  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Most described detailed, enforced rules about what data they were allowed to put <em>in</em>. Not one described a rule for when to believe what came <em>out</em>.</p>
-  <p>The people who handled that best were not the ones who knew most about AI. They were the ones who had something to bring to bear when they could not tell.</p>
-  <p>None of which is new, and none of it is really about AI. Deferring to something that sounds authoritative is the oldest human habit there is — we agree with seniority before we have decided whether we agree. The machine did not introduce that. It removed the name, the track record and the stake in being right, and kept the certainty.</p>
+  <p class="lede">AI can give you a wrong answer and leave you sure it is right. Not wrong in a way you would catch — wrong in a way that arrives looking exactly like the answers that were fine.</p>
+  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Almost every one of them had detailed, enforced rules about what they were allowed to put <em>in</em>. Not one had a rule for when to believe what came <em>out</em>.</p>
+  <p>The ones who handled it best were not the ones who knew most about AI. They were the ones who had something to put the answer against when they could not tell.</p>
+  <p>We agree with people who sound certain, and we agree faster when they are senior. That is not new and it was never a technology problem — it is a very human habit.</p>
+  <p>AI has become extremely good at it. Calling that an AI answer is probably the wrong name for it. It is the most human thing it does.</p>
+  <p class="ask">How do you know?</p>
   <div class="actions">
     <button type="button" data-go="s2">See a worked example</button>
     <button type="button" data-go="s3">Try it on your own work</button>
@@ -618,7 +637,7 @@ h1::before,h2::before{
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
   <p class="invited" id="s1-invited" hidden>The worked example is open to anyone. Running it on your own work needs a key.</p>
-  <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
+  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder. Not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -642,8 +661,8 @@ h1::before,h2::before{
      this is a tool about not being fooled. -->
 <section class="screen" id="s2g" hidden>
   <h2 tabindex="-1">This part runs on a key.</h2>
-  <p class="lede">The questions are generated one at a time against what you write, so the interactive half is handed out rather than left open.</p>
-  <p>If you have a key, put it in. If you don't, ask me for one and I'll send it over — it takes a minute and I'd rather know who found this useful.</p>
+  <p class="lede">Every question here is written against what you actually typed, which costs me something each time. So I am handing keys out to a few people rather than leaving it open — and I would rather know who is using it.</p>
+  <p>If you have a key, put it in. If you don't, ask me for one — it takes a minute.</p>
 
   <form id="s2g-form" novalidate>
     <label class="gate-label" for="s2g-input">Key</label>
@@ -655,7 +674,7 @@ h1::before,h2::before{
     </div>
   </form>
 
-  <p class="gate-ask">Ask me for one:</p>
+  <p class="gate-ask">Reach me:</p>
   <p class="links gate-links">
     <span data-linkwrap="whatsapp"><a href="#" data-link="whatsapp">WhatsApp</a></span>
     <span data-linkwrap="linkedin"><a href="#" data-link="linkedin">LinkedIn</a></span>
@@ -709,7 +728,7 @@ h1::before,h2::before{
        wrote none of the text. -->
   <div id="s5a-selected" hidden>
     <h2 tabindex="-1" id="s5a-selected-head"></h2>
-    <p class="lede">Not things you got wrong. Things that ran through the interviews and did not come up in what you described.</p>
+    <p class="lede">Not things you got wrong. Things other people kept running into, that did not come up in what you described.</p>
     <ol class="practices" id="s5a-practices"></ol>
   </div>
 
@@ -718,18 +737,18 @@ h1::before,h2::before{
        card to show for it. -->
   <div id="s5a-general">
   <h2 tabindex="-1">The output was checkable. The inputs were not.</h2>
-  <p>This is the most common position in the study. People check what the system produced, because that is what is in front of them. Almost nobody checks what it had to work from, because that is invisible.</p>
+  <p>This is the most common position, by some distance. People check what the system produced, because that is what is in front of them. Almost nobody checks what it had to work from, because that is invisible.</p>
   <p>A group finance director described building a pension model with AI over a weekend. It looked sensible. He then built a separate reconciliation to test it against, and found around six errors:</p>
   <blockquote>I could have just looked at the first output and I thought, yeah, that says I'm going to have a comfortable retirement. I've got enough. My plan is on track.</blockquote>
   <p>He did not find them because something looked wrong. He found them because he built something to check against.</p>
   <p><strong>Worth trying:</strong> before accepting an analysis, ask what the system actually had, what it is assuming, and what might be missing. That sequence came from one of the participants, not from the research design.</p>
-  <p><strong>One more thing from the study:</strong> in twelve of the interviews, four people had a rule they could state for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a decision rule they already used for something else and applied it to AI without anyone telling them to.</p>
+  <p><strong>One more thing:</strong> of twelve people asked directly, four could state a rule for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a rule they already used for something else and pointed it at AI, with nobody telling them to.</p>
   </div>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
   </p>
-  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
+  <p class="footnote">Exploratory qualitative research, single coder. Not a validated instrument.</p>
 </section>
 
 <!-- Screen 5B - Closing, an independent check already in place. Fixed text. -->
@@ -737,13 +756,13 @@ h1::before,h2::before{
   <p class="closing-note" id="s5b-note" hidden></p>
   <p class="reflection" id="s5b-reflection" hidden>You described: “<span id="s5b-reflection-text"></span>”</p>
   <h2 tabindex="-1">You described a constructed check, not a careful read.</h2>
-  <p>That is what the practitioners in this study who caught real errors had in common. Not more attention, but something independent for the output to fail against: a reconciliation, a second model, a colleague who knows the area, a check written before the answer was produced.</p>
-  <p>The study also found this is the first thing to go under time pressure, which is when high-stakes decisions usually get made.</p>
+  <p>That is what the people who caught real errors had in common. Not more attention, but something independent for the output to fail against: a reconciliation, a second model, a colleague who knows the area, a check written before the answer was produced.</p>
+  <p>It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.</p>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
   </p>
-  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
+  <p class="footnote">Exploratory qualitative research, single coder. Not a validated instrument.</p>
 </section>
 
 <!-- Screen 5C - Neutral close. Reached only from two off-topic replies. -->
@@ -758,7 +777,7 @@ h1::before,h2::before{
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
   </p>
-  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
+  <p class="footnote">Exploratory qualitative research, single coder. Not a validated instrument.</p>
 </section>
 
 
@@ -820,7 +839,7 @@ h1::before,h2::before{
     "constructed-check": {
       concept: "a constructed check, not a careful read",
       principle: "Attention does not catch errors. Something independent for the output to fail against does.",
-      why: "This is what the practitioners in this study who caught real errors had in common. Not more care, but something built for the answer to be tested against: a reconciliation, a check written before the output existed, a colleague who knows the area. The study also found it is the first thing to go under time pressure, which is when the high-stakes decisions tend to get made.",
+      why: "This is what the people who caught real errors had in common. Not more care, but something built for the answer to be tested against: a reconciliation, a check written before the output existed, a colleague who knows the area. It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.",
       quote: {
         text: "I could have just looked at the first output and I thought, yeah, that says I'm going to have a comfortable retirement. I've got enough. My plan is on track.",
         who: "a group finance director, who built a separate reconciliation and found around six errors"
@@ -1007,7 +1026,7 @@ h1::before,h2::before{
         // plausible and a piece of evidence someone can weigh.
         var source = document.createElement("p");
         source.className = "quote-source";
-        source.textContent = "From the interviews";
+        source.textContent = "From the research";
         li.appendChild(source);
 
         var bq = document.createElement("blockquote");
@@ -1031,7 +1050,7 @@ h1::before,h2::before{
 
     $("s5a-selected-head").textContent =
       (PRACTICE_HEADS[show.length - 1] || show.length + " things") +
-      " ran through the interviews that did not come up in your answers.";
+      " came up again and again in the research, and not in your answers.";
     return true;
   }
 
