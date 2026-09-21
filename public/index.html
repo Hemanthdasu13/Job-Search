@@ -389,8 +389,15 @@ main{position:relative;z-index:1}
   font-size:0.9375rem;
   line-height:1.5;
 }
+.quote-source{
+  margin:1.4rem 0 0.3rem;
+  font-size:0.75rem;
+  letter-spacing:0.09em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
 .practices blockquote{
-  margin:1.1rem 0 0.4rem;
+  margin:0 0 0.4rem;
   font-size:1em;
 }
 .practices .footnote{
@@ -852,6 +859,16 @@ main{position:relative;z-index:1}
       li.appendChild(why);
 
       if (card.quote && card.quote.text) {
+        // Labelled, because the label is the claim. Two quotes sit in every
+        // card - the visitor's own sentence at the top and a participant's
+        // here - and unlabelled they read as one voice. Saying where this one
+        // came from is the difference between a line of prose that sounds
+        // plausible and a piece of evidence someone can weigh.
+        var source = document.createElement("p");
+        source.className = "quote-source";
+        source.textContent = "From the interviews";
+        li.appendChild(source);
+
         var bq = document.createElement("blockquote");
         bq.textContent = card.quote.text;
         li.appendChild(bq);

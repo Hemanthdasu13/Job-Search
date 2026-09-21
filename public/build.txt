@@ -109,6 +109,11 @@ Closing screens
     The screen says these are things that did not come up in your answers.
     It does not say you did not do them, because six questions cannot
     establish that.
+    A card may carry one participant quote, pre-mapped to that card and
+    labelled "From the interviews" on screen. It costs nothing at runtime:
+    the model never sees the quotes, it returns an id, and the page looks
+    the quote up. Attribution is role and sector only, never a name, and a
+    test refuses anything that looks like one.
     No type, no category, no score. The cards describe what is absent from
     one account of one decision, never the person who gave it.
 
