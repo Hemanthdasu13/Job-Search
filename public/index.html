@@ -42,38 +42,45 @@
    rule at the top of the page, and a real jump between display and body
    sizes. Same markup and same script as index.html: only this block differs. */
 :root{
-  /* Near-white paper, not beige. The wood belongs to the instruments lying on
-     the page - the rule, its graduations, the calipers - and not to the page
-     itself. A warm field makes the whole thing look tinted; a white field with
-     one wooden object on it looks like a desk. */
-  --paper:#FCFBF8;
-  --ink:#1A1713;
-  --muted:#6E665A;
-  --rule:#E0DACD;
-  --faint:rgba(26,23,19,0.035);
-  --accent:#8A6A2F;
-  --brass:#A98B50;
-  --oxide:#A6432A;
-  /* Pale boxwood. Saturated wood at this size reads as a warning stripe. */
-  --ruler:#EEE0C0;
-  --ruler-edge:#DDCBA2;
+  /* The page is the scale. Boxwood - the pale yellow of a school wooden
+     ruler - with dark brown ink on it, which measures 10.8:1 and reads as
+     printed rather than displayed. The graduations run along the top edge
+     of the page itself, because once the whole sheet is the rule there is
+     nothing for a separate wooden strip to be.
+     Muted text is one step darker than it would be on white: brown on wood
+     loses contrast faster than grey on paper. */
+  --paper:#E8D7A9;
+  --ink:#2A1E10;
+  --muted:#5E4A2C;
+  --rule:#C6AE78;
+  --faint:rgba(42,30,16,0.07);
+  --accent:#7A5A24;
+  --brass:#7A5A24;
+  --oxide:#93361E;
+  --ruler:#E8D7A9;
+  --ruler-edge:#C6AE78;
+  /* Inputs and quoted blocks sit on a paler label, so the eye can tell what
+     is the rule and what has been written on it. */
+  --label:#F2E7C8;
   --bg:var(--paper);
-  --grid:rgba(26,23,19,0.03);
+  --grid:rgba(42,30,16,0.05);
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#131210;
-    --ink:#EFEBE2;
-    --muted:#958D80;
-    --rule:#2E2A24;
-    --faint:rgba(239,235,226,0.035);
-    --accent:#C9A253;
-    --brass:#BD9A54;
-    --oxide:#CF7049;
-    --ruler:#4C412C;
-    --ruler-edge:#6A5B3C;
+    /* The same rule in stained walnut rather than boxwood. */
+    --paper:#2A1F12;
+    --ink:#EADDBF;
+    --muted:#B0A182;
+    --rule:#4A3B24;
+    --faint:rgba(234,221,191,0.07);
+    --accent:#CBA85C;
+    --brass:#CBA85C;
+    --oxide:#D8794E;
+    --ruler:#2A1F12;
+    --ruler-edge:#4A3B24;
+    --label:#221909;
     --bg:var(--paper);
-    --grid:rgba(239,235,226,0.03);
+    --grid:rgba(234,221,191,0.05);
   }
 }
 
@@ -99,13 +106,19 @@ body::before{
   position:fixed;
   top:0; left:0; right:0;
   height:19px;
+  /* Same boxwood as the page. What marks it out as the scale is the
+     graduations cut into it and the line closing the edge - nothing is
+     painted a different colour, because a ruler is not a stripe. */
   background:
-    repeating-linear-gradient(90deg, rgba(26,23,19,0.26) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(90deg, rgba(26,23,19,0.42) 0 1px, transparent 1px 48px),
-    linear-gradient(180deg, var(--ruler) 0%, var(--ruler-edge) 100%);
-  background-size:100% 5px, 100% 10px, 100% 100%;
+    repeating-linear-gradient(90deg, rgba(42,30,16,0.30) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(42,30,16,0.50) 0 1px, transparent 1px 48px),
+    /* A rounded edge catching the light, which is what stops a flat colour
+       reading as a coloured bar rather than a piece of wood. */
+    linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 55%, rgba(42,30,16,0.10) 100%),
+    var(--ruler);
+  background-size:100% 5px, 100% 10px, 100% 100%, 100% 100%;
   background-repeat:repeat-x;
-  background-position:left bottom, left bottom, left top;
+  background-position:left bottom, left bottom, left top, left top;
   border-bottom:1px solid var(--ruler-edge);
   z-index:40;
   pointer-events:none;
@@ -113,18 +126,14 @@ body::before{
 @media (prefers-color-scheme: dark){
   body::before{
     background:
-      repeating-linear-gradient(90deg, rgba(239,235,226,0.18) 0 1px, transparent 1px 8px),
-      repeating-linear-gradient(90deg, rgba(239,235,226,0.30) 0 1px, transparent 1px 48px),
-      linear-gradient(180deg, var(--ruler) 0%, var(--ruler-edge) 100%);
-    background-size:100% 5px, 100% 10px, 100% 100%;
+      repeating-linear-gradient(90deg, rgba(234,221,191,0.22) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(90deg, rgba(234,221,191,0.36) 0 1px, transparent 1px 48px),
+      linear-gradient(180deg, rgba(234,221,191,0.13) 0%, rgba(234,221,191,0) 55%, rgba(0,0,0,0.22) 100%),
+      var(--ruler);
+    background-size:100% 5px, 100% 10px, 100% 100%, 100% 100%;
     background-repeat:repeat-x;
-    background-position:left bottom, left bottom, left top;
+    background-position:left bottom, left bottom, left top, left top;
   }
-}
-
-main{
-  max-width:34rem;
-  padding:3.2rem 1.5rem 5rem;
 }
 @media (min-width:48rem){
   body{font-size:1.0625rem}
@@ -266,7 +275,11 @@ textarea{
   font:inherit;
   font-size:1rem;
   color:var(--ink);
-  background:transparent;
+  /* The one surface a visitor writes on, so it is the paler label tone
+     rather than the wood. Transparent would put their sentence straight onto
+     the rule, which is the wrong way round: the rule is the instrument, what
+     they type is the reading. */
+  background:var(--label);
   border:1.5px solid var(--rule);
   border-radius:0;
   padding:0.7rem 0.8rem;
@@ -314,7 +327,7 @@ main{position:relative;z-index:1}
   margin:2.5rem 0 0;
   padding:0.9rem 1rem;
   border:1.5px solid var(--accent);
-  background:var(--bg);
+  background:var(--label);
   font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.75rem;
   line-height:1.5;
@@ -362,7 +375,7 @@ main{position:relative;z-index:1}
   max-width:14rem;
   padding:0.7rem 0.85rem;
   border:1.5px solid var(--rule);
-  background:var(--bg);
+  background:var(--label);
   color:var(--ink);
   font:inherit;
   font-size:1.25rem;
@@ -530,7 +543,7 @@ h1::before,h2::before{
   margin:2.5rem 0 0;
   padding:0.85rem 1rem;
   border:1.5px solid var(--accent);
-  background:var(--bg);
+  background:var(--label);
   font-size:0.8125rem;
   line-height:1.5;
   position:relative;
