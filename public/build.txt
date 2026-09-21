@@ -6,6 +6,16 @@ for diagnosis. Both come out before the link is public.
 If you are reading this, the deployment is current. If this 404s, Vercel has
 not picked up the latest push and nothing below is live yet.
 
+Cost
+  The system prompt is the largest thing sent and identical on every call, so
+  it is marked cacheable and calls two onwards read it back at about a tenth
+  of the price. Caching is a prefix match with a model-dependent minimum -
+  1024 tokens on Sonnet 5 - and both prompts sit just above it, so trimming
+  either one to "save tokens" would silently stop it caching and cost more.
+  A test holds that floor.
+  The transcript is resent on every call because the API is stateless. That
+  is where the growth is, not in the prompts.
+
 Provider
   Anthropic's own API authenticates with x-api-key; the compatible endpoints
   other providers put in front of the same wire format authenticate with a
@@ -18,6 +28,16 @@ Provider
 
 Access
   Off unless ACCESS_PINS is set, so the tool is open by default.
+  A key is "123456", "123456:label", or "123456:label:2" - the third field
+  is how many conversations that key is good for. One by default; 0 means
+  unlimited, for a key you keep for yourself.
+  The allowance belongs to the KEY, not the browser and not the token. A
+  browser can be cleared, a token can be minted again from the same key, and
+  an address changes on a train; the key is the thing that was handed to a
+  person, so it is the thing that runs out. Counted in model calls, because
+  a call is what costs money and counting calls cannot be gamed.
+  A spent key is refused at the door, before anyone types. An unreachable
+  counter refuses nobody: a store outage must not take the tool offline.
   When on: the landing page and the worked example stay open to everyone,
   and a key is asked for once, before anyone types anything. Never after -
   asking someone to write out an account of their own work and then telling

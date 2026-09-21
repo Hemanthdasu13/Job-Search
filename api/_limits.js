@@ -134,6 +134,18 @@ export async function bumpCounter(key, ttlSeconds, now = Date.now()) {
   return incr(key, ttlSeconds, now);
 }
 
+// Read a counter without touching it. A missing key and an unreachable store
+// both read as zero, which is the permissive direction on purpose: a store
+// outage should turn nobody away at the door.
+export async function readCounter(key, now = Date.now()) {
+  if (kvEnabled) {
+    const value = await kvCall(["GET", key]);
+    if (value !== null && value !== undefined) return Number(value) || 0;
+  }
+  const existing = memory.get(key);
+  return existing && existing.expires > now ? existing.count : 0;
+}
+
 /* -------------------------------- keys ---------------------------------- */
 
 const SALT = process.env.IP_SALT || "no-salt-set";

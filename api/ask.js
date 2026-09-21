@@ -40,10 +40,10 @@
 // or { ok: false }. The page treats every ok:false the same way, so no
 // failure here can put an error on the screen.
 
-import { claimModelCall } from "./_limits.js";
+import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, extractJson, safeParse, textOf } from "./_model.js";
-import { verifyToken, tokenFrom } from "./_access.js";
+import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
@@ -255,6 +255,11 @@ export default async function handler(req, res) {
     console.error("config_missing MODEL_ID");
     return fail(res, "no_model_id");
   }
+
+  // The key's own allowance, spent before the shared budget. A key good for
+  // one conversation runs out here rather than by the visitor being polite.
+  const spend = await spendKeyCall(access, bumpCounter);
+  if (!spend.allowed) return fail(res, spend.reason);
 
   const claim = await claimModelCall(req);
   if (!claim.allowed) {

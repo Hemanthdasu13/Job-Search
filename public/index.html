@@ -520,6 +520,7 @@ main{position:relative;z-index:1}
 <section class="screen" id="s3" hidden>
   <h2 tabindex="-1" id="s3-prompt">Think of a recent piece of work where AI output fed into something that mattered. A decision, a recommendation, an analysis someone else relied on. What was it?</h2>
   <p class="note">Please don't include anything confidential.</p>
+  <p class="note" id="s3-allowance" hidden>Your key is good for one run, so pick something you actually want to think about.</p>
   <form id="s3-form">
     <textarea id="s3-input" rows="3" aria-labelledby="s3-prompt" required></textarea>
     <p class="consent" id="consent-row" hidden>
@@ -747,7 +748,7 @@ main{position:relative;z-index:1}
   // and off without touching this file, and the page never shows a key screen
   // for a tool that is not actually locked.
   var access = { required: false, token: null };
-  var ACCESS_FAILURES = ["no_token", "bad_token", "expired_token"];
+  var ACCESS_FAILURES = ["no_token", "bad_token", "expired_token", "key_spent"];
   var TOKEN_KEY = "tool-access-token";
 
   // Per tab, not forever. A key that outlives the browser session would mean
@@ -1217,6 +1218,7 @@ main{position:relative;z-index:1}
 
   var GATE_MESSAGES = {
     wrong_pin: "That key isn't right.",
+    key_spent: "That key has been used. Message me and I'll send another \u2014 happy to.",
     too_many_attempts: "Too many tries. Give it an hour, or message me and I'll check the key.",
     cross_origin: "Something went wrong. Reload the page and try again.",
     method_not_post: "Something went wrong. Reload the page and try again."
@@ -1255,6 +1257,9 @@ main{position:relative;z-index:1}
         if (data && data.ok && data.token) {
           rememberToken(data.token);
           $("s2g-input").value = "";
+          if (data.conversations === 1) {
+            $("s3-allowance").hidden = false;
+          }
           show("s3");
           $("s3-input").focus({ preventScroll: true });
           return;
@@ -1281,7 +1286,9 @@ main{position:relative;z-index:1}
   function handleExpiredAccess() {
     forgetToken();
     setBusy(false);
-    gateError("That key has run out. Ask me for another and I'll send one over.");
+    gateError(state.lastFailure && state.lastFailure.indexOf("key_spent") === 0
+      ? "That key is used up. Message me and I'll send another \u2014 happy to."
+      : "That key has run out. Ask me for another and I'll send one over.");
     show("s2g");
     $("s2g-input").focus({ preventScroll: true });
   }

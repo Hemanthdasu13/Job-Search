@@ -11,8 +11,9 @@
 // as everything else, so it cannot be reset by opening a new tab or by the
 // request landing on a different instance.
 
-import { accessEnabled, labelForPin, mintToken, accessHours } from "./_access.js";
-import { bumpCounter, hashIp } from "./_limits.js";
+import { accessEnabled, grantForPin, mintToken, accessHours,
+         keyAlreadySpent, callsPerConversation } from "./_access.js";
+import { bumpCounter, hashIp, readCounter } from "./_limits.js";
 import { VERSION } from "./_version.js";
 
 const BUILD = `${VERSION}@${(process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}`;
@@ -75,8 +76,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const label = labelForPin(supplied);
-  if (!label) {
+  const grant = grantForPin(supplied);
+  if (!grant) {
     return res.status(200).json({
       ok: false,
       reason: "wrong_pin",
@@ -85,13 +86,25 @@ export default async function handler(req, res) {
     });
   }
 
-  // The label identifies the pin to its owner and never leaves the server.
-  console.log("unlock_ok", label);
+  // A key that has already been used up is turned away here, at the door,
+  // rather than three questions into a conversation. Being stopped before
+  // you have written anything is a different experience from being stopped
+  // after you have described your own work.
+  if (await keyAlreadySpent(grant, readCounter)) {
+    console.log("unlock_spent", grant.label);
+    return res.status(200).json({ ok: false, reason: "key_spent", build: BUILD });
+  }
+
+  // The label identifies the key to its owner and never leaves the server.
+  console.log("unlock_ok", grant.label, grant.conversations || "unlimited");
   return res.status(200).json({
     ok: true,
     open: false,
-    token: mintToken(label),
+    token: mintToken(grant),
     hours: accessHours(),
+    // So the page can say "this key is good for one conversation" rather than
+    // letting someone discover the limit by hitting it.
+    conversations: grant.conversations || null,
     build: BUILD
   });
 }

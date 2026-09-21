@@ -84,7 +84,21 @@ export async function callModel(key, model, system, messages, maxTokens = maxOut
   if (endpointMode() === "chat") {
     return callChat(key, model, system, messages, maxTokens);
   }
-  const body = { model, max_tokens: maxTokens, system, messages };
+  // The system prompt is identical on every call of a conversation and is the
+  // largest single thing sent, so it is marked cacheable. Within one
+  // conversation the turns are seconds apart, so calls two onwards read it
+  // back at a tenth of the price instead of paying for it again.
+  //
+  // Caching is a prefix match and the minimum cacheable prefix is
+  // model-dependent — 1024 tokens on Sonnet 5. Both prompts here sit just
+  // above that, which is close enough that trimming one would silently stop
+  // it caching with no error, only a bigger bill. A test holds the floor.
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+    messages
+  };
   // Only sent when configured, so nothing here breaks a provider that has
   // never heard of it.
   const level = effort();

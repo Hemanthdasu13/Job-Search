@@ -21,11 +21,11 @@
 // put one. It picks ids. The words a visitor reads are the visitor's own,
 // plus text written by the researcher and shipped in the HTML.
 
-import { claimModelCall } from "./_limits.js";
+import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, extractJson, textOf } from "./_model.js";
 import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection } from "./_practices.js";
-import { verifyToken, tokenFrom } from "./_access.js";
+import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
 const MAX_ANSWERS = 12;
@@ -163,6 +163,11 @@ export default async function handler(req, res) {
   const model = process.env.MODEL_ID;
   if (!key) return fall(res, "no_api_key");
   if (!model) return fall(res, "no_model_id");
+
+  // The key's own allowance, spent before the shared budget. A key good for
+  // one conversation runs out here rather than by the visitor being polite.
+  const spend = await spendKeyCall(access, bumpCounter);
+  if (!spend.allowed) return fall(res, spend.reason);
 
   const claim = await claimModelCall(req);
   if (!claim.allowed) return fall(res, claim.reason);
