@@ -43,6 +43,7 @@
 import { claimModelCall } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, extractJson, safeParse, textOf } from "./_model.js";
+import { verifyToken, tokenFrom } from "./_access.js";
 import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
@@ -231,6 +232,12 @@ export default async function handler(req, res) {
   const body = await readJsonBody(req);
   const messages = buildMessages(body);
   if (!messages) return fail(res, "bad_request_shape");
+
+  // Before anything that costs money or reveals configuration. A gate the
+  // page enforces is decoration; this is the one that counts, because this
+  // is what a script posting straight to the endpoint has to get past.
+  const access = verifyToken(tokenFrom(req));
+  if (!access.ok) return fail(res, access.reason);
 
   // Costs nothing upstream, so it is neither budgeted nor metered.
   if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {

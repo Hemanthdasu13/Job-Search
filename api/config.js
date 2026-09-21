@@ -13,11 +13,16 @@
 // not. Anthropic's API does not train on API inputs.
 
 import { kvEnabled } from "./_limits.js";
+import { accessEnabled } from "./_access.js";
 
 export default function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).json({
     contributionsPossible: kvEnabled,
-    providerTrainsOnInput: process.env.PROVIDER_TRAINS_ON_INPUT === "1"
+    providerTrainsOnInput: process.env.PROVIDER_TRAINS_ON_INPUT === "1",
+    // Whether a pin is needed. Saying so here rather than in the HTML means
+    // the gate can be turned on and off without a code change, and the page
+    // never shows a pin screen for a tool that is not actually locked.
+    accessRequired: accessEnabled()
   });
 }

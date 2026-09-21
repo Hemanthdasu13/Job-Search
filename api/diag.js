@@ -17,6 +17,7 @@
 
 import { BASE_URL, REQUEST_TIMEOUT_MS, endpointMode, chatCompletionsUrl, modelApiKey, isOpenRouter } from "./_provider.js";
 import { kvEnabled, kvSource, LIMITS, claimModelCall, peekUsage } from "./_limits.js";
+import { accessEnabled, accessHours } from "./_access.js";
 import { SYSTEM } from "./ask.js";
 
 export default async function handler(req, res) {
@@ -57,7 +58,10 @@ export default async function handler(req, res) {
         : "no, ADMIN_TOKEN is not set",
       sharedCounters: kvEnabled ? "shared via Upstash" : "in-memory only, per instance",
       limits: LIMITS,
-      nodeVersion: process.version
+      nodeVersion: process.version,
+      access: accessEnabled()
+        ? `by key: ${(process.env.ACCESS_PINS || "").split(",").filter(Boolean).length} issued, each good for ${accessHours()}h`
+        : "open, no ACCESS_PINS set"
     },
     problems: []
   };
@@ -118,6 +122,27 @@ export default async function handler(req, res) {
       out.providerAccount = { error: `${error && error.name}: ${error && error.message}` };
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  if (accessEnabled()) {
+    const pins = (process.env.ACCESS_PINS || "").split(",").map((e) => e.split(":")[0].trim()).filter(Boolean);
+    const shortest = Math.min(...pins.map((p) => p.length));
+    const attempts = Number(process.env.ACCESS_MAX_ATTEMPTS) || 10;
+    // Guessing is bounded by the attempt limit, not by the length, so the
+    // useful number is how long the limit makes a full sweep take.
+    const days = Math.round((Math.pow(10, shortest) / 2) / (attempts * 24));
+    if (days < 365) {
+      out.problems.push(
+        `Shortest key is ${shortest} characters. At ${attempts} attempts an hour, guessing it takes about ${days} days. ` +
+        `Six digits or more makes that effectively never.`);
+    }
+    if (!kvEnabled) {
+      out.problems.push(
+        "Keys are configured but there is no shared store, so the attempt limit is per instance and someone guessing gets more tries than intended.");
+    }
+    if (pins.some((p) => /^(\d)\1+$|^123|^000/.test(p))) {
+      out.problems.push("One of the keys is a guessable pattern. Use something without a run or a sequence in it.");
     }
   }
 

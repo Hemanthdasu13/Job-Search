@@ -280,6 +280,59 @@ main{position:relative;z-index:1}
   line-height:1.44;
 }
 
+/* The gate. Deliberately quiet: a lock that shouts reads as a paywall, and
+   this one is an invitation with a step in front of it. */
+.invited{
+  margin:1.6rem 0 0;
+  padding:0.7rem 0 0;
+  border-top:1px solid var(--rule);
+  color:var(--muted);
+  font-size:0.875rem;
+  line-height:1.5;
+}
+.gate-label{
+  display:block;
+  margin:1.8rem 0 0.5rem;
+  font-size:0.8125rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+#s2g-input{
+  width:100%;
+  max-width:14rem;
+  padding:0.7rem 0.85rem;
+  border:1.5px solid var(--rule);
+  background:var(--bg);
+  color:var(--ink);
+  font:inherit;
+  font-size:1.25rem;
+  letter-spacing:0.28em;
+  font-variant-numeric:tabular-nums;
+}
+#s2g-input:focus{
+  outline:none;
+  border-color:var(--accent);
+}
+.gate-error{
+  margin:0.7rem 0 0;
+  color:var(--ink);
+  font-size:0.9375rem;
+  line-height:1.5;
+  border-left:3px solid var(--accent);
+  padding-left:0.85rem;
+}
+.gate-ask{
+  margin:2.4rem 0 0.6rem;
+  padding-top:1.4rem;
+  border-top:1px solid var(--rule);
+  color:var(--muted);
+  font-size:0.875rem;
+}
+.gate-links{
+  margin-top:0;
+}
+
 /* The selected practices. Numbered because the order is the one judgement
    the model is allowed to make: which gap matters most in this account. */
 .practices{
@@ -416,6 +469,7 @@ main{position:relative;z-index:1}
     <button type="button" data-go="s2">See a worked example</button>
     <button type="button" data-go="s3">Try it on your own work</button>
   </div>
+  <p class="invited" id="s1-invited" hidden>The worked example is open to anyone. Running it on your own work needs a key.</p>
   <p class="footnote">Exploratory research, eighteen interviews across sixteen sectors. Not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
 </section>
 
@@ -432,6 +486,34 @@ main{position:relative;z-index:1}
     <button type="button" data-go="s3">Try it on your own work</button>
     <button type="button" data-link="research">How this was researched</button>
   </div>
+</section>
+
+<!-- Screen 2G - The gate. Sits after the worked example and before anyone
+     types, never after: asking someone to write out an account of their own
+     work and then telling them they cannot continue would be a trick, and
+     this is a tool about not being fooled. -->
+<section class="screen" id="s2g" hidden>
+  <h2 tabindex="-1">This part runs on a key.</h2>
+  <p class="lede">The questions are generated one at a time against what you write, so the interactive half is handed out rather than left open.</p>
+  <p>If you have a key, put it in. If you don't, ask me for one and I'll send it over — it takes a minute and I'd rather know who found this useful.</p>
+
+  <form id="s2g-form" novalidate>
+    <label class="gate-label" for="s2g-input">Key</label>
+    <input id="s2g-input" type="text" inputmode="numeric" autocomplete="off"
+           spellcheck="false" aria-describedby="s2g-error" required>
+    <p class="gate-error" id="s2g-error" role="status" hidden></p>
+    <div class="actions">
+      <button type="submit" id="s2g-submit">Unlock</button>
+    </div>
+  </form>
+
+  <p class="gate-ask">Ask me for one:</p>
+  <p class="links gate-links">
+    <span data-linkwrap="whatsapp"><a href="#" data-link="whatsapp">WhatsApp</a></span>
+    <span data-linkwrap="linkedin"><a href="#" data-link="linkedin">LinkedIn</a></span>
+    <span data-linkwrap="email"><a href="#" data-link="email">Email</a></span>
+  </p>
+  <p class="footnote">A key doesn't identify you to the tool. Nothing you type is stored or logged by this site either way.</p>
 </section>
 
 <!-- Screen 3 - Input -->
@@ -548,7 +630,18 @@ main{position:relative;z-index:1}
   ------------------------------------------------------------------ */
   var LINKS = {
     research: "",                       // e.g. "/research" or a PDF
-    interview: "mailto:hemanth.dasu@warwick.ac.uk?subject=Interview%20interest&body=Name:%0AEmail:%0A"
+    interview: "mailto:hemanth.dasu@warwick.ac.uk?subject=Interview%20interest&body=Name:%0AEmail:%0A",
+
+    // How someone asks for a key. Any left empty are removed from the page
+    // rather than rendered dead, so filling in one channel is enough.
+    //
+    // WhatsApp: "https://wa.me/<country code and number, digits only>?text=..."
+    //   e.g. https://wa.me/447700900123?text=Hi%20Hemanth%2C%20could%20I%20have%20a%20key%20for%20the%20AI%20verification%20tool%3F
+    //   Note this puts the number in the page source, where it can be
+    //   scraped. LinkedIn and email cost you nothing in that respect.
+    whatsapp: "",
+    linkedin: "",                       // e.g. https://www.linkedin.com/in/<handle>/
+    email: "mailto:hemanth.dasu@warwick.ac.uk?subject=Key%20for%20the%20AI%20verification%20tool&body=Who%20I%20am:%0AWhere%20I%20found%20this:%0A"
   };
 
   /* --------------------------- the library ----------------------------
@@ -645,8 +738,37 @@ main{position:relative;z-index:1}
     closingNote: null,  // one line, only when a real outcome was described
     consent: false,     // ticked before they typed, or nothing is kept
     lastFailure: null,  // named on screen while this is in beta
+    accessLost: false,  // the key stopped working mid-conversation
     build: null
   };
+
+  // The gate. accessRequired comes from the server, so it can be switched on
+  // and off without touching this file, and the page never shows a key screen
+  // for a tool that is not actually locked.
+  var access = { required: false, token: null };
+  var ACCESS_FAILURES = ["no_token", "bad_token", "expired_token"];
+  var TOKEN_KEY = "tool-access-token";
+
+  // Per tab, not forever. A key that outlives the browser session would mean
+  // a shared machine carries someone else's access, and sessionStorage can
+  // refuse outright in a private window, so every touch is guarded.
+  function rememberToken(token) {
+    access.token = token;
+    try { window.sessionStorage.setItem(TOKEN_KEY, token); } catch (e) { /* held in memory */ }
+  }
+  function recallToken() {
+    try { return window.sessionStorage.getItem(TOKEN_KEY) || null; } catch (e) { return null; }
+  }
+  function forgetToken() {
+    access.token = null;
+    try { window.sessionStorage.removeItem(TOKEN_KEY); } catch (e) { /* nothing to do */ }
+  }
+
+  // Every call that costs a model call carries it. The server checks; this
+  // only saves the visitor a pointless round trip.
+  function accessHeaders() {
+    return access.token ? { "X-Access-Token": access.token } : {};
+  }
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -682,7 +804,7 @@ main{position:relative;z-index:1}
   function selectPractices() {
     return fetch("/api/close" + (STUB ? "?stub=1" : ""), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: Object.assign({ "Content-Type": "application/json" }, accessHeaders()),
       body: JSON.stringify({ answers: state.answers })
     }).then(function (res) { return res.json(); })
       .then(function (data) {
@@ -812,12 +934,21 @@ main{position:relative;z-index:1}
     }
   );
 
+  // Anything aiming at the input screen is diverted to the gate while the
+  // tool is locked and this tab has no key. Both landing buttons and the one
+  // on the worked example go through here, so there is no second way in.
+  function destinationFor(target) {
+    if (target !== "s3") { return target; }
+    if (!access.required || access.token) { return "s3"; }
+    return "s2g";
+  }
+
   Array.prototype.forEach.call(
     document.querySelectorAll("button[data-go]"),
     function (b) {
       b.addEventListener("click", function () {
-        show(b.getAttribute("data-go"));
-        var input = document.querySelector("#" + b.getAttribute("data-go") + " textarea");
+        show(destinationFor(b.getAttribute("data-go")));
+        var input = document.querySelector("#" + destinationFor(b.getAttribute("data-go")) + " textarea, #" + destinationFor(b.getAttribute("data-go")) + " input[type=text]");
         if (input) { input.focus({ preventScroll: true }); }
       });
     }
@@ -848,7 +979,7 @@ main{position:relative;z-index:1}
 
     return fetch("/api/ask" + (STUB ? "?stub=1" : ""), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: Object.assign({ "Content-Type": "application/json" }, accessHeaders()),
       body: JSON.stringify({ answers: state.answers, questions: state.questions })
     })
       .then(function (res) {
@@ -876,6 +1007,12 @@ main{position:relative;z-index:1}
           state.lastFailure = data && data.reason
             ? data.reason + " · " + (data.build || "unknown build")
             : "no response from the endpoint";
+          // A key problem is the one failure with a remedy the visitor can
+          // act on, so it is the one that does not get folded into the
+          // generic closing.
+          if (data && ACCESS_FAILURES.indexOf(data.reason) !== -1) {
+            state.accessLost = true;
+          }
           return null;
         }
         state.build = data.build || null;
@@ -925,6 +1062,7 @@ main{position:relative;z-index:1}
     setBusy(true);
 
     ask().then(function (data) {
+      if (!data && state.accessLost) { handleExpiredAccess(); return; }
       if (!data) { closeGapSurfaced(true); return; }
 
       state.reflection = typeof data.reflection === "string" ? data.reflection : null;
@@ -1002,6 +1140,7 @@ main{position:relative;z-index:1}
     state.calls = 0;
     state.offTopic = 0;
     state.unusable = 0;
+    state.accessLost = false;
     state.unclearRun = 0;
     state.reflection = null;
     state.closingNote = null;
@@ -1056,8 +1195,89 @@ main{position:relative;z-index:1}
       if (data.contributionsPossible) { $("consent-row").hidden = false; }
       trainsOnInput = data.providerTrainsOnInput === true;
       writePrivacyLine();
+
+      access.required = data.accessRequired === true;
+      if (access.required) {
+        access.token = recallToken();
+        // Said on the landing page, not only at the door: a locked thing is
+        // only interesting if you know it is locked before you are stopped.
+        $("s1-invited").hidden = false;
+      }
     })
     .catch(function () { /* the written-in default stands */ });
+
+  /* ------------------------------- the gate ---------------------------- */
+
+  var GATE_MESSAGES = {
+    wrong_pin: "That key isn't right.",
+    too_many_attempts: "Too many tries. Give it an hour, or message me and I'll check the key.",
+    cross_origin: "Something went wrong. Reload the page and try again.",
+    method_not_post: "Something went wrong. Reload the page and try again."
+  };
+
+  function gateError(text) {
+    var box = $("s2g-error");
+    box.textContent = text || "";
+    box.hidden = !text;
+  }
+
+  $("s2g-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var pin = $("s2g-input").value.trim();
+    if (!pin) { gateError("Put the key in first."); return; }
+
+    var button = $("s2g-submit");
+    button.disabled = true;
+    gateError("");
+
+    fetch("/api/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: pin })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        button.disabled = false;
+        if (data && data.ok && data.open) {
+          // The gate was switched off while this tab was open.
+          access.required = false;
+          show("s3");
+          $("s3-input").focus({ preventScroll: true });
+          return;
+        }
+        if (data && data.ok && data.token) {
+          rememberToken(data.token);
+          $("s2g-input").value = "";
+          show("s3");
+          $("s3-input").focus({ preventScroll: true });
+          return;
+        }
+        var reason = (data && data.reason) || "";
+        var message = GATE_MESSAGES[reason] || "That didn't work. Try again in a moment.";
+        // Only count down where counting down helps: on a wrong key, so a
+        // person who mistyped knows to go and look it up rather than keep
+        // guessing at it.
+        if (reason === "wrong_pin" && typeof data.attemptsLeft === "number" && data.attemptsLeft <= 3) {
+          message += " " + data.attemptsLeft + (data.attemptsLeft === 1 ? " try left." : " tries left.");
+        }
+        gateError(message);
+      })
+      .catch(function () {
+        button.disabled = false;
+        gateError("Couldn't reach the site. Check your connection and try again.");
+      });
+  });
+
+  // A key that has run out mid-conversation. The tool never shows an error,
+  // so this quietly puts them back at the gate with the reason stated there
+  // rather than dropping them onto a closing screen that explains nothing.
+  function handleExpiredAccess() {
+    forgetToken();
+    setBusy(false);
+    gateError("That key has run out. Ask me for another and I'll send one over.");
+    show("s2g");
+    $("s2g-input").focus({ preventScroll: true });
+  }
 
   $("consent").addEventListener("change", function () {
     state.consent = $("consent").checked;

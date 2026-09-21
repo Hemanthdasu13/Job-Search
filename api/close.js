@@ -25,6 +25,7 @@ import { claimModelCall } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, extractJson, textOf } from "./_model.js";
 import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection } from "./_practices.js";
+import { verifyToken, tokenFrom } from "./_access.js";
 import { VERSION } from "./_version.js";
 
 const MAX_ANSWERS = 12;
@@ -146,6 +147,12 @@ export default async function handler(req, res) {
   const body = await readJsonBody(req);
   const answers = readAnswers(body);
   if (!answers) return fall(res, "bad_request_shape");
+
+  // Before anything that costs money or reveals configuration. A gate the
+  // page enforces is decoration; this is the one that counts, because this
+  // is what a script posting straight to the endpoint has to get past.
+  const access = verifyToken(tokenFrom(req));
+  if (!access.ok) return fall(res, access.reason);
 
   if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {
     const { kept, rejected } = validateSelection(stubbedSelection(answers), answers);

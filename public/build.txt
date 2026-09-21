@@ -6,6 +6,23 @@ for diagnosis. Both come out before the link is public.
 If you are reading this, the deployment is current. If this 404s, Vercel has
 not picked up the latest push and nothing below is live yet.
 
+Access
+  Off unless ACCESS_PINS is set, so the tool is open by default.
+  When on: the landing page and the worked example stay open to everyone,
+  and a key is asked for once, before anyone types anything. Never after -
+  asking someone to write out an account of their own work and then telling
+  them they cannot continue would be a trick, on a site about not being
+  fooled.
+  The check is on the server. /api/ask and /api/close refuse without a
+  signed token, and ?stub=1 does not get past it either, so the key cannot
+  be skipped by reading the page source or posting straight at the endpoint.
+  A key buys a token good for ACCESS_HOURS (default 12), held for the tab
+  only. Changing the key list invalidates every token already issued.
+  Ten guesses an hour per address, shared across instances. A key is not
+  protected by being short and secret; it is protected by that limit.
+  A key is never tied to anything anyone types. What the owner learns is
+  who asked them for one.
+
 Conversation
   Five statuses: probing, reached, verified, unclear, off_topic.
   Six probing turns maximum, then the gap-surfaced closing.

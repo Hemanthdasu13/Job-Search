@@ -126,6 +126,14 @@ async function incr(key, ttlSeconds, now) {
   return memoryIncr(key, ttlSeconds, now);
 }
 
+// A counter for anything that is not a model call. The unlock endpoint needs
+// one to make guessing a pin pointless, and it must share this module's
+// storage so that the limit is shared across instances rather than reset by
+// whichever one happens to answer.
+export async function bumpCounter(key, ttlSeconds, now = Date.now()) {
+  return incr(key, ttlSeconds, now);
+}
+
 /* -------------------------------- keys ---------------------------------- */
 
 const SALT = process.env.IP_SALT || "no-salt-set";
