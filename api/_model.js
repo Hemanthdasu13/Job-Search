@@ -80,7 +80,13 @@ async function callChat(key, model, system, messages, maxTokens) {
   }
 }
 
-export async function callModel(key, model, system, messages, maxTokens = maxOutputTokens()) {
+// cacheSystem: whether this prompt will be sent again soon enough to be read
+// back. Writing a cache entry costs about 1.25x, so caching a prompt used once
+// is a loss, not a saving. The questioner sends the same prompt six or seven
+// times in a conversation and wants it; the closing selector runs once and
+// does not.
+export async function callModel(key, model, system, messages, maxTokens = maxOutputTokens(),
+                                { cacheSystem = true } = {}) {
   if (endpointMode() === "chat") {
     return callChat(key, model, system, messages, maxTokens);
   }
@@ -96,7 +102,9 @@ export async function callModel(key, model, system, messages, maxTokens = maxOut
   const body = {
     model,
     max_tokens: maxTokens,
-    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+    system: cacheSystem
+      ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }]
+      : system,
     messages
   };
   // Only sent when configured, so nothing here breaks a provider that has

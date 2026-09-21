@@ -175,9 +175,11 @@ export default async function handler(req, res) {
   let response;
   const started = Date.now();
   try {
+    // No caching: this prompt is sent once per conversation, and a cache
+    // write costs more than the read it would never get.
     response = await callModel(key, model, SELECT_SYSTEM, [
       { role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }
-    ]);
+    ], undefined, { cacheSystem: false });
   } catch (error) {
     const reason = describeFailure(error, model, Date.now() - started);
     console.error("close_call_failed", reason, model, Date.now() - started + "ms");
