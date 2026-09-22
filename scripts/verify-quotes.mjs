@@ -1,19 +1,27 @@
-// Every participant quote on the closing cards, checked against its source.
+// Participant quotes, checked against consent and against their source.
 //
-// The one promise this tool makes is that it never states a finding the model
-// produced. The seventeen cards keep that promise by being written prose --
-// but written prose drifts. Someone tidies a quote's grammar, shortens it to
-// fit a line, joins two halves across an ellipsis. Each of those is the tool
-// putting words in a participant's mouth, which is worse than a wrong
-// question and is invisible on the page.
+// The quotes were given for a dissertation, reported under participant codes
+// with generalised roles. A public page is a different purpose from the one
+// consented to, so none of them is cleared for publication yet, and the
+// default position is that a quote which has not been cleared must not be in
+// the file the browser downloads. Hiding one behind a CSS rule or a
+// JavaScript branch does not count: the words still ship, and view-source is
+// not a consent boundary.
 //
-// Two checks, because they catch different failures:
+// Two checks, catching two different failures:
 //
-//   page vs manifest      - the quote on screen is still the pinned quote.
-//                           Runs always, needs nothing but the repo.
-//   manifest vs source    - the pinned quote is still what the participant
-//                           said. Runs when DISSERTATION points at the
-//                           findings document, which is not in this repo.
+//   not-cleared    a quote reached the page without cleared:true in the
+//                  manifest. This is the consent check and it is the reason
+//                  this script exists.
+//   drift          a quote that IS published no longer matches the source.
+//                  Prose drifts: someone tidies the grammar, shortens it to
+//                  fit a line, joins two halves across an ellipsis. Each of
+//                  those puts words in a participant's mouth, and none of
+//                  them looks wrong on the page.
+//
+// To publish a quote once its participant has agreed: set cleared:true in
+// evals/quotes.json and put the text back on its card in public/index.html.
+// Both, or this fails.
 //
 // Usage:
 //   node scripts/verify-quotes.mjs
@@ -25,7 +33,7 @@ const PAGE = "public/index.html";
 const MANIFEST = "evals/quotes.json";
 
 // The source bolds the text inside every quote and uses typographic
-// punctuation; the page uses neither. Normalising both to the same plain form
+// punctuation; the page uses neither. Normalising both to one plain form
 // forgives the transcription and nothing else -- a reworded quote still
 // fails, which is the point.
 function norm(text) {
@@ -41,13 +49,12 @@ function norm(text) {
     .toLowerCase();
 }
 
-// An ellipsis in a quote marks speech that was elided. Each side has to match
-// on its own: matching the joined string would accept a quote that stitches
-// together two things said minutes apart, which is the precise misquotation
-// an ellipsis is supposed to disclose.
-function segments(quote) {
-  return norm(quote).split("...").map((s) => s.trim()).filter(Boolean);
-}
+// An ellipsis in a quote marks speech that was elided. Each side is matched on
+// its own: matching the joined string would accept a quote stitching together
+// two things said minutes apart, which is the precise misquotation an ellipsis
+// is supposed to disclose.
+const segments = (quote) =>
+  norm(quote).split("...").map((s) => s.trim()).filter(Boolean);
 
 const failures = [];
 const fail = (check, id, detail) => failures.push({ check, id, detail });
@@ -58,35 +65,39 @@ if (!Array.isArray(quotes) || !quotes.length) {
   process.exit(1);
 }
 
-// --- page vs manifest -------------------------------------------------------
-const page = norm(readFileSync(PAGE, "utf8"));
-for (const { id, quote } of quotes) {
-  for (const part of segments(quote)) {
-    if (!page.includes(part)) fail("page", id, part);
-  }
+const pageSource = readFileSync(PAGE, "utf8");
+const page = norm(pageSource);
+
+// --- the consent check ------------------------------------------------------
+// Asked of the whole file rather than of the card fields, because a quote
+// pasted into a paragraph, a comment or an attribute ships just the same.
+for (const { id, quote, cleared } of quotes) {
+  if (cleared) continue;
+  const present = segments(quote).filter((part) => page.includes(part));
+  if (present.length) fail("not-cleared", id, present[0]);
 }
 
-// Also assert the page has no card holding a quote that is not pinned here,
-// so adding a card without pinning its quote is a failure rather than a
-// silently unchecked claim.
-const pageText = readFileSync(PAGE, "utf8");
-const onPage = [...pageText.matchAll(/^\s{8}text: "((?:[^"\\]|\\.)*)"/gm)]
+// Anything quoted on a card has to be a quote this manifest knows about, so
+// adding one straight to the page is a failure rather than an unchecked claim.
+const onCards = [...pageSource.matchAll(/^\s*text: "((?:[^"\\]|\\.)*)"/gm)]
   .map((m) => m[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\"));
-const pinned = new Set(quotes.map((q) => norm(q.quote)));
-for (const text of onPage) {
-  if (!pinned.has(norm(text))) fail("unpinned", "(card)", text.slice(0, 80));
+const known = new Set(quotes.map((q) => norm(q.quote)));
+for (const text of onCards) {
+  if (!known.has(norm(text))) fail("unpinned", "(card)", text.slice(0, 80));
 }
 
-// --- manifest vs source -----------------------------------------------------
+// --- the drift check --------------------------------------------------------
+// Only meaningful for quotes actually published; an uncleared one has already
+// failed above.
 const sourcePath = process.env.DISSERTATION;
-let sourceChecked = 0;
+let checkedAgainstSource = 0;
 if (sourcePath && existsSync(sourcePath)) {
   const source = norm(readFileSync(sourcePath, "utf8"));
   for (const { id, quote } of quotes) {
     for (const part of segments(quote)) {
-      if (!source.includes(part)) fail("source", id, part);
+      if (!source.includes(part)) fail("drift", id, part);
     }
-    sourceChecked += 1;
+    checkedAgainstSource += 1;
   }
 } else if (sourcePath) {
   console.error(`DISSERTATION set but not found: ${sourcePath}`);
@@ -94,18 +105,20 @@ if (sourcePath && existsSync(sourcePath)) {
 }
 
 // --- report -----------------------------------------------------------------
+const WHY = {
+  "not-cleared": "in the shipped page but not cleared for publication",
+  unpinned: "quoted on a card but not in the manifest",
+  drift: "pinned but no longer matching the dissertation"
+};
 for (const { check, id, detail } of failures) {
-  const why = check === "page"
-    ? "on the page but not matching the pinned quote"
-    : check === "source"
-      ? "pinned but not found in the dissertation"
-      : "shown on a card but not pinned in the manifest";
-  console.error(`FAIL [${check}] ${id}: ${why}\n       ${detail}`);
+  console.error(`FAIL [${check}] ${id}: ${WHY[check]}\n       ${detail}`);
 }
 
+const cleared = quotes.filter((q) => q.cleared).length;
 console.log(
-  `quotes pinned=${quotes.length} onPage=${onPage.length} ` +
-  `sourceChecked=${sourceChecked}${sourcePath ? "" : " (set DISSERTATION to check the source)"}`
+  `quotes pinned=${quotes.length} cleared=${cleared} onCards=${onCards.length} ` +
+  `sourceChecked=${checkedAgainstSource}` +
+  (sourcePath ? "" : " (set DISSERTATION to check for drift)")
 );
 if (failures.length) {
   console.error(`\n${failures.length} quote check(s) failed`);

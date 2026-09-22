@@ -1,90 +1,107 @@
 {
-  "_comment": "The participant quotes shown on the closing cards, pinned to the findings section each came from. scripts/verify-quotes.mjs checks the page against this, and checks this against the dissertation when DISSERTATION points at it. A quote that drifts is a quote the tool is putting in someone's mouth.",
+  "_comment": "The participant quotes from the findings, pinned to the section each came from. None are cleared for publication: they were given for an examined dissertation, reported under participant codes, and a public page is a different purpose from the one consented to. This file is the record, not the page - evals/ is outside public/ and is never served. To publish one, set cleared true and put the text back on its card; scripts/verify-quotes.mjs fails on any quote that reaches the page without that flag, and on any published quote that has drifted from the source.",
   "quotes": [
     {
       "id": "reliance-not-trust",
       "section": "4.2",
-      "quote": "We don't depend on AI for decision making. We only depend on AI for the assistance in the decision making."
+      "quote": "We don't depend on AI for decision making. We only depend on AI for the assistance in the decision making.",
+      "cleared": false
     },
     {
       "id": "independent-source-check",
       "section": "4.1.2",
-      "quote": "I would use that explanation to understand the concept initially, but I would then verify it against NHS documentation, trust policies, or by speaking to someone who actually works in that area."
+      "quote": "I would use that explanation to understand the concept initially, but I would then verify it against NHS documentation, trust policies, or by speaking to someone who actually works in that area.",
+      "cleared": false
     },
     {
       "id": "constrain-the-generation",
       "section": "4.5.3",
-      "quote": "prompting is more about telling it what not to do than telling it what to do. Do not make stuff up. Do not copy stuff. Do not steal. Do not exaggerate."
+      "quote": "prompting is more about telling it what not to do than telling it what to do. Do not make stuff up. Do not copy stuff. Do not steal. Do not exaggerate.",
+      "cleared": false
     },
     {
       "id": "constructed-check",
       "section": "4.5",
-      "quote": "I could have just looked at the first output and I thought, yeah, that says I'm going to have a comfortable retirement. I've got enough. My plan is on track."
+      "quote": "I could have just looked at the first output and I thought, yeah, that says I'm going to have a comfortable retirement. I've got enough. My plan is on track.",
+      "cleared": false
     },
     {
       "id": "named-triggers",
       "section": "4.4.3",
-      "quote": "We think about things which are one-way doors and two-way doors. If there is something that is super important and consequential as a one-way door decision, like hiring someone, or selling our data centre, or a high capital intensive decision, or paperwork for a deal that I need to present to my customer. I will never rely on AI to produce that artifact."
+      "quote": "We think about things which are one-way doors and two-way doors. If there is something that is super important and consequential as a one-way door decision, like hiring someone, or selling our data centre, or a high capital intensive decision, or paperwork for a deal that I need to present to my customer. I will never rely on AI to produce that artifact.",
+      "cleared": false
     },
     {
       "id": "silence-is-not-safety",
       "section": "4.7.1",
-      "quote": "technically, yes, it's correct. I can introduce, but it's not a full advice."
+      "quote": "technically, yes, it's correct. I can introduce, but it's not a full advice.",
+      "cleared": false
     },
     {
       "id": "two-failure-modes",
       "section": "4.3",
-      "quote": "Humans make mistakes. AI makes things up... one is based on humans making errors, and one is, oh, I just don't know, so I just make it up. And the outcome can be very different."
+      "quote": "Humans make mistakes. AI makes things up... one is based on humans making errors, and one is, oh, I just don't know, so I just make it up. And the outcome can be very different.",
+      "cleared": false
     },
     {
       "id": "borrowed-rule",
       "section": "4.10",
-      "quote": "If you ask AI, based on my conversation, how do you think I am as a person? It will make you feel that you are the most intelligent, you are among the top one per cent of all the interactions that I've had. Does not necessarily make you that person."
+      "quote": "If you ask AI, based on my conversation, how do you think I am as a person? It will make you feel that you are the most intelligent, you are among the top one per cent of all the interactions that I've had. Does not necessarily make you that person.",
+      "cleared": false
     },
     {
       "id": "gut-feel-signal",
       "section": "4.12",
-      "quote": "The gut feeling is sometimes the data points that you can't even coherently communicate that you've collected."
+      "quote": "The gut feeling is sometimes the data points that you can't even coherently communicate that you've collected.",
+      "cleared": false
     },
     {
       "id": "interaction-audit",
       "section": "4.4.2",
-      "quote": "it starts all the way from prompts to checking for hallucinations to understanding what is the relay between one agent to the other, what was the log that was left, did the context pass to the another agent."
+      "quote": "it starts all the way from prompts to checking for hallucinations to understanding what is the relay between one agent to the other, what was the log that was left, did the context pass to the another agent.",
+      "cleared": false
     },
     {
       "id": "domain-goes-silent",
       "section": "4.9.4",
-      "quote": "if you are a subject matter expert on the technical side of AI, and you don't have the right domain knowledge on the functionality like finance and procurement, then you feel really difficult to read the information rightly and make the decision rightly."
+      "quote": "if you are a subject matter expert on the technical side of AI, and you don't have the right domain knowledge on the functionality like finance and procurement, then you feel really difficult to read the information rightly and make the decision rightly.",
+      "cleared": false
     },
     {
       "id": "reproduction-gap",
       "section": "4.9.1",
-      "quote": "when you communicate with emails, you don't really read what your solutions are. You just read the summary. And based on the summary, you trust and you copy and paste it. So if you come across a different question from a different CFO, then you struggle."
+      "quote": "when you communicate with emails, you don't really read what your solutions are. You just read the summary. And based on the summary, you trust and you copy and paste it. So if you come across a different question from a different CFO, then you struggle.",
+      "cleared": false
     },
     {
       "id": "manufactured-divergence",
       "section": "4.6",
-      "quote": "we have the concept of having dual models. So having two different models, ChatGPT and Claude, both looking at the same data, one being the red team who's going to go and challenge the assumptions of the output."
+      "quote": "we have the concept of having dual models. So having two different models, ChatGPT and Claude, both looking at the same data, one being the red team who's going to go and challenge the assumptions of the output.",
+      "cleared": false
     },
     {
       "id": "speed-not-advantage",
       "section": "4.7.2",
-      "quote": "Instead of making everything faster and easier, it made it slower and harder."
+      "quote": "Instead of making everything faster and easier, it made it slower and harder.",
+      "cleared": false
     },
     {
       "id": "junior-heuristic",
       "section": "4.3",
-      "quote": "Like the way you would work with a junior analyst, they will do the work, you will go and cross-check their assumptions, like the way you would do in a human-based world also. You wouldn't take a report from a junior analyst and just go and publish that to your superiors."
+      "quote": "Like the way you would work with a junior analyst, they will do the work, you will go and cross-check their assumptions, like the way you would do in a human-based world also. You wouldn't take a report from a junior analyst and just go and publish that to your superiors.",
+      "cleared": false
     },
     {
       "id": "examiner-not-originator",
       "section": "4.2.1a",
-      "quote": "I come with the decision myself... I come to AI with the decisions, and then I tell them to challenge me."
+      "quote": "I come with the decision myself... I come to AI with the decisions, and then I tell them to challenge me.",
+      "cleared": false
     },
     {
       "id": "structural-not-instructional",
       "section": "4.10.2",
-      "quote": "It will come up with flaws for the sake of it. In very rare cases, it will say there's no flaw in it... It will make up stuff. It will exaggerate things that don't necessarily have to be flaws, but since it's trying to obey what you're telling it to do, you are asking it to find flaws, so it's doing its best."
+      "quote": "It will come up with flaws for the sake of it. In very rare cases, it will say there's no flaw in it... It will make up stuff. It will exaggerate things that don't necessarily have to be flaws, but since it's trying to obey what you're telling it to do, you are asking it to find flaws, so it's doing its best.",
+      "cleared": false
     }
   ]
 }

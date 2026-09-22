@@ -52,11 +52,34 @@ and to nothing else. Abductive design, thematic analysis, single coder.
 | Asking what the system had, what it assumes, what might be missing | 4.9.7 | Must be attributed to a participant, not to the study's design |
 | The only articulated set of verification trigger conditions came from one participant | 4.5.1 | Say "only one" |
 
-Quotes used on screen are reproduced verbatim from the findings chapter and
-attributed at role level, with no participant code and no pronoun. The
-attribution is generalised the way the dissertation generalises it.
-`scripts/verify-quotes.mjs` fails the build if any on-screen quote has drifted
-from the source.
+## Participant quotes are not cleared for publication
+
+**No verbatim participant quote appears on this site.** The quotes were given
+for a dissertation, reported under participant codes with generalised roles. A
+public page linked from a CV is a different purpose from the one consented to,
+and the binding documents are the participant information sheet and the
+ethics approval, not a judgement call made here.
+
+This costs the tool very little, because the quotes were carrying texture and
+not argument. Everything in the table above is a finding of the research,
+which is the researcher's to state. A de-identified case description — a group
+finance director built a pension model, built a separate reconciliation, found
+around six errors — is a finding about a case, not somebody's words. Only the
+verbatim quotation is participant data.
+
+The seventeen quotes are pinned in `evals/quotes.json`, with the findings
+section each came from, all marked `cleared: false`. That directory sits
+outside `public/`, so nothing there is served. To publish one after its
+participant has agreed: set `cleared: true` and put the text back on its card.
+`scripts/verify-quotes.mjs` fails if a quote reaches the shipped page without
+that flag — anywhere in the file, not just on a card, because hiding one
+behind a CSS rule still ships the words and view-source is not a consent
+boundary. It also fails if a published quote has drifted from the source, so
+nobody's grammar gets tidied on their behalf.
+
+A side effect worth keeping: the only quoted words on screen now belong to the
+visitor. The research is asserted as the researcher's finding, and the one
+person being quoted is the one reading it.
 
 ## Never say
 
