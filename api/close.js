@@ -33,6 +33,21 @@ const MAX_ANSWER_CHARS = 1500;
 const MAX_TOTAL_CHARS = 9000;
 const MAX_EVIDENCE_CHARS = 300;
 
+// The evidence is the visitor's own sentence, shown back to them. A hard
+// character slice cuts it mid-word, and a mangled version of your own words
+// reads as the tool having misheard you - on the one screen where being
+// quoted accurately is the entire point. Cut at a word boundary and mark the
+// cut, or do not cut at all.
+function clipEvidence(text) {
+  if (text.length <= MAX_EVIDENCE_CHARS) return text;
+  const cut = text.slice(0, MAX_EVIDENCE_CHARS);
+  const lastSpace = cut.lastIndexOf(" ");
+  // No space worth cutting at means it is not prose; leave it rather than
+  // trimming the quote down to nothing.
+  const kept = lastSpace > MAX_EVIDENCE_CHARS / 2 ? cut.slice(0, lastSpace) : cut;
+  return kept.replace(/[\s,;:.\u2014-]+$/, "") + "\u2026";
+}
+
 export const SELECT_SYSTEM = `You are given someone's account of a time they used AI in a real piece of
 work. Your only job is to choose which of the listed items did not come up
 in what they said, and to quote the words of theirs that show it.
@@ -83,6 +98,19 @@ const fall = (res, reason) => {
   return res.status(200).json({ ok: false, reason, build: BUILD, selected: [] });
 };
 
+// Both the stubbed and the real path answer through here, so a stubbed walk
+// exercises the clipping, the field names and the ordering that production
+// uses. A stub answering in its own shape is a stub that lets a rendering
+// bug through, which is the one thing it exists to prevent.
+const answer = (res, build, kept, rejected) =>
+  res.status(200).json({
+    ok: true,
+    build,
+    selected: kept.map(({ id, evidence }) => ({ id, evidence: clipEvidence(evidence) })),
+    rejected: rejected.map(({ id, why }) => ({ id, why })),
+    library: PRACTICE_IDS.length
+  });
+
 function sameOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return true; // no Origin header on a same-origin POST from some clients
@@ -128,7 +156,7 @@ function stubbedSelection(answers) {
     return { selected: ["not-a-real-card"], evidence: { "not-a-real-card": "words nobody typed here" } };
   }
   // Quote the longest thing they said, which is at least certain to be theirs.
-  const span = answers.slice().sort((a, b) => b.length - a.length)[0].slice(0, MAX_EVIDENCE_CHARS);
+  const span = answers.slice().sort((a, b) => b.length - a.length)[0];
   // One card whose research has been written and one whose has not, so a
   // single stubbed walk exercises both the rendering and the gate that keeps
   // an unwritten card off the screen.
@@ -156,7 +184,7 @@ export default async function handler(req, res) {
 
   if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {
     const { kept, rejected } = validateSelection(stubbedSelection(answers), answers);
-    return res.status(200).json({ ok: true, build: BUILD + "+stub", selected: kept, rejected });
+    return answer(res, BUILD + "+stub", kept, rejected);
   }
 
   const key = modelApiKey();
@@ -203,11 +231,5 @@ export default async function handler(req, res) {
     console.error("close_selection_rejected", model, JSON.stringify(rejected.map((r) => r.why)));
   }
 
-  return res.status(200).json({
-    ok: true,
-    build: BUILD,
-    selected: kept.map(({ id, evidence }) => ({ id, evidence: evidence.slice(0, MAX_EVIDENCE_CHARS) })),
-    rejected: rejected.map(({ id, why }) => ({ id, why })),
-    library: PRACTICE_IDS.length
-  });
+  return answer(res, BUILD, kept, rejected);
 }

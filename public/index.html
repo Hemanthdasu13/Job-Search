@@ -627,8 +627,8 @@ h1::before,h2::before{
   <h1 tabindex="-1">Convincing and correct look the same.</h1>
   <p class="lede">AI can give you a wrong answer and leave you sure it is right.</p>
   <p class="beat"><span>Not wrong in a way you would catch.</span><span>Wrong in a way that arrives looking exactly like the answers that were fine.</span></p>
-  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Almost every one had detailed, enforced rules about what they were allowed to put <em>in</em>.</p>
-  <p class="beat"><span>Not one had a rule for when to believe what came <em>out</em>.</span></p>
+  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Most described detailed, enforced rules about what data they were allowed to put <em>in</em>.</p>
+  <p class="beat"><span>Not one described a rule for when to believe what came <em>out</em>.</span></p>
   <p class="beat"><span>The people who handled it best were not the ones who knew the most about AI.</span></p>
   <p class="beat"><span>They were the ones who had something to put the answer against when they could not tell.</span></p>
   <p class="beat"><span>We agree with people who sound certain.</span><span>We agree faster when they are senior.</span></p>
@@ -647,7 +647,7 @@ h1::before,h2::before{
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
   <p class="invited" id="s1-invited" hidden>The worked example is open to anyone. Running it on your own work needs a key.</p>
-  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder. Not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
+  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.<br><span id="version">Beta, v0.3.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -752,13 +752,13 @@ h1::before,h2::before{
   <blockquote>I could have just looked at the first output and I thought, yeah, that says I'm going to have a comfortable retirement. I've got enough. My plan is on track.</blockquote>
   <p>He did not find them because something looked wrong. He found them because he built something to check against.</p>
   <p><strong>Worth trying:</strong> before accepting an analysis, ask what the system actually had, what it is assuming, and what might be missing. That sequence came from one of the participants, not from the research design.</p>
-  <p><strong>One more thing:</strong> of twelve people asked directly, four could state a rule for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a rule they already used for something else and pointed it at AI, with nobody telling them to.</p>
+  <p><strong>One more thing:</strong> of twelve, four had a rule they could state for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a rule they already used for something else and pointed it at AI, with nobody telling them to.</p>
   </div>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
   </p>
-  <p class="footnote">Exploratory qualitative research, single coder. Not a validated instrument.</p>
+  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
 </section>
 
 <!-- Screen 5B - Closing, an independent check already in place. Fixed text. -->
@@ -772,7 +772,7 @@ h1::before,h2::before{
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
   </p>
-  <p class="footnote">Exploratory qualitative research, single coder. Not a validated instrument.</p>
+  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
 </section>
 
 <!-- Screen 5C - Neutral close. Reached only from two off-topic replies. -->
@@ -787,7 +787,7 @@ h1::before,h2::before{
     <span data-linkwrap="research"><a href="#" data-link="research">Read the research</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
   </p>
-  <p class="footnote">Exploratory qualitative research, single coder. Not a validated instrument.</p>
+  <p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.</p>
 </section>
 
 
@@ -833,11 +833,13 @@ h1::before,h2::before{
        concept    the academic name for the thing
        principle  one line, no hedging
        why        what the interviews actually showed. THIS IS THE RESEARCH.
-                  An empty string means "not written yet", and a card with
-                  an empty why is never shown: the tool falls back to the
-                  general closing instead. Nothing here is generated, and
-                  nothing here should be filled in by anyone who has not
-                  read the transcripts.
+                  Every one of these is written against a named section of
+                  the findings, cited above the card. An empty string means
+                  "not written yet", and a card with an empty why is never
+                  shown: the tool falls back to the general closing instead.
+                  That gate stays whatever the library looks like today.
+                  Nothing here is generated, and nothing here may be filled
+                  in by anyone who has not read the findings.
        quote      a participant's words, plus a role-level attribution
        action     the concrete thing to do differently next time
 
@@ -846,7 +848,41 @@ h1::before,h2::before{
      hole in the ending.
   -------------------------------------------------------------------- */
   var PRACTICES = {
+    "reliance-not-trust": {
+      // Findings 4.2
+      concept: "reliance, not trust",
+      principle: "Whether you trusted it is not the question. What it touched is.",
+      why: "Ten of twelve participants drew this line explicitly and unprompted, and they drew it firmly: AI assists, humans decide. The line is real, and it is also the wrong instrument for this question. It describes an intention, not a dependency. An output can feed a deliverable, a number, a recommendation or someone else's next action while everyone involved would say, accurately, that they did not trust it.",
+      quote: {
+        text: "We don't depend on AI for decision making. We only depend on AI for the assistance in the decision making.",
+        who: "a senior category lead in procurement"
+      },
+      action: "Trace the output forward rather than asking how much you trusted it. Name what it fed, who acted on it, and what would have been different if it had been wrong."
+    },
+    "independent-source-check": {
+      // Findings 4.1.2
+      concept: "an independent source",
+      principle: "A check that never leaves the model is not a check.",
+      why: "One group of participants could not verify content directly and did not constrain the generation. What they did instead was route the question somewhere that could settle it: a primary document, an institutional policy, a named person who would know. This is the cheapest verification in the study and the most portable, because it does not require you to know the answer. It is also the first to fail when there is no time to reach anyone.",
+      quote: {
+        text: "I would use that explanation to understand the concept initially, but I would then verify it against NHS documentation, trust policies, or by speaking to someone who actually works in that area.",
+        who: "a strategy and transformation lead in public healthcare"
+      },
+      action: "Before the output moves, name the one source outside the model that would settle it, and go there."
+    },
+    "constrain-the-generation": {
+      // Findings 4.5.3
+      concept: "telling it what not to do",
+      principle: "What you ruled out shapes the answer more than what you asked for.",
+      why: "Two participants described the same reversal independently, in near-identical terms: the useful part of a prompt is the prohibition, not the request. The reasoning is that an unconstrained request is answered from whatever the model has, including material that has no business being in scope. Constraining the generation is the one verification move that works when you cannot check the output, because it changes what can be produced rather than inspecting what was.",
+      quote: {
+        text: "prompting is more about telling it what not to do than telling it what to do. Do not make stuff up. Do not copy stuff. Do not steal. Do not exaggerate.",
+        who: "a group finance director, formerly an interim CFO"
+      },
+      action: "Write down the exceptions, the entities and the distinctions the answer must preserve. Put them in before the question, not after the answer."
+    },
     "constructed-check": {
+      // Findings 4.5
       concept: "a constructed check, not a careful read",
       principle: "Attention does not catch errors. Something independent for the output to fail against does.",
       why: "This is what the people who caught real errors had in common. Not more care, but something built for the answer to be tested against: a reconciliation, a check written before the output existed, a colleague who knows the area. It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.",
@@ -856,22 +892,149 @@ h1::before,h2::before{
       },
       action: "Before accepting an analysis, build the thing you will test it against \u2014 and build it before you read the answer."
     },
-    "reliance-not-trust":           { concept: "reliance, not trust",            principle: "", why: "", quote: null, action: "" },
-    "independent-source-check":     { concept: "an independent source",          principle: "", why: "", quote: null, action: "" },
-    "constrain-the-generation":     { concept: "telling it what not to do",       principle: "", why: "", quote: null, action: "" },
-    "named-triggers":               { concept: "named triggers",                 principle: "", why: "", quote: null, action: "" },
-    "silence-is-not-safety":        { concept: "silence is not safety",          principle: "", why: "", quote: null, action: "" },
-    "two-failure-modes":            { concept: "both directions of error",       principle: "", why: "", quote: null, action: "" },
-    "borrowed-rule":                { concept: "a borrowed rule",                principle: "", why: "", quote: null, action: "" },
-    "gut-feel-signal":              { concept: "gut feel as a signal",           principle: "", why: "", quote: null, action: "" },
-    "interaction-audit":            { concept: "an auditable interaction",       principle: "", why: "", quote: null, action: "" },
-    "domain-goes-silent":           { concept: "where your domain goes silent",  principle: "", why: "", quote: null, action: "" },
-    "reproduction-gap":             { concept: "the reproduction gap",           principle: "", why: "", quote: null, action: "" },
-    "manufactured-divergence":      { concept: "manufactured divergence",        principle: "", why: "", quote: null, action: "" },
-    "speed-not-advantage":          { concept: "speed is not advantage",         principle: "", why: "", quote: null, action: "" },
-    "junior-heuristic":             { concept: "an untested rule of thumb",      principle: "", why: "", quote: null, action: "" },
-    "examiner-not-originator":      { concept: "examiner, not originator",       principle: "", why: "", quote: null, action: "" },
-    "structural-not-instructional": { concept: "a gate, not a better prompt",    principle: "", why: "", quote: null, action: "" }
+    "named-triggers": {
+      // Findings 4.4.3
+      concept: "a rule decided in advance",
+      principle: "A standard you set after seeing the answer is not a standard.",
+      why: "Of twelve, four had a rule they could state for when AI output must be checked before it moves. Eight had nothing equivalent. Three of the four had not invented theirs: they took a decision rule they already used for something else \u2014 reversible against irreversible, deterministic against judgement-based, quantified against qualified \u2014 and pointed it at AI, with nobody asking them to. Nobody in the study described an employer supplying one.",
+      quote: {
+        text: "We think about things which are one-way doors and two-way doors. If there is something that is super important and consequential as a one-way door decision, like hiring someone, or selling our data centre, or a high capital intensive decision, or paperwork for a deal that I need to present to my customer. I will never rely on AI to produce that artifact.",
+        who: "a strategic and large deals lead, applying a rule the organisation already used"
+      },
+      action: "You almost certainly already have a rule for which decisions get scrutiny. Write it down, then point it at AI output as it stands."
+    },
+    "silence-is-not-safety": {
+      // Findings 4.7.1
+      concept: "silence is not safety",
+      principle: "Nothing flagged is not the same as nothing wrong.",
+      why: "One of the failure modes participants described is not error but omission: an answer correct in everything it says and misleading in what it leaves out. The account here is a portal query answered accurately, without mentioning that the window being asked about had closed years earlier. A system with no mechanism for telling you what it did not consider cannot reassure you by staying quiet.",
+      quote: {
+        text: "technically, yes, it's correct. I can introduce, but it's not a full advice.",
+        who: "a product lead in global payments"
+      },
+      action: "Ask what a complete answer would have had to mention, then check whether it did. Treat the absence of a caveat as unknown, not clear."
+    },
+    "two-failure-modes": {
+      // Findings 4.3
+      concept: "both directions of error",
+      principle: "A review calibrated to one kind of mistake will miss the other.",
+      why: "The most widely shared model in the study was AI as a junior analyst, which carries a review standard: proportionate scrutiny, the way you would check a capable colleague's work. One participant identified what that standard assumes \u2014 that errors will be of a recognisable human kind. The illustration was a customer service system inventing events the organisation does not run. If the error is a different sort of thing, a review pitched at human error is looking in the wrong place.",
+      quote: {
+        text: "Humans make mistakes. AI makes things up... one is based on humans making errors, and one is, oh, I just don't know, so I just make it up. And the outcome can be very different.",
+        who: "a chief product and technology officer, on why a review built for human error is misdirected"
+      },
+      action: "Name the cost of the opposite mistake before you check. A review that can only find one kind of error will find only that kind."
+    },
+    "borrowed-rule": {
+      // Findings 4.10
+      concept: "agreement is not verification",
+      principle: "It fitting what you already thought is not evidence that it is right.",
+      why: "Seven participants described systems producing agreeable rather than accurate output, and one named the mechanism as validating your truths. The difficulty is that agreement is indistinguishable from confirmation from the inside: the output matching your prior feels like two independent sources converging, when it may be one source optimised to converge with you.",
+      quote: {
+        text: "If you ask AI, based on my conversation, how do you think I am as a person? It will make you feel that you are the most intelligent, you are among the top one per cent of all the interactions that I've had. Does not necessarily make you that person.",
+        who: "a finance business partner in global investment banking"
+      },
+      action: "When an answer confirms what you expected, that is the moment to check it, not the moment to stop."
+    },
+    "gut-feel-signal": {
+      // Findings 4.12
+      concept: "gut feel as a signal",
+      principle: "The sense that something is off is information. Setting it aside discards it.",
+      why: "Six participants described the same detection method: knowing roughly what the answer should be before seeing it, and noticing the gap. One account in the study turns on exactly this. A figure came back implausible against what one participant knew of the account. A thousand rows checked by hand turned up four times the number, and on challenge the original source came back with over fourteen times it. Nothing structural caught that. A feeling did, and then it was chased.",
+      quote: {
+        text: "The gut feeling is sometimes the data points that you can't even coherently communicate that you've collected.",
+        who: "a global strategic account executive"
+      },
+      action: "When something feels off, write down what you expected instead. The gap is usually the thing to check."
+    },
+    "interaction-audit": {
+      // Findings 4.4.2
+      concept: "an auditable interaction",
+      principle: "If you cannot reconstruct how the answer was produced, you cannot defend it.",
+      why: "The most AI-mature organisation in the study evaluates deployed systems against nine elements, and several of them are reconstruction: what was prompted, what was logged, what context passed from one step to the next. That machinery governs engineered systems. No participant described anything equivalent for a manager using a general-purpose assistant in the course of a judgement, where the same interaction is typically unrecorded.",
+      quote: {
+        text: "it starts all the way from prompts to checking for hallucinations to understanding what is the relay between one agent to the other, what was the log that was left, did the context pass to the another agent.",
+        who: "an AI business lead inside a bank's AI governance function"
+      },
+      action: "Keep what you asked, which version of the source it used, and who looked at it. Assume you will have to show your work."
+    },
+    "domain-goes-silent": {
+      // Findings 4.9.4
+      concept: "where your domain goes silent",
+      principle: "You can only interrogate an answer inside a domain you hold.",
+      why: "Participants who could interrogate output could do so because they held the domain, not because they understood AI. One stated it as a hiring rule: domain expertise first, technical capability second, because a technical expert without the domain cannot read the output correctly. Outside the domain the interaction reduces to acceptance \u2014 not through carelessness, but because there is nothing to push back with.",
+      quote: {
+        text: "if you are a subject matter expert on the technical side of AI, and you don't have the right domain knowledge on the functionality like finance and procurement, then you feel really difficult to read the information rightly and make the decision rightly.",
+        who: "a founder and principal consultant, formerly a financial controller"
+      },
+      action: "Mark the part of the claim you could not challenge if it were wrong, and get it in front of someone who could."
+    },
+    "reproduction-gap": {
+      // Findings 4.9.1
+      concept: "the reproduction gap",
+      principle: "A result nobody can rebuild is a result nobody can defend.",
+      why: "One participant framed the trade differently from everyone else: manual analytical work has two outputs, the deliverable and the ability to defend and extend it. AI captures the first and discards the second, and the loss stays invisible until someone asks a question the summary did not anticipate. That is the same day the path from inputs to answer turns out never to have existed.",
+      quote: {
+        text: "when you communicate with emails, you don't really read what your solutions are. You just read the summary. And based on the summary, you trust and you copy and paste it. So if you come across a different question from a different CFO, then you struggle.",
+        who: "a founder and principal consultant, on what the summary costs"
+      },
+      action: "Before it goes out, check that someone else could get from the same inputs to the same answer. If they could not, the path is missing, not implicit."
+    },
+    "manufactured-divergence": {
+      // Findings 4.6
+      concept: "manufactured divergence",
+      principle: "Two answers that saw the same material are not two sources.",
+      why: "Running a question through two models and comparing is the most common verification practice in the study, and it rests on an assumption participants also undermined. The same system, given the same prompt, returns different answers across runs and versions. If a model diverges from itself, divergence carries less information than the practice assumes \u2014 and agreement may reflect shared training rather than correctness. No participant resolved this.",
+      quote: {
+        text: "we have the concept of having dual models. So having two different models, ChatGPT and Claude, both looking at the same data, one being the red team who's going to go and challenge the assumptions of the output.",
+        who: "a chief product and technology officer, who built the arrangement and called it not foolproof"
+      },
+      action: "Ask what the second answer saw that the first did not. If the answer is nothing, you have one source twice."
+    },
+    "speed-not-advantage": {
+      // Findings 4.7.2
+      concept: "speed is not advantage",
+      principle: "Time saved by leaving a control out is borrowed, not earned.",
+      why: "One participant used AI to establish market prices in a trade where prices are not published, because obtaining them properly would have taken time. The figures were wrong, they adjusted repeatedly, and lost contracts in the adjusting. The structure of the case is the part that generalises: they went to the model precisely because the information was hard to get, which is the same condition under which the model had no reliable basis for an answer.",
+      quote: {
+        text: "Instead of making everything faster and easier, it made it slower and harder.",
+        who: "a founder and chief executive, on pricing a market with no public prices"
+      },
+      action: "Ask where the time came from. A control you skipped is a cost deferred; a control you can reuse is a real gain."
+    },
+    "junior-heuristic": {
+      // Findings 4.3
+      concept: "an untested rule of thumb",
+      principle: "An informal rule carried over from managing people has not been tested on this.",
+      why: "Three participants independently described AI as a junior analyst, and the metaphor carries a complete delegation protocol: production may be delegated, verification and accountability may not, and the review standard is proportionate scrutiny. It is coherent, it is widely held, and every one of them had imported it from managing people rather than been taught it. None had tested whether it transfers.",
+      quote: {
+        text: "Like the way you would work with a junior analyst, they will do the work, you will go and cross-check their assumptions, like the way you would do in a human-based world also. You wouldn't take a report from a junior analyst and just go and publish that to your superiors.",
+        who: "a strategic and large deals lead, stating the rule in full"
+      },
+      action: "Say out loud which rule of thumb you are running, then ask what it assumes about how this thing fails."
+    },
+    "examiner-not-originator": {
+      // Findings 4.2.1a
+      concept: "examiner, not originator",
+      principle: "The sequence decides what the answer is worth.",
+      why: "Across the interviews the verbs are consistent: to validate, to sense-check, to critique, to stress-test. What participants withheld was not the use of AI in judgement but the origination of it \u2014 they formed a position, then put it to the system to be attacked. The participant with no colleagues and no boundary on what AI may touch was the most explicit about the rule they did keep, which was about sequence and authority rather than subject matter.",
+      quote: {
+        text: "I come with the decision myself... I come to AI with the decisions, and then I tell them to challenge me.",
+        who: "a founder and chief executive, working without colleagues"
+      },
+      action: "Form your position first, in writing, then ask the model to break it. An answer that arrived before your view is a different object from one that survived it."
+    },
+    "structural-not-instructional": {
+      // Findings 4.10.2
+      concept: "a gate, not a better prompt",
+      principle: "Instructing it to disagree with you produces disagreement, not scrutiny.",
+      why: "Five participants had adopted standing instructions telling the system to challenge them. One argued that this redirects the dynamic rather than escaping it: a system optimising for your satisfaction, told to find flaws, will find flaws \u2014 including ones that are not there. The response that does not depend on the model's willingness to disagree is structural rather than instructional: a step in the process about who must look, or a counterfactual that does not ask for an opinion at all.",
+      quote: {
+        text: "It will come up with flaws for the sake of it. In very rare cases, it will say there's no flaw in it... It will make up stuff. It will exaggerate things that don't necessarily have to be flaws, but since it's trying to obey what you're telling it to do, you are asking it to find flaws, so it's doing its best.",
+        who: "the founder of an AI-native lending platform"
+      },
+      action: "Put the check in the process, not in the prompt: name who must see this before it moves, or ask what it would look like if the decision had already failed."
+    }
   };
 
   // A card is only shown once someone has written the research into it. Until
