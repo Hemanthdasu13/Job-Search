@@ -809,7 +809,9 @@ h1::before,h2::before{
      "Read the research" stays hidden until it has somewhere to point.
   ------------------------------------------------------------------ */
   var LINKS = {
-    research: "",                       // e.g. "/research" or a PDF
+    research: "/research.html",         // not /research: cleanUrls is off, and
+                                        // turning it on changes prod routing I
+                                        // cannot verify from here
     interview: "mailto:hemanth.dasu@warwick.ac.uk?subject=Interview%20interest&body=Name:%0AEmail:%0A",
 
     // How someone asks for a key. Any left empty are removed from the page

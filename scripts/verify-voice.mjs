@@ -23,8 +23,10 @@
 
 import { readFileSync } from "node:fs";
 
-const PAGE = "public/index.html";
-const src = readFileSync(PAGE, "utf8");
+// Every page a visitor reads. research.html is prose about the research from
+// end to end, so it is the page most likely to slip back into the register.
+const PAGES = ["public/index.html", "public/research.html"];
+const src = PAGES.map((p) => readFileSync(p, "utf8")).join("\n");
 
 // The mandated caveat, and the standing link. Removed before checking so they
 // cannot be mistaken for prose, and asserted separately below.
@@ -63,6 +65,14 @@ function visibleStrings() {
     for (const el of s[2].matchAll(/<(h1|h2|h3|p|li|blockquote)[^>]*>([\s\S]*?)<\/\1>/g)) {
       const text = el[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
       if (text) out.push({ where: id, text });
+    }
+  }
+
+  // research.html has no screens; its whole <main> is prose to be checked.
+  for (const m of src.matchAll(/<main>([\s\S]*?)<\/main>/g)) {
+    for (const el of m[1].matchAll(/<(h1|h2|h3|p|li)[^>]*>([\s\S]*?)<\/\1>/g)) {
+      const text = el[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      if (text) out.push({ where: "research page", text });
     }
   }
 

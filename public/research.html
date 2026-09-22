@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The research — Could you tell if it was wrong?</title>
+<meta name="description" content="What the research asked, how it was done, what it found, and what it cannot show. Exploratory qualitative research into how senior practitioners decide whether to believe AI output.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+
+<style>
+/* The tokens and the faces are copied from index.html rather than shared.
+   Extracting one stylesheet would mean touching the CSP and the page that
+   already works, days before this goes out; that trade is worth revisiting
+   once, later, not now. Anything below the tokens is written for this page:
+   it is a text page and needs none of the instruments, the gate or the
+   cards. */
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/IBMPlexMono-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/IBMPlexMono-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/IBMPlexMono-500-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/IBMPlexMono-500-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/IBMPlexSans-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/IBMPlexSans-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400i-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/InstrumentSerif-400i-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  /* The page is the scale. Boxwood - the pale yellow of a school wooden
+     ruler - with dark brown ink on it, which measures 10.8:1 and reads as
+     printed rather than displayed. The graduations run along the top edge
+     of the page itself, because once the whole sheet is the rule there is
+     nothing for a separate wooden strip to be.
+     Muted text is one step darker than it would be on white: brown on wood
+     loses contrast faster than grey on paper. */
+  --paper:#E8D7A9;
+  --ink:#2A1E10;
+  --muted:#5E4A2C;
+  --rule:#C6AE78;
+  --faint:rgba(42,30,16,0.07);
+  --accent:#7A5A24;
+  --brass:#7A5A24;
+  --oxide:#93361E;
+  --ruler:#E8D7A9;
+  --ruler-edge:#C6AE78;
+  /* Inputs and quoted blocks sit on a paler label, so the eye can tell what
+     is the rule and what has been written on it. */
+  --label:#F2E7C8;
+  --bg:var(--paper);
+  --grid:rgba(42,30,16,0.05);
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    /* The same rule in stained walnut rather than boxwood. */
+    --paper:#2A1F12;
+    --ink:#EADDBF;
+    --muted:#B0A182;
+    --rule:#4A3B24;
+    --faint:rgba(234,221,191,0.07);
+    --accent:#CBA85C;
+    --brass:#CBA85C;
+    --oxide:#D8794E;
+    --ruler:#2A1F12;
+    --ruler-edge:#4A3B24;
+    --label:#221909;
+    --bg:var(--paper);
+    --grid:rgba(234,221,191,0.05);
+  }
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:1rem;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* The graduated top edge, the one piece of the instrument this page keeps,
+   so it reads as the same object as the tool. */
+body::before{
+  content:"";
+  position:fixed; inset:0 0 auto 0; height:19px;
+  background:
+    repeating-linear-gradient(90deg, rgba(42,30,16,0.22) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(42,30,16,0.36) 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 55%, rgba(42,30,16,0.10) 100%),
+    var(--ruler);
+  background-size:100% 5px, 100% 10px, 100% 100%, 100% 100%;
+  background-repeat:repeat-x;
+  background-position:left bottom, left bottom, left top, left top;
+  border-bottom:1px solid var(--ruler-edge);
+  z-index:40;
+  pointer-events:none;
+}
+@media (prefers-color-scheme: dark){
+  body::before{
+    background:
+      repeating-linear-gradient(90deg, rgba(234,221,191,0.22) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(90deg, rgba(234,221,191,0.36) 0 1px, transparent 1px 48px),
+      linear-gradient(180deg, rgba(234,221,191,0.13) 0%, rgba(234,221,191,0) 55%, rgba(0,0,0,0.22) 100%),
+      var(--ruler);
+    background-size:100% 5px, 100% 10px, 100% 100%, 100% 100%;
+    background-repeat:repeat-x;
+    background-position:left bottom, left bottom, left top, left top;
+  }
+}
+
+main{ position:relative; z-index:1; max-width:35rem; padding:3.25rem 1.25rem 5rem; }
+@media (min-width:48rem){
+  body{font-size:1.0625rem}
+  main{ margin-left:8vw; padding:5.5rem 2rem 8rem; }
+}
+
+h1,h2,.lede{
+  font-family:"Instrument Serif",Georgia,"Times New Roman",serif;
+  font-weight:400;
+  letter-spacing:-0.005em;
+}
+h1{ font-size:clamp(2.35rem,7.5vw,3.5rem); line-height:1.06; margin:0 0 1.1rem; text-wrap:balance; }
+h2{ font-size:clamp(1.5rem,4.4vw,2rem); line-height:1.14; margin:2.6rem 0 0.9rem; text-wrap:balance; }
+.lede{ font-size:clamp(1.2rem,3.4vw,1.45rem); line-height:1.38; font-style:italic; margin:0 0 1.6rem; }
+p{ margin:0 0 1.15rem; max-width:34em; text-wrap:pretty; }
+p:last-child{ margin-bottom:0 }
+strong{font-weight:600}
+em{font-style:italic}
+
+/* A measurement mark beside every heading, as on the tool. */
+h1,h2{position:relative}
+h1::before,h2::before{
+  content:""; position:absolute; left:-1.15rem; top:0.36em;
+  width:0.5rem; height:1px; background:var(--brass);
+}
+@media (max-width:34rem){ h1::before,h2::before{display:none} }
+
+ul{ margin:0 0 1.15rem; padding-left:1.2rem; max-width:34em; }
+li{ margin:0 0 0.55rem }
+
+a{ color:inherit; text-decoration:underline; text-underline-offset:0.22em; text-decoration-thickness:1.5px; }
+
+.back{
+  display:inline-block;
+  margin:2.8rem 0 0;
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:0.875rem;
+  font-weight:500;
+}
+.footnote{
+  margin:3.5rem 0 0;
+  padding-top:1.1rem;
+  border-top:1px solid var(--rule);
+  color:var(--muted);
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:0.8125rem;
+  line-height:1.5;
+  max-width:34em;
+}
+</style>
+</head>
+<body>
+<main>
+
+<h1>The research</h1>
+
+<p class="lede">Organisations have built detailed rules about what may be fed into AI. Almost nothing governs whether to believe what comes out.</p>
+
+<p>I spent 2026 asking senior practitioners a single question: when AI output feeds a real commercial decision, how do you decide whether to act on it? Eighteen conversations, sixteen sectors, from investment banking to public healthcare. Everyone had been in the situation. Almost nobody had a rule for it.</p>
+
+<h2>What the research found</h2>
+
+<p><strong>The line is drawn, and it holds.</strong> Ten times out of twelve, unprompted, the same boundary: AI assists, humans decide. Nobody justified it by what AI cannot technically do. They justified it by accountability, by stakeholder politics, by the difference between the efficient answer and the one a board will accept.</p>
+
+<p><strong>Governance is built where it can be seen.</strong> Nine of twelve described specific, enforced rules about what data may enter a system — walled gardens, approval steps, capital spent on internal tools. Not one described a rule about when to believe the output. The most AI-mature organisation in the research has a governance office, a responsible-AI handbook and a nine-element evaluation framework, and has still left that judgement to individual discretion. This is not a gap that maturity closes, because the two layers are governing different things: one is observable and the other happens inside somebody's head.</p>
+
+<p><strong>Verification is inherited, not designed.</strong> Every check described was personal. Not one was designed, taught or required by an employer. They came from audit training, from procurement practice, from years of building models, from a habit of not trusting anything on the internet. Four of twelve could state a rule for when output must be checked; three of those four had not invented it — they took a rule they already used for something else and pointed it at AI, with nobody asking them to.</p>
+
+<p><strong>What catches errors is a constructed check, not a careful read.</strong> The errors that got found were found by something built to test the answer against: a reconciliation, a second calculation, a colleague who knows the area. Not by closer reading. One case in the research: a pension model built over a weekend, internally plausible, around six errors — discovered only after a separate reconciliation was built to test it. And this is the first thing to go under time pressure, which is when the decisions that matter tend to get made.</p>
+
+<p><strong>The thing that separates people is not AI fluency.</strong> It is what they can bring to bear when they cannot independently tell whether an answer is right. Sometimes that is domain knowledge. Sometimes it is a constrained process that makes a wrong answer hard to produce. Sometimes it is knowing who to ask. The research found these were not the same as knowing a lot about AI, and not the same as seniority either.</p>
+
+<h2>Where it leaves a harder question</h2>
+
+<p>The people who verify well acquired that capacity by doing the work manually, often for years, before AI existed. Which raises a question the research can pose but not answer: if the entry-level work that built that judgement is the work now being automated, where does the next generation get it?</p>
+
+<p>The research holds no settled answer. It holds the worry, an argument that the training ground is being converted from production into checking rather than removed, and a proposal that the capability is trainable if built in a deliberate order — the fundamentals first, then AI as a challenger, then autonomy as judgement develops. None of that is evidence the sequence works.</p>
+
+<h2>What this cannot show</h2>
+
+<p>This is exploratory qualitative research: eighteen semi-structured interviews, thematically analysed by one person, with no second coder and no measurement of anyone's actual performance. It reports what practitioners said about their own practice, which is not the same as what they do.</p>
+
+<p>The sample is its own biggest limit. Everyone in it is demonstrably successful in a cognitively demanding field, and most hold or have held senior authority — exactly the people best equipped to hold their own judgement against a machine. That experienced managers withhold judgement from AI is therefore partly a fact about who was asked. What the research cannot observe is what happens to someone without the capability to detect the error in the first place, and that is the boundary that matters most.</p>
+
+<p>Counts stated as a proportion of twelve refer to the twelve conversations against which the themes were developed, not to all eighteen. Nothing here is a validated instrument and none of it should be used as one.</p>
+
+<p><a class="back" href="/">← Back to the tool</a></p>
+
+<p class="footnote">Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.<br>
+Hemanth Dasu · MBA dissertation, Warwick Business School, 2026.</p>
+
+</main>
+</body>
+</html>
