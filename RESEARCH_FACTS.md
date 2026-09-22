@@ -28,29 +28,29 @@ and to nothing else. Abductive design, thematic analysis, single coder.
 
 | Claim | Source | Wording constraint |
 |---|---|---|
-| Ten of twelve stated the judgement boundary explicitly and unprompted | 4.2 | "stated" or "drew". Not "organisations enforce a boundary" |
-| Nine of twelve described enforced rules about what data may enter an AI system | 4.4.1 | Say "described". It is a claim about accounts, not about policy |
+| Ten of twelve stated the judgement boundary explicitly and unprompted | 4.2 | "the research found". Not "organisations enforce a boundary" |
+| Nine of twelve described enforced rules about what data may enter an AI system | 4.4.1 | "described" or "the research found". A claim about accounts, not about policy |
 | Not one described a rule about when to believe the output | 4.4.3 | Same constraint. Never "organisations do not govern reliance" |
 | Four of twelve had a rule they could state; eight had nothing equivalent | 4.4.3 | Fine as written. Never "asked directly" — nobody was |
 | Three of those four had extended a pre-AI decision rule to AI, untold | 4.4.3 | Fine as written |
-| No participant described an employer supplying a judgement rule | 4.4.3, 4.5 | Fine as written |
-| Every verification mechanism described was personal, none designed by an employer | 4.5 | Fine as written |
+| No employer was described as supplying a judgement rule | 4.4.3, 4.5 | Fine as written |
+| Every verification mechanism described was personal, none designed by an employer | 4.5 | "the research found no employer supplying one" |
 | Verification that catches real errors is a constructed check, not a careful read | 4.5 | Fine as written |
-| Verification is the first thing to fail under time pressure | 4.8 | Three participants, independently. Fine as written |
+| Verification is the first thing to fail under time pressure | 4.8 | Three cases, independently. Fine as written |
 | A group finance director found around six errors in a pension model, only after building a reconciliation | 4.5 | The case, de-identified. No quotation — see below |
-| Three participants independently described AI as a junior analyst | 4.3 | Fine as written |
-| The junior analyst rule assumes errors of a recognisable human kind | 4.3 | Attribute the objection to a participant, not to the study |
-| Six participants detected error by knowing roughly what the answer should be | 4.7.3 | Fine as written |
-| Seven described systems producing agreeable rather than accurate output; five adopted standing instructions against it | 4.10 | Fine as written |
-| Instructing a system to challenge redirects the dynamic rather than escaping it | 4.10.2 | One participant's argument. Attribute it as such |
+| AI was described as a junior analyst three times, independently | 4.3 | "three times in the research, independently" |
+| The junior analyst rule assumes errors of a recognisable human kind | 4.3 | "the research also holds the objection". Not stated as the study's conclusion |
+| Error was detected by knowing roughly what the answer should be, six times | 4.7.3 | "six times in the research" |
+| Agreeable rather than accurate output, seven times; five had standing instructions against it | 4.10 | "seven times in the research", "five in the research" |
+| Instructing a system to challenge redirects the dynamic rather than escaping it | 4.10.2 | One case only. "the research also holds the argument against that" |
 | The same system returns different answers to the same prompt across runs and versions | 4.6 | Fine as written |
-| Multi-model comparison is the most common verification practice in the sample | 4.5.3, 4.6 | Fine as written |
-| Constraint-based prompting was described by two participants in near-identical terms | 4.5.3 | Fine as written |
-| Retrospective interaction auditing was described by one participant only | 4.5.3 | Say "only one". Do not generalise it |
-| Manual analytical work yields both a deliverable and the capacity to defend it | 4.9.1 | One participant's framing. Attribute it |
+| Multi-model comparison is the commonest check in the research | 4.5.3, 4.6 | Fine as written |
+| Constraint-based prompting appears twice, in near-identical terms | 4.5.3 | "twice in the research, in almost the same words" |
+| Retrospective interaction auditing appears once only | 4.5.3 | Say "one case". Do not generalise it |
+| Manual analytical work yields both a deliverable and the capacity to defend it | 4.9.1 | One case only. "one reading in the research, and only one" |
 | Domain knowledge, not AI fluency, is what makes output interrogable | 4.9.4, 4.13 | Fine as written |
-| Asking what the system had, what it assumes, what might be missing | 4.9.7 | Must be attributed to a participant, not to the study's design |
-| The only articulated set of verification trigger conditions came from one participant | 4.5.1 | Say "only one" |
+| Asking what the system had, what it assumes, what might be missing | 4.9.7 | "came out of the research, not from me". Never claimed as study design |
+| Only one articulated set of verification trigger conditions appears | 4.5.1 | Say "one case" |
 
 ## Participant quotes are not cleared for publication
 
@@ -80,6 +80,26 @@ nobody's grammar gets tidied on their behalf.
 A side effect worth keeping: the only quoted words on screen now belong to the
 visitor. The research is asserted as the researcher's finding, and the one
 person being quoted is the one reading it.
+
+## How the research is referred to on screen
+
+One noun: **the research**. Never "participants", "one participant", "the
+study", "the interviews", "someone said", "one described". Counts stay,
+because the counts are the evidence: "four of twelve in the research", "seven
+times in the research", "twice, in almost the same words".
+
+A finding that rests on a single case is still marked as a single case, but
+without narrating a person: "one case in the research", "one reading in the
+research, and only one", "the research also holds the objection". That keeps
+the accuracy the old wording was there for - one person's view must not read
+as a general finding - without the register that made the page sound like a
+write-up of a focus group.
+
+The exception is the methodological caveat below, which is a citation rather
+than prose, appears once per closing screen under a rule, and stays verbatim.
+
+Plain sentences. The prose should sound like someone telling you something
+they found out, not like a journal abstract.
 
 ## Never say
 
