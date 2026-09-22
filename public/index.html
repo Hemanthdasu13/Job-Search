@@ -510,7 +510,13 @@ h3{ font-size:1.25rem; line-height:1.2; }
   font-style:italic;
   margin:0 0 1.6rem;
 }
-p{ margin:0 0 1.15rem; max-width:34em; }
+p{ margin:0 0 1.15rem; max-width:34em; text-wrap:pretty; }
+
+/* Lines written as beats, one thought each, broken by hand. When a beat is
+   too long for the column it wraps and leaves a one-word orphan on its own
+   line, which reads as a mistake rather than a pause. Balanced wrapping
+   splits it evenly instead, so the break still looks deliberate. */
+.beat>span{ display:block; text-wrap:balance; }
 
 /* The question the whole tool exists to ask, set on its own line in the
    heading face. It is the turn into the two buttons, not another sentence
@@ -619,11 +625,15 @@ h1::before,h2::before{
 <!-- Screen 1 - Landing -->
 <section class="screen" id="s1">
   <h1 tabindex="-1">Convincing and correct look the same.</h1>
-  <p class="lede">AI can give you a wrong answer and leave you sure it is right. Not wrong in a way you would catch — wrong in a way that arrives looking exactly like the answers that were fine.</p>
-  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Almost every one of them had detailed, enforced rules about what they were allowed to put <em>in</em>. Not one had a rule for when to believe what came <em>out</em>.</p>
-  <p>The ones who handled it best were not the ones who knew most about AI. They were the ones who had something to put the answer against when they could not tell.</p>
-  <p>We agree with people who sound certain, and we agree faster when they are senior. That is not new and it was never a technology problem — it is a very human habit.</p>
-  <p>AI has become extremely good at it. Calling that an AI answer is probably the wrong name for it. It is the most human thing it does.</p>
+  <p class="lede">AI can give you a wrong answer and leave you sure it is right.</p>
+  <p class="beat"><span>Not wrong in a way you would catch.</span><span>Wrong in a way that arrives looking exactly like the answers that were fine.</span></p>
+  <p>I spoke to senior practitioners across sixteen sectors, from investment banking to public healthcare, about AI in real commercial decisions. Almost every one had detailed, enforced rules about what they were allowed to put <em>in</em>.</p>
+  <p class="beat"><span>Not one had a rule for when to believe what came <em>out</em>.</span></p>
+  <p class="beat"><span>The people who handled it best were not the ones who knew the most about AI.</span></p>
+  <p class="beat"><span>They were the ones who had something to put the answer against when they could not tell.</span></p>
+  <p class="beat"><span>We agree with people who sound certain.</span><span>We agree faster when they are senior.</span></p>
+  <p class="beat"><span>AI learnt that from us.</span><span>It has just become very good at it.</span></p>
+  <p class="beat"><span>Maybe the most human thing about an AI answer is not the answer.</span><span>It is us believing it.</span></p>
   <p class="ask">How do you know?</p>
   <div class="actions">
     <button type="button" data-go="s2">See a worked example</button>
