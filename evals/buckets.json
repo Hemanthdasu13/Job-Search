@@ -18,9 +18,9 @@
     "     looking at, and must never be built to: it spends one redirect on",
     "     all of them, because that is the behaviour both answers ask for.",
     "",
-    "  B  Fifteen accounts with a real gap. 'expectCards' is the ordered list",
+    "  B  Sixteen accounts with a real gap. 'expectCards' is the ordered list",
     "     of practices the closing should name, most important first. Thirteen",
-    "     of the fifteen name four cards; the closing shows at most three, so",
+    "     of the first fifteen name four cards; the closing shows at most three, so",
     "     the chain is read as a priority ordering of what is present rather",
     "     than a demand to display all of it. 'pressed' is what each line of",
     "     questioning would surface, which is what a scripted run answers with.",
@@ -30,11 +30,20 @@
     "     These are the entries that matter most: a tool that finds a gap in",
     "     every account is not reading the account.",
     "",
-    "Two of the seventeen cards - examiner-not-originator and",
-    "structural-not-instructional - appear only as bucket C bait and in no",
-    "bucket B chain, so nothing here tests that they can be selected at all.",
-    "That is a hole in the set rather than in the tool, and it survived round",
-    "three unchanged.",
+    "One of the seventeen cards - examiner-not-originator - still appears only",
+    "as bucket C bait and in no bucket B chain, so nothing here tests that it",
+    "can be selected at all. That is a hole in the set rather than in the tool.",
+    "The other one, structural-not-instructional, is now the headline of B16.",
+    "",
+    "B16 came out of a real session rather than the round three design, and it",
+    "is here for a specific failure. The selector named manufactured-divergence",
+    "on an account where no second model was ever treated as corroboration -",
+    "AI had generated the yardstick, and AI was then measured against it, which",
+    "is a different thing. The quote it attached was genuinely the person's own",
+    "words, so every validator passed and the card was still wrong. Nothing in",
+    "the server can catch that: a verbatim quote proves the words are theirs,",
+    "not that the card is about them. Only the eval set can, which is why the",
+    "expected chain for B16 deliberately excludes that card.",
     "",
     "When a real session surfaces something handled badly, add it here with",
     "the words that caused it. The prompt is the program; this file is the",
@@ -898,6 +907,28 @@
       },
       "expectCards": [],
       "mustNotSelect": "reproduction-gap"
+    },
+    {
+      "id": "B16",
+      "bucket": "B",
+      "name": "Cutting a dissertation to the word limit",
+      "note": "From a real session. The selector named manufactured-divergence here and the user rejected it: no second model was ever treated as corroboration, and the card's text talks about comparing two answers, which never happened. The quote attached to it was genuine, so validation passed and the card was still wrong - which is the failure the verbatim rule does not catch.",
+      "account": [
+        "A postgraduate researcher used AI to draft the prose of a dissertation from uploaded interview material, and the draft ran to roughly 35,000 words against a 12,000 word limit. AI was then asked which sections to keep, which to drop, which were academically stronger and which would score best. It was given the university marking criteria, plus a set of patterns AI had extracted from previous high-scoring dissertations. A mechanism was written into the prompt requiring it to offer a choice rather than push one."
+      ],
+      "pressed": {
+        "Reliance": "The cut decided what the submitted dissertation contained.",
+        "Source checking": "Marking criteria and extracted patterns were fed in; nothing was checked against them afterwards, and no supervisor saw the cut.",
+        "Constraints": "The prompt required choices to be offered rather than pushed. Nothing else was ruled out.",
+        "Domain": "Which sections would earn marks is a judgement only a marker can make.",
+        "Consequence": "A wrongly cut section is not recoverable after submission.",
+        "Audit": "The patterns were AI-generated from the source dissertations, so why any given pattern exists cannot be reconstructed."
+      },
+      "expectCards": [
+        "structural-not-instructional",
+        "domain-goes-silent",
+        "reproduction-gap"
+      ]
     }
   ]
 }

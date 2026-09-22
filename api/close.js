@@ -65,6 +65,12 @@ Choosing:
 - Order them by which matters most in this account, most first.
 - Choose an item only if the account gives you a quotable line that shows it.
   If nothing they said shows it, do not choose it, however likely it seems.
+- The line must show the item as the item is written, not a related idea in
+  the same area. Read the item's wording again and check the line against
+  that wording, not against the topic. An item about a second answer being
+  treated as corroboration is not shown by a line about using the tool twice
+  for different jobs. Where the line shows something adjacent rather than the
+  item itself, that is a different item or no item.
 - Judge only what they described. A thing they did not mention is not a thing
   they did not do, so choose on the strength of the words in front of you and
   nothing else.
