@@ -37,7 +37,7 @@ and to nothing else. Abductive design, thematic analysis, single coder.
 | Every verification mechanism described was personal, none designed by an employer | 4.5 | Fine as written |
 | Verification that catches real errors is a constructed check, not a careful read | 4.5 | Fine as written |
 | Verification is the first thing to fail under time pressure | 4.8 | Three participants, independently. Fine as written |
-| A group finance director found around six errors in a pension model, only after building a reconciliation | 4.5 | Quote is exact. Do not trim, paraphrase or add an ellipsis |
+| A group finance director found around six errors in a pension model, only after building a reconciliation | 4.5 | The case, de-identified. No quotation — see below |
 | Three participants independently described AI as a junior analyst | 4.3 | Fine as written |
 | The junior analyst rule assumes errors of a recognisable human kind | 4.3 | Attribute the objection to a participant, not to the study |
 | Six participants detected error by knowing roughly what the answer should be | 4.7.3 | Fine as written |
@@ -90,7 +90,8 @@ person being quoted is the one reading it.
   They may not be used to classify anyone. The closing screen names what did
   not come up in one account; it never names what kind of person typed it.
 - **Any score, level or maturity rating.**
-- **Anything from a participant not reproduced verbatim from the findings.**
+- **Any participant's words at all**, unless that quote is marked
+  `cleared: true` in `evals/quotes.json`. Today none of them is.
 - **Any statistic not in the table above.** In particular: no deal values, no
   prices, no named employers, no net promoter scores, no percentage gains.
   Several appear in the dissertation and none of them are needed here.
