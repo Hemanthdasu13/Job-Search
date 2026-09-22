@@ -67,6 +67,26 @@ finance director built a pension model, built a separate reconciliation, found
 around six errors — is a finding about a case, not somebody's words. Only the
 verbatim quotation is participant data.
 
+### The "condition 19" claim is unverified
+
+A working document in Drive, `ai-verification-tool-spec.md`, states: *"All
+quotes cleared under the dissertation's general consent condition (anonymised
+quotation, role-level attribution only, per condition 19 of the consent
+form)."*
+
+**Do not rely on that sentence.** It is a paraphrase inside a design document,
+consolidated from a conversation with a model, and the consent form it cites
+has not been located. It may be accurate. It may be a half-remembered
+condition hardened into a citation. It may be an inference with a plausible
+number attached. Nothing available distinguishes those, and the specificity -
+a numbered condition, the word "cleared" - is exactly what makes it read as
+settled. It also says nothing about retention, or about whether outputs
+beyond the dissertation are covered, which are the parts that decide the
+question.
+
+Only the participant information sheet and the signed consent form settle
+this. Until one of them is in hand, the position below stands unchanged.
+
 The seventeen quotes are pinned in `evals/quotes.json`, with the findings
 section each came from, all marked `cleared: false`. That directory sits
 outside `public/`, so nothing there is served. To publish one after its
