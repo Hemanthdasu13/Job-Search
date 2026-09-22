@@ -730,7 +730,10 @@ h1::before,h2::before{
 <section class="screen" id="s5a" hidden>
   <p class="unavailable" id="s5a-unavailable" hidden>The interactive part is unavailable right now.<br><span class="why" id="s5a-why"></span></p>
   <p class="closing-note" id="s5a-note" hidden></p>
-  <p class="reflection" id="s5a-reflection" hidden>You said: “<span id="s5a-reflection-text"></span>”</p>
+  <!-- Not in quotation marks, and not "you said": the reflection is a
+       paraphrase by design, because the prompt has it generalise names and
+       figures. Quoting a paraphrase puts words in someone's mouth. -->
+  <p class="reflection" id="s5a-reflection" hidden>From what you described — <span id="s5a-reflection-text"></span></p>
 
   <!-- Shown when the selector named practices this account did not touch.
        Every word of research in here is written above, in PRACTICES. The
@@ -763,7 +766,7 @@ h1::before,h2::before{
 <!-- Screen 5B - Closing, an independent check already in place. Fixed text. -->
 <section class="screen" id="s5b" hidden>
   <p class="closing-note" id="s5b-note" hidden></p>
-  <p class="reflection" id="s5b-reflection" hidden>You described: “<span id="s5b-reflection-text"></span>”</p>
+  <p class="reflection" id="s5b-reflection" hidden>From what you described — <span id="s5b-reflection-text"></span></p>
   <h2 tabindex="-1">You described a constructed check, not a careful read.</h2>
   <p>That is what the people who caught real errors had in common. Not more attention, but something independent for the output to fail against: a reconciliation, a second model, a colleague who knows the area, a check written before the answer was produced.</p>
   <p>It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.</p>
@@ -1024,7 +1027,9 @@ h1::before,h2::before{
     offTopic: 0,        // off-topic replies received
     unusable: 0,        // off-topic and unclear replies, over the whole run
     unclearRun: 0,      // consecutive unclear replies on the same thread
-    reflection: null,   // their own words, shown back on 5A or 5B
+    reflection: null,   // a paraphrase of their account, shown on 5A or 5B.
+                        // The server drops one that addresses the reader or
+                        // shares no vocabulary with what they typed.
     closingNote: null,  // one line, only when a real outcome was described
     consent: false,     // ticked before they typed, or nothing is kept
     lastFailure: null,  // named on screen while this is in beta

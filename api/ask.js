@@ -223,6 +223,66 @@ function stubbedReply(answers) {
   };
 }
 
+// The reflection is shown on the closing screen as a restatement of what the
+// visitor described. The prompt asks for their own words where possible, with
+// figures and names generalised - so it is a paraphrase by design and can
+// never be checked for being verbatim the way the closing quotes are.
+//
+// Two things can be checked, and they catch different failures.
+//
+// It must not address the reader. A restatement of someone's own account
+// describes their work, in their voice; a sentence aimed AT them is the tool
+// talking ABOUT them, which is the classification this whole design refuses
+// to do. Every way this goes wrong reads the same - "your organisation is in
+// the bottom quartile", "you are a proxy verifier", "you scored four out of
+// ten" - and none of them is a restatement of anything.
+//
+// And it must share some vocabulary with what they typed. That catches the
+// other failure, where the model states a finding instead: a sentence about
+// the study reuses none of their nouns. The floor is low on purpose, because
+// a short honest restatement can legitimately share very little - "I never
+// checked what the system had to work from" is entirely valid and overlaps
+// one word. Overlap alone was tried at a higher threshold and dropped exactly
+// that sentence, which is why there are two rules and not one.
+//
+// Both err toward dropping: the closing reads perfectly well with no
+// reflection, and showing someone a sentence they did not say is the failure
+// that matters on this screen.
+const STOPWORDS = new Set([
+  "that", "this", "with", "from", "have", "were", "been", "they", "them",
+  "their", "there", "then", "than", "what", "when", "which", "would",
+  "could", "about", "into", "over", "your", "yours", "just", "some", "only",
+  "also", "very", "much", "more", "most", "because", "before", "after",
+  "without", "being", "does", "doing", "done", "make", "made", "take",
+  "taken", "went", "going", "like", "even", "still", "thing", "things"
+]);
+
+function contentWords(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+}
+
+export function drawnFromTheirAccount(reflection, answers) {
+  if (/\b(you|your|yours|you're|youre)\b/i.test(reflection)) return false;
+
+  const words = contentWords(reflection);
+  if (!words.length) return false;
+  // Nothing to check against, so nothing to fail: let it through rather than
+  // drop it for arriving early.
+  const haystack = new Set(contentWords((answers || []).join(" ")));
+  if (!haystack.size) return true;
+  const shared = words.filter((w) => haystack.has(w)).length;
+  return shared / words.length >= 0.2;
+}
+
+// The answers as the request actually carried them, for the guard above.
+function answersOf(body) {
+  return Array.isArray(body?.answers) ? body.answers.filter((a) => typeof a === "string") : [];
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -299,12 +359,21 @@ export default async function handler(req, res) {
   const text_or_null = (value, limit) =>
     typeof value === "string" && value.trim() ? value.trim().slice(0, limit) : null;
 
+  // Checked once. Not a restatement of anything they said means show nothing:
+  // the closing works without a reflection, and showing someone a sentence
+  // they did not say is the failure that matters on this screen.
+  const offered = closesWithReflection
+    ? text_or_null(parsed.reflection, MAX_REFLECTION_CHARS)
+    : null;
+  const reflection = offered && drawnFromTheirAccount(offered, answersOf(body)) ? offered : null;
+  if (offered && !reflection) console.error("reflection_rejected_not_their_account");
+
   return res.status(200).json({
     ok: true,
     build: BUILD,
     question: parsed.question.slice(0, MAX_QUESTION_CHARS),
     status: parsed.status,
-    reflection: closesWithReflection ? text_or_null(parsed.reflection, MAX_REFLECTION_CHARS) : null,
+    reflection,
     closing_note: text_or_null(parsed.closing_note, MAX_NOTE_CHARS)
   });
 }
