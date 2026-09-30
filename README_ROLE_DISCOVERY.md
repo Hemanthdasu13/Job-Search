@@ -35,7 +35,7 @@ smaller list, and to argue against applying where the case is weak.
     2  Scoring engine     10 dimensions, do-not-apply gating, honest gaps
     3-13  Collection      job-board APIs and employer career sites
     14 State store        what is new, returning, reposted or expired
-    15 Export             Excel, four sheets, clickable links, full adverts
+    15 Export             Excel, six sheets, clickable links, full adverts
     16 AI screening       per-role reasoned verdict (off by default)
 
 Collection covers two job-board APIs (Adzuna, Reed), LinkedIn public search
@@ -44,7 +44,8 @@ Ashby, SmartRecruiters, Recruitee and Workday. Adzuna and Reed need free API
 keys; everything else works without one.
 
 Output is a single workbook: **Jobs**, **Rolling Top 20**, **Networking
-Tracker**, **New Since Last Run**, **Run Log**, **Manual Checks**. Job
+Tracker**, **New Since Last Run**, **Contract Roles**, **New Contract Roles**,
+**Run Log**, **Manual Checks**. Job
 descriptions are stored in full and untrimmed, spilling into continuation
 columns past Excel's 32,767-character cell limit, so the workbook is a
 complete archive rather than a list of links.
@@ -102,6 +103,41 @@ the integration of AI-generated insight with human judgement for commercial
 decisions - with the tool as one working instance of it. The system produces
 a reasoned recommendation and a named limitation; the human decides and
 writes. Nothing is auto-applied, by deliberate design.
+
+---
+
+## Contract and fixed-term separation
+
+Fixed-term, interim, maternity-cover and secondment roles can be started on a
+Student visa with full post-course work rights, without waiting for a Graduate
+visa. That makes them a different decision from a permanent role, so they are
+written to their own two sheets rather than mixed into Jobs. One run produces
+both; the state store is shared, so a role is counted new once and screened
+once whichever sheet it lands on.
+
+Detection reads the raw job title and the advert body. It does not read the
+normalised title, because the deduplication step strips bracketed suffixes -
+correct for matching `Strategy Manager (hybrid)` to `Strategy Manager`, and
+fatal here, since `(12 month FTC)` is exactly where the term is stated.
+
+The hard part is not finding the word "contract". It is not being fooled by it.
+Thirty-six phrases are masked out of the text before any pattern runs, because
+`contract management`, `contract negotiation`, `subcontract`, `contractor`,
+`interim results` and `temporary works` all describe *skills in a permanent
+job*. This is the same substring-collision class as the location-filter and
+score-saturation faults below, so it was written defensively from the start and
+tested against those cases first: 20 of 20, including all eight false friends.
+
+Silence is not evidence. An advert that says nothing about its term is recorded
+as "Not stated" and stays on the Jobs sheet rather than being guessed onto the
+contract one.
+
+A **Start Friction** column reads two dates held in the configuration -
+current permission expiry and expected Graduate visa application - and says
+what they imply for each role: a three-month contract ending inside current
+permission is visibly different from an eighteen-month one. Those dates are the
+only immigration input the notebook has, they are the user's to set, and the
+column reports arithmetic rather than advice.
 
 ---
 
