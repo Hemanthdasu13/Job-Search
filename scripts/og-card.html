@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- The source of public/og.png: the card that renders when the link is
+     posted to LinkedIn, Slack or WhatsApp.
+
+     It lives here rather than in public/ so it is never served. Regenerate
+     with:  node scripts/make-og.mjs   (needs `node dev.mjs` running, which
+     is where the woff2 files come from).
+
+     The one it replaced was Arial on white and said "Eighteen interviews
+     with senior practitioners", which made the most-seen surface of the
+     whole thing look like a different product and carried the one phrase
+     that was meant to be gone. If the landing copy changes, change this
+     too: a card quoting copy the page no longer has is its own small lie. -->
+<html lang="en"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;src:url('/fonts/InstrumentSerif-400-latin.woff2') format('woff2');}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;src:url('/fonts/IBMPlexSans-400-latin.woff2') format('woff2');}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;src:url('/fonts/IBMPlexMono-400-latin.woff2') format('woff2');}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1200px;height:630px}
+body{
+  background:#E8D7A9; color:#2A1E10;
+  font-family:'IBM Plex Sans',sans-serif;
+  padding:74px 86px 64px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  position:relative; overflow:hidden;
+}
+/* The graduations along the top edge, as on the page itself. */
+.rule{position:absolute;top:0;left:0;right:0;height:22px;
+  background:
+    repeating-linear-gradient(to right, rgba(42,30,16,0.42) 0 1px, transparent 1px 24px) top left/100% 9px no-repeat,
+    repeating-linear-gradient(to right, rgba(42,30,16,0.42) 0 1px, transparent 1px 120px) top left/100% 16px no-repeat;
+  border-bottom:1px solid #C6AE78;}
+h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;
+  font-size:104px;line-height:0.98;letter-spacing:-0.03em;max-width:17ch}
+.sub{font-size:28px;line-height:1.35;color:#2A1E10;max-width:30ch;margin-top:30px}
+.foot{font-family:'IBM Plex Mono',monospace;font-size:19px;color:#5E4A2C;
+  display:flex;justify-content:space-between;align-items:flex-end;gap:40px}
+.gauge{position:absolute;right:-70px;bottom:-178px;width:470px;opacity:0.13;color:#2A1E10}
+</style></head>
+<body>
+<div class="rule"></div>
+<svg class="gauge" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+  <circle cx="100" cy="100" r="78"/><circle cx="100" cy="100" r="54" stroke-dasharray="7 7"/>
+  <circle cx="100" cy="100" r="13"/>
+  <path d="M100 8v34M100 158v34M8 100h34M158 100h34"/>
+  <path d="M100 100 148 62" stroke-width="3.2"/>
+</svg>
+<div>
+  <h1>Convincing and correct look the same.</h1>
+  <p class="sub">You have rules about what you put into AI. Do you have one for when to believe what comes out?</p>
+</div>
+<div class="foot">
+  <span>Could you tell if it was wrong?</span>
+  <span>Sixteen sectors</span>
+</div>
+</body></html>
