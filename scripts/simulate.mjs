@@ -93,7 +93,10 @@ const server = createServer(async (req, res) => {
   const body = JSON.parse(raw);
   const isSelector = raw.includes("Your only job is to choose");
 
-  const step = plan.shift() || { kind: "ok" };
+  // A sticky step stays at the head of the plan: it models a provider stuck
+  // in one behaviour rather than unlucky once, which is the only way to tell
+  // a retry that recovers from a retry that just spends another call.
+  const step = plan[0]?.sticky ? plan[0] : (plan.shift() || { kind: "ok" });
   const inputChars = JSON.stringify(body.system || "").length +
                      JSON.stringify(body.messages || "").length;
 
@@ -311,9 +314,30 @@ async function providerDies() {
     { label: "429, daily allowance spent", step: { kind: "http", status: 429, message: "free-models-per-day limit reached" } },
     { label: "500", step: { kind: "http", status: 500 } },
     { label: "401, key revoked", step: { kind: "http", status: 401, message: "invalid x-api-key" } },
-    { label: "answers, but in prose", step: { kind: "prose" } },
-    { label: "answers, but truncated", step: { kind: "raw", text: '{"question": "What did it ha', stop_reason: "max_tokens" } }
-  ];
+    // Each of the remaining cases is a reply that arrived, in a shape the
+    // old code discarded whole. Three of the five should now carry the
+    // conversation on, because a reply with a usable question in it is not a
+    // failure - it is the shape a model occasionally answers in. The live
+    // failure that produced all of this was one of these.
+    //
+    // calls says how many provider calls the case is allowed: three turns,
+    // plus one where a retry is expected and no more. ends is "fallback" when
+    // the visitor should be told the interactive part is unavailable, and
+    // "answered" when the reply was good enough to use - whichever screen
+    // that lands on, since a recovered off_topic status legitimately closes
+    // the conversation rather than asking again.
+    { label: "answers only in prose", step: { kind: "prose", sticky: true }, calls: 4 },
+    { label: "prose once, then answers", step: { kind: "prose" }, calls: 4, ends: "answered" },
+    { label: "truncated mid-question", calls: 3,
+      step: { kind: "raw", text: '{"question": "What did it ha', stop_reason: "max_tokens" } },
+    { label: "truncated after the question", calls: 3, ends: "answered",
+      step: { kind: "raw", stop_reason: "max_tokens",
+              text: '{"question": "What did the system have in front of it?", "status": "prob' } },
+    { label: "status in the wrong case", calls: 3, ends: "answered",
+      step: { kind: "ok", reply: { status: "Off-Topic" } } },
+    { label: "status not on the list", calls: 3, ends: "answered",
+      step: { kind: "ok", reply: { status: "continue" } } }
+  ].map((c) => ({ calls: 3, ends: "fallback", ...c }));
 
   const token = access.mintToken(access.grantForPin("333333"));
   for (const c of cases) {
@@ -335,14 +359,25 @@ async function providerDies() {
     const caseCalls = spent.calls - before.calls;
     const caseDollars = spent.dollars - before.dollars;
     notes.push(`${c.label.padEnd(30)} -> ${screen.padEnd(20)} reason=${(last.reason || "-").slice(0, 44)}  calls=${caseCalls} $${caseDollars.toFixed(4)}`);
-    checks[`${c.label}: lands on a closing screen`] = screen.startsWith("s5a");
-    checks[`${c.label}: reason is named`] = Boolean(last.reason);
-    // The case is only tested if the request got as far as the provider. A
-    // refusal at the door also lands on s5a with a reason, and would report
-    // a pass having exercised none of this.
-    checks[`${c.label}: actually reached the provider`] = caseCalls === 3;
-    checks[`${c.label}: failed upstream, not at the gate`] =
-      /^upstream_|^unusable_|^unparseable_/.test(last.reason || "");
+    // The case is only tested if the request got as far as the provider, and
+    // the exact count matters now that a turn may spend two calls: a refusal
+    // at the door also lands on s5a with a reason, and would report a pass
+    // having exercised none of this, while a retry firing where none was
+    // expected is a doubled bill nobody would notice.
+    checks[`${c.label}: ${c.calls} provider call(s)`] = caseCalls === c.calls;
+    if (c.ends === "fallback") {
+      checks[`${c.label}: falls back to the general closing`] = screen.startsWith("s5a");
+      checks[`${c.label}: reason is named`] = Boolean(last.reason);
+      checks[`${c.label}: failed upstream, not at the gate`] =
+        /^upstream_|^unusable_|^unparseable_/.test(last.reason || "");
+    } else {
+      checks[`${c.label}: the reply was used, not discarded`] =
+        last.ok === true && !screen.startsWith("s5a (unavailable)");
+      checks[`${c.label}: with a question to answer`] =
+        typeof last.question === "string" && last.question.trim().length > 0;
+      checks[`${c.label}: status is one the page knows`] =
+        ["probing", "reached", "verified", "unclear", "off_topic"].includes(last.status);
+    }
   }
 
   // The closing selector dying must not take the closing with it: the page has
@@ -356,7 +391,9 @@ async function providerDies() {
   checks["selector failure was upstream, not at the gate"] = /^upstream_/.test(closed.reason || "");
   notes.push(`selector 500 -> general closing, reason=${closed.reason}`);
 
-  checks["no case produced an error screen"] = worstScreen.every((s) => s.startsWith("s5a"));
+  // The one promise that holds across every case above: whatever the
+  // provider did, the visitor is looking at a screen, never an error.
+  checks["no case produced an error screen"] = worstScreen.every(Boolean);
   record(name, checks, notes, bank());
 }
 

@@ -23,7 +23,7 @@
 
 import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
-import { callModel, describeFailure, extractJson, textOf } from "./_model.js";
+import { callModel, describeFailure, describeReply, extractJson, textOf } from "./_model.js";
 import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection } from "./_practices.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
@@ -224,8 +224,15 @@ export default async function handler(req, res) {
     return fall(res, "unusable_" + response.stop_reason);
   }
 
-  const parsed = extractJson(textOf(response));
-  if (!parsed || !Array.isArray(parsed.selected)) return fall(res, "unparseable_reply");
+  const text = textOf(response);
+  const parsed = extractJson(text);
+  if (!parsed || !Array.isArray(parsed.selected)) {
+    // Shape only, same rule as the questioner: the selector's reply quotes
+    // the visitor's own sentences back as evidence, so the words stay out of
+    // the log. An empty closing is survivable; an undiagnosable one is not.
+    console.error("close_call_unparseable", model, describeReply(response, text, ["selected", "id", "evidence"]));
+    return fall(res, "unparseable_reply");
+  }
 
   const { kept, rejected } = validateSelection(parsed, answers);
 

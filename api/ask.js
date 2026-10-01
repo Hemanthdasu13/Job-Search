@@ -42,11 +42,46 @@
 
 import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
-import { callModel, describeFailure, extractJson, safeParse, textOf } from "./_model.js";
+import { callModel, describeFailure, describeReply, extractJson, safeParse, textOf } from "./_model.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
 const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
+
+// A retry has to fit inside the function's 30s limit alongside the call that
+// already failed. The provider call times out at 20s, so a first call that
+// came back inside this leaves room for a second without risking the wall.
+const RETRY_IF_FIRST_CALL_UNDER_MS = 8000;
+
+const FORMAT_REMINDER =
+  "[Format reminder, not part of the message above: reply with the JSON " +
+  "object only. No prose before or after it, no code fence.]";
+
+// The only field the next screen cannot do without.
+function questionOf(parsed) {
+  const value = parsed?.question;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normaliseStatus(value) {
+  if (typeof value !== "string") return null;
+  const form = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return STATUSES.includes(form) ? form : null;
+}
+
+// Printed verbatim only when it is a short plain token, which a status the
+// model picked badly will be. Anything else is described rather than logged,
+// because a field that is not a status could hold anything.
+function statusShape(value) {
+  if (typeof value !== "string") return `type=${value === null ? "null" : typeof value}`;
+  return /^[A-Za-z_ -]{1,24}$/.test(value) ? JSON.stringify(value) : `odd, ${value.length} chars`;
+}
+
+function withFormatReminder(messages) {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "user") return messages;
+  return [...messages.slice(0, -1), { role: "user", content: `${last.content}\n\n${FORMAT_REMINDER}` }];
+}
 
 export const SYSTEM = `You ask questions. You never explain, assess, advise, summarise or state
 conclusions. You never mention the research, the study, or any finding.
@@ -351,20 +386,87 @@ export default async function handler(req, res) {
     return fail(res, reason);
   }
 
-  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") {
-    console.error("model_call_unusable", response.stop_reason, model);
-    return fail(res, "unusable_" + response.stop_reason);
+  // A refusal is not mined for a question. Whatever is in it, the model
+  // declined to produce the thing being asked for.
+  if (response.stop_reason === "refusal") {
+    console.error("model_call_unusable", "refusal", model);
+    return fail(res, "unusable_refusal");
   }
 
-  const parsed = extractJson(textOf(response));
-  if (!parsed || typeof parsed.question !== "string" || !STATUSES.includes(parsed.status)) {
-    console.error("model_call_unparseable", model);
-    return fail(res, "unparseable_reply");
+  let text = textOf(response);
+  let parsed = extractJson(text);
+  let question = questionOf(parsed);
+
+  // A reply that ran out of budget partway through is still worth reading.
+  // The question is the first key in the object, so it is usually complete by
+  // the time the tokens run out - and thinking is spent from the same budget
+  // as the answer, so a long think is exactly what produces this. Take the
+  // question if it survived. If it did not, give up here rather than retry:
+  // the same prompt will truncate the same way.
+  if (response.stop_reason === "max_tokens") {
+    console.error("model_call_truncated", model,
+      question ? "question_salvaged" : "nothing_usable", describeReply(response, text));
+    if (!question) return fail(res, "unusable_max_tokens");
   }
+
+  // One more try, and only one, when nothing usable came back. A reply in
+  // prose, or a reply that was all thinking and no answer, is not something
+  // the extractor can repair, and it is the difference between a working
+  // conversation and "the interactive part is unavailable" on a page whose
+  // whole promise is the conversation.
+  //
+  // Three guards, because a retry is easy to get wrong:
+  //   - only on the elapsed budget below, so two slow calls cannot run past
+  //     the function's own 30s limit and turn a recoverable turn into a
+  //     timeout;
+  //   - only if the budget allows another call, so an extra call does not
+  //     quietly escape the cap that exists to bound the bill;
+  //   - logged separately either way, so the next look at the logs says
+  //     whether retrying is actually buying anything.
+  const firstPass = Date.now() - started;
+  if (!question) {
+    console.error("model_call_unparseable", model, describeReply(response, text));
+    if (firstPass < RETRY_IF_FIRST_CALL_UNDER_MS) {
+      const again = await claimModelCall(req);
+      if (!again.allowed) {
+        console.error("model_call_retry_skipped", again.reason);
+      } else {
+        try {
+          // The nudge rides on the last turn rather than in the system
+          // prompt, which is cached: a changed system prompt is a cache miss
+          // and a second full-price write of the largest thing sent.
+          response = await callModel(key, model, SYSTEM, withFormatReminder(messages));
+          text = textOf(response);
+          parsed = extractJson(text);
+          question = questionOf(parsed);
+          console.error("model_call_retried", question ? "recovered" : "still_unusable",
+            question ? "" : describeReply(response, text));
+        } catch (error) {
+          console.error("model_call_retry_failed", describeFailure(error, model, Date.now() - started));
+        }
+      }
+    }
+  }
+  if (!question) return fail(res, "unparseable_reply");
+
+  // "Probing", "off-topic" and " reached " are the five statuses written
+  // differently, not five different statuses, and the live failure threw away
+  // a whole conversation on an all-or-nothing check of this field. Form is
+  // normalised; a value that is still not one of the five falls back to
+  // probing and is logged.
+  //
+  // Probing is the only safe default. It keeps asking, where a wrong guess at
+  // "verified" would close the conversation telling someone their check
+  // covered the case, and a wrong guess at "reached" would close it on a gap
+  // they never named. The turn cap ends the conversation either way, so the
+  // cost of being wrong here is one more question.
+  const recognised = normaliseStatus(parsed.status);
+  if (!recognised) console.error("model_call_odd_status", model, statusShape(parsed.status));
+  const status = recognised || "probing";
 
   // reflection is only ever shown on the two screens that close on it, so
   // drop it anywhere else rather than trusting the model to have sent null.
-  const closesWithReflection = parsed.status === "reached" || parsed.status === "verified";
+  const closesWithReflection = status === "reached" || status === "verified";
   const text_or_null = (value, limit) =>
     typeof value === "string" && value.trim() ? value.trim().slice(0, limit) : null;
 
@@ -380,8 +482,8 @@ export default async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     build: BUILD,
-    question: parsed.question.slice(0, MAX_QUESTION_CHARS),
-    status: parsed.status,
+    question: question.slice(0, MAX_QUESTION_CHARS),
+    status,
     reflection,
     closing_note: text_or_null(parsed.closing_note, MAX_NOTE_CHARS)
   });

@@ -133,24 +133,149 @@ export function describeFailure(error, model, elapsed) {
   return "upstream_" + (error?.name || "unknown");
 }
 
-// The swappable model may be a small one, so accept a fenced or padded object
-// rather than discarding an otherwise good answer. Anything still unreadable
-// falls back.
+// A reply that contains a usable question is worth recovering. The
+// alternative is a dead conversation on the visitor's screen, and the
+// question is sitting right there in the text.
+//
+// Each step below is a different shape a reply has actually arrived in,
+// ordered by how much repair it does: a bare object, a fenced one, an object
+// inside a sentence, two objects where one was asked for, one object with a
+// trailing comma, one cut off partway through. Nothing here invents a field.
+// Anything still unreadable falls back.
 export function extractJson(text) {
   if (!text) return null;
+
   const direct = safeParse(text.trim());
   if (direct) return direct;
 
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  // A fence, including one the reply was cut off inside: the closing ``` is
+  // the first thing truncation takes, so it is not required here.
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/i);
   if (fenced) {
-    const parsed = safeParse(fenced[1].trim());
+    const inner = fenced[1].trim();
+    const parsed = safeParse(inner) || safeParse(stripTrailingCommas(inner));
     if (parsed) return parsed;
   }
 
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start !== -1 && end > start) return safeParse(text.slice(start, end + 1));
-  return null;
+  // Every balanced object in the text, in order. This replaced a slice from
+  // the first "{" to the last "}", which reads two objects as one piece of
+  // broken JSON and swallows any stray brace in the prose around them.
+  for (const candidate of balancedObjects(text)) {
+    const parsed = safeParse(candidate) || safeParse(stripTrailingCommas(candidate));
+    if (parsed) return parsed;
+  }
+
+  // Nothing balanced at all, which is what a reply stopped mid-object looks
+  // like. Lift out the fields that are complete and leave the rest to the
+  // caller's defaults.
+  return salvageFields(text);
+}
+
+// Tracks string state as it walks, so a brace inside a question - "what did
+// it have in {} for that field" - does not close an object early.
+function* balancedObjects(text) {
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}" && depth > 0) {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        yield text.slice(start, i + 1);
+        start = -1;
+      }
+    }
+  }
+}
+
+// A comma before a closing brace or bracket: legal in most of the languages
+// the model has read and not in JSON, and the commonest single character
+// that costs a whole otherwise-good object.
+function stripTrailingCommas(text) {
+  return text.replace(/,(\s*[}\]])/g, "$1");
+}
+
+// The last resort, for an object that stops partway through. Only complete
+// string values are taken: a question cut off mid-word is worse on screen
+// than no question at all, so an unterminated one is left behind.
+function salvageFields(text) {
+  const out = {};
+  for (const key of ["question", "status", "reflection", "closing_note"]) {
+    const value = closedStringValue(text, key);
+    if (value !== null) out[key] = value;
+  }
+  return out.question ? out : null;
+}
+
+function closedStringValue(text, key) {
+  const at = text.indexOf(`"${key}"`);
+  if (at === -1) return null;
+  const colon = text.indexOf(":", at + key.length + 2);
+  if (colon === -1) return null;
+  let i = colon + 1;
+  while (i < text.length && /\s/.test(text[i])) i++;
+  if (text[i] !== '"') return null;
+  let out = "";
+  let escaped = false;
+  for (i++; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      out += ch === "n" ? "\n" : ch === "t" ? "\t" : ch;
+      escaped = false;
+    } else if (ch === "\\") {
+      escaped = true;
+    } else if (ch === '"') {
+      return out.trim();
+    } else {
+      out += ch;
+    }
+  }
+  return null; // unterminated
+}
+
+// What came back, in shape only. The one failure that needed diagnosing
+// logged nothing but the model name, so the next occurrence had to be
+// guessed at from four plausible causes.
+//
+// Shape only is not caution for its own sake: the reply carries a paraphrase
+// of the visitor's own account in its reflection field, and nothing a
+// visitor types is logged. A character count, a block list and which of four
+// known key names are present breaks none of that. The words would.
+const KNOWN_KEYS = ["question", "status", "reflection", "closing_note"];
+
+export function describeReply(response, text, keys = KNOWN_KEYS) {
+  const blocks = (response?.content || []).map((b) => b.type).join("+") || "none";
+  const body = text || "";
+  const parts = [
+    `blocks=${blocks}`,
+    `stop=${response?.stop_reason || "none"}`,
+    `chars=${body.length}`
+  ];
+  if (body) {
+    const opens = (body.match(/{/g) || []).length;
+    const closes = (body.match(/}/g) || []).length;
+    parts.push(
+      `starts=${/^\s*[{[]/.test(body) ? "brace" : /^\s*```/.test(body) ? "fence" : "prose"}`,
+      `ends=${/[}\]]\s*$/.test(body) ? "brace" : /```\s*$/.test(body) ? "fence" : "open"}`,
+      `braces=${opens}/${closes}`,
+      // Only names the caller passed in are ever printed, so no substring
+      // of the reply can reach the log by looking like a key.
+      `keys=${keys.filter((k) => new RegExp(`"${k}"\\s*:`).test(body)).join(",") || "none"}`
+    );
+  }
+  return parts.join(" ");
 }
 
 export function safeParse(text) {
