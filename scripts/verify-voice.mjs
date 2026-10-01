@@ -30,8 +30,12 @@ const src = PAGES.map((p) => readFileSync(p, "utf8")).join("\n");
 
 // The mandated caveat, and the standing link. Removed before checking so they
 // cannot be mistaken for prose, and asserted separately below.
+// The count came off it. Eighteen across sixteen sectors invites a reader to
+// divide and conclude it is thin, and the counts that carry weight are on the
+// claims themselves - "four of twelve", "seven times" - where anyone checking
+// would actually look.
 const CAVEAT =
-  "Eighteen interviews, sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.";
+  "Sixteen sectors. Exploratory qualitative research, single coder, not a validated instrument.";
 const OFFER = "I'd contribute an interview";
 
 const BANNED = [
@@ -45,7 +49,11 @@ const BANNED = [
    'say "one case in the research"'],
   [/\bsomeone (?:said|described|told)\b/gi, 'say "one case in the research"'],
   [/\bwe interviewed\b/gi, 'say "the research"'],
-  [/\bin the sample\b/gi, 'say "in the research"']
+  [/\bin the sample\b/gi, 'say "in the research"'],
+  // Off the tool entirely. It survives in the research page's methods
+  // paragraph, which that page checks for itself, and nowhere a visitor
+  // meets a finding.
+  [/\beighteen interviews\b/gi, 'the count comes off the caveat']
 ];
 
 // Only what a visitor reads: the card bodies and the closing-screen prose.
@@ -93,6 +101,26 @@ for (const { where, text } of visibleStrings()) {
     for (const hit of stripped.match(re) || []) {
       failures.push({ where, hit, fix, text: stripped.slice(0, 100) });
     }
+  }
+}
+
+// How often a screen may cite the research at all. Said once it is a
+// citation; said five times on one screen - which is what three cards each
+// carrying their own attribution produced - it reads as insisting, and the
+// page sounds like it is arguing for its own credibility. The header scopes
+// the screen, the footnote carries the caveat, and the cards say nothing.
+const CITE = /\bresearch\b/gi;
+const MAX_CITES_PER_SCREEN = 2;
+for (const m of src.matchAll(/<section class="screen"[^>]*id="(s\d[a-z]?g?)"[^>]*>([\s\S]*?)<\/section>/g)) {
+  const text = m[2].replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ");
+  const hits = (text.match(CITE) || []).length;
+  if (hits > MAX_CITES_PER_SCREEN) {
+    failures.push({
+      where: m[1],
+      hit: `cites the research ${hits} times`,
+      fix: `at most ${MAX_CITES_PER_SCREEN} per screen: the header scopes it, the footnote caveats it`,
+      text: ""
+    });
   }
 }
 
