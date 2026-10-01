@@ -30,10 +30,10 @@
     "     These are the entries that matter most: a tool that finds a gap in",
     "     every account is not reading the account.",
     "",
-    "One of the seventeen cards - examiner-not-originator - still appears only",
-    "as bucket C bait and in no bucket B chain, so nothing here tests that it",
-    "can be selected at all. That is a hole in the set rather than in the tool.",
-    "The other one, structural-not-instructional, is now the headline of B16.",
+    "Every one of the seventeen cards now appears in a bucket B chain.",
+    "examiner-not-originator was the last hole in the set - it appeared only as",
+    "bucket C bait, so nothing tested that it could be selected at all - and",
+    "B17 closes it. structural-not-instructional is the headline of B16.",
     "",
     "B16 came out of a real session rather than the round three design, and it",
     "is here for a specific failure. The selector named manufactured-divergence",
@@ -928,6 +928,28 @@
         "structural-not-instructional",
         "domain-goes-silent",
         "reproduction-gap"
+      ]
+    },
+    {
+      "id": "B17",
+      "bucket": "B",
+      "name": "Interview practice with a system that knew more than the room",
+      "note": "From a real session, and it broke the question phase rather than the closing. The aim line read \"find one specific thing the AI could not have known\", so the second question asked what the interviewer knew that the system did not - and this account runs the other way round. The system held the full history, the practice answers and the job details; the interviewer had a CV, a cover letter and a LinkedIn profile. The person had to argue with the question before they could answer it. The gap is real and it is the inverse of the assumed one: the answers came out fitted to a candidate the room could not see. manufactured-divergence and independent-source-check would both be wrong here - there was no second system and no source to check against, only a framing nobody tested. This also closes the hole recorded above, because examiner-not-originator finally heads a bucket B chain instead of appearing only as bucket C bait.",
+      "account": [
+        "Someone preparing for a company interview used AI to get interview-ready, having it ask practice questions and work the answers up with them. It was given the full background: CV, cover letter, the job details, and a running account of their experience. The interviewer had the CV, the cover letter and the LinkedIn profile, and nothing else. The answers went into the room as the system had framed them."
+      ],
+      "pressed": {
+        "Reliance": "The rehearsed answers were what went into the room.",
+        "Source checking": "Nothing outside the system's own framing was checked, and nobody who had sat on the other side of an interview like this read the answers.",
+        "Constraints": "It was told to ask questions and prepare answers. Nothing was ruled out, and nothing held it to what the interviewer would actually be working from.",
+        "Domain": "What this interviewer weights, and what an answer has to survive in the room, is not in anything the system was given.",
+        "Consequence": "An answer fitted to context the room does not have fails in the room, once, with no second attempt.",
+        "Audit": "The answers were worked up by the system from material it held, so which part was the person's own position and which was its framing cannot be separated afterwards."
+      },
+      "expectCards": [
+        "examiner-not-originator",
+        "reproduction-gap",
+        "domain-goes-silent"
       ]
     }
   ]
