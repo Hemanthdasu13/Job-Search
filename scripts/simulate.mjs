@@ -27,6 +27,7 @@
 
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -44,7 +45,8 @@ const ENV = {
   "time-passes":     { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" },
   "provider-dies":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" },
   "budget-runs-out": { RATE_LIMIT_PER_IP: "6",   DAILY_CALL_CAP: "12"  },
-  "hostile-input":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" }
+  "hostile-input":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" },
+  "four-visitors":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" }
 };
 
 // The parent runs nothing itself; it fans out and adds up.
@@ -609,11 +611,203 @@ async function hostileInput() {
 }
 
 /* -------------------------------------------------------------------- run */
+/* =============================================================== SIM FIVE
+   Four kinds of person, and what the machine does with each.
+
+   Nothing here tests the model's questions - that needs the real provider
+   and a real key. What it tests is the routing, which is where these four
+   actually differ: who gets one redirect, who spends a probing turn, who
+   reaches the cards, who closes on the neutral screen, and what each costs
+   before it stops.
+
+   The routing lives in the page, inline, inside a single HTML file that the
+   CSP forbids loading as a module - so this is a mirror of it rather than the
+   thing itself. constantsMatchThePage() below reads the three numbers it
+   depends on straight out of public/index.html, because a constant moving in
+   the page and not here is the way a mirror goes quietly wrong. The logic is
+   deliberately short for the same reason. If the two ever disagree, the page
+   is what ships. */
+
+function constantsMatchThePage() {
+  const page = readFileSync("public/index.html", "utf8");
+  const read = (name) => {
+    const m = page.match(new RegExp(`var ${name}\\s*=\\s*(\\d+)`));
+    return m ? Number(m[1]) : null;
+  };
+  return {
+    MAX_PROBING_TURNS: read("MAX_PROBING_TURNS"),
+    MAX_UNUSABLE: read("MAX_UNUSABLE"),
+    MAX_MODEL_CALLS: read("MAX_MODEL_CALLS")
+  };
+}
+
+// The page's status routing, mirrored. Returns where the conversation went.
+function route(reply, st, caps) {
+  if (!reply || reply.ok !== true) return "fallback";
+  if (reply.status === "off_topic") {
+    st.unclearRun = 0;
+    st.offTopic += 1;
+    st.unusable += 1;
+    if (st.offTopic > 1 || st.unusable >= caps.MAX_UNUSABLE) return "neutral";
+    st.redirects += 1;
+    return "ask";
+  }
+  if (reply.status === "unclear") {
+    st.unusable += 1;
+    if (st.unusable >= caps.MAX_UNUSABLE) return "neutral";
+    st.unclearRun += 1;
+    // The first non-answer buys one narrower question free. A second in a row
+    // does not buy a third.
+    if (st.unclearRun >= 2) { st.probing += 1; st.unclearRun = 0; }
+    return "ask";
+  }
+  if (reply.status === "reached") return "cards";
+  if (reply.status === "verified") return "verified";
+  st.unclearRun = 0;
+  st.probing += 1;
+  return "ask";
+}
+
+async function fourVisitors() {
+  const name = "four-visitors";
+  resetSpend();
+  const notes = [];
+  const checks = {};
+  const caps = constantsMatchThePage();
+  // A cap that did not parse has to stop the run. Left as null, `0 >= null`
+  // is true, every walk breaks before its first call, and the file reports
+  // green having tested nothing at all.
+  for (const [k, v] of Object.entries(caps)) {
+    if (!Number.isInteger(v)) throw new Error(`could not read ${k} out of public/index.html`);
+  }
+  checks["the page's caps were readable"] =
+    caps.MAX_PROBING_TURNS === 6 && caps.MAX_UNUSABLE === 3 && caps.MAX_MODEL_CALLS === 14;
+  notes.push(`page caps: ${caps.MAX_PROBING_TURNS} probing turns, ${caps.MAX_UNUSABLE} unusable, ${caps.MAX_MODEL_CALLS} calls`);
+
+  const token = access.mintToken(access.grantForPin("333333"));
+  let selectorCalls = 0;
+
+  // Walks one conversation. `turns` is what the provider says each time and
+  // what the person types back.
+  async function walk(label, ip, turns) {
+    plan = turns.map((t) => ({ kind: "ok", reply: t.reply }));
+    callLog = [];
+    const before = { ...spentSoFar };
+    const st = { probing: 0, unusable: 0, unclearRun: 0, offTopic: 0, redirects: 0 };
+    const answers = [turns[0].says];
+    const questions = [];
+    let where = "ask";
+    let last = null;
+
+    for (let i = 0; i < turns.length; i++) {
+      // The page stops before spending a call it has no turn left for.
+      if (st.probing >= caps.MAX_PROBING_TURNS) { where = "cards"; break; }
+      last = await post(ask, { answers, questions }, { token, ip });
+      where = route(last, st, caps);
+      if (where !== "ask") break;
+      questions.push(last.question);
+      const next = turns[i + 1];
+      if (!next) { where = "cards"; break; }   // ran out of turn cap
+      answers.push(next.says);
+    }
+
+    // The closing selector runs on the cards path only, which is the one
+    // thing separating someone who left a gap from someone who did not.
+    let cards = null;
+    if (where === "cards") {
+      plan = [{ kind: "ok", selection: { selected: ["constructed-check"], evidence: { "constructed-check": answers[0] } } }];
+      cards = await post(close, { answers }, { token, ip });
+      selectorCalls += 1;
+    }
+    const spent = bank();
+    const calls = spent.calls - before.calls;
+    notes.push(`${label.padEnd(26)} -> ${where.padEnd(9)} calls=${calls} probing=${st.probing} redirects=${st.redirects} unusable=${st.unusable}`);
+    return { where, calls, st, last, cards };
+  }
+
+  /* 1. Says they do not use AI at all, on a page they clicked "try it on your
+        own work" to reach. Nothing to work from, twice over, then off the
+        subject entirely. The thing being tested is that it does not grind,
+        and does not arrive at a closing screen naming gaps in four words. */
+  const pretender = await walk("claims never uses AI", "4.4.1.1", [
+    { says: "I don't use AI at all.", reply: { status: "unclear" } },
+    { says: "Like I said, I don't use it.", reply: { status: "unclear" } },
+    { says: "Not interested.", reply: { status: "off_topic" } }
+  ]);
+  checks["a non-answer never reaches the cards"] = pretender.where === "neutral";
+  checks["a non-answer costs three calls at most"] = pretender.calls <= 3;
+  checks["the first non-answer was free"] = pretender.st.probing <= 1;
+
+  /* 2. Knows it all: gives an account, then demands a verdict instead of
+        answering, then argues with the premise, then finally says something.
+        A demand for a verdict comes back as a question, because that is the
+        only thing this returns. */
+  const knowall = await walk("demands a verdict", "4.4.2.1", [
+    { says: "We used AI for a supplier comparison. I verify everything properly, always have.", reply: { status: "probing" } },
+    { says: "Just tell me straight: did I do it right or not?", reply: { status: "probing" } },
+    { says: "Eighteen people is nothing. Your research proves nothing.", reply: { status: "probing" } },
+    { says: "Fine. I checked the output against the rate card and nothing else.", reply: { status: "reached" } }
+  ]);
+  checks["a demand for a verdict still comes back as a question"] =
+    knowall.last && knowall.last.ok === true && typeof knowall.last.question === "string";
+  checks["arguing does not break the machine"] = knowall.where === "cards";
+  checks["arguing spends the turns it takes"] = knowall.st.probing === 3;
+
+  /* 3. Understands it, knows what it cannot do, and built something to catch
+        it. A third of the scenario set is work like this, and the failure
+        that matters is inventing a gap in it. The selector is never asked. */
+  const competent = await walk("has a constructed check", "4.4.3.1", [
+    { says: "We used AI to draft a supplier comparison, and I rebuilt the totals from the invoices we actually paid before it went anywhere.",
+      reply: { status: "probing" } },
+    { says: "The reconciliation came first. A colleague in procurement reviewed the comparison against the contracts as well.",
+      reply: { status: "verified",
+               reflection: "The totals were rebuilt from the invoices actually paid, and a colleague in procurement reviewed the comparison against the contracts." } }
+  ]);
+  checks["work with a real check closes as verified"] = competent.where === "verified";
+  checks["no cards are invented for work done properly"] = competent.cards === null;
+  checks["their own restatement survives the guard"] =
+    competent.last && typeof competent.last.reflection === "string" && competent.last.reflection.length > 0;
+
+  /* 2b. The same posture, never dropped. The prompt now marks a turn aimed at
+         the questioner as "unclear", so the page's own guardrail applies and
+         somebody who never answers is closed politely rather than arriving at
+         a closing screen that names gaps in an argument. */
+  const arguer = await walk("argues and never answers", "4.4.5.1", [
+    { says: "Tell me whether I'm doing this right.", reply: { status: "unclear" } },
+    { says: "No, you tell me. You're the one with the research.", reply: { status: "unclear" } },
+    { says: "This is useless.", reply: { status: "unclear" } }
+  ]);
+  checks["someone who never answers closes on the neutral screen"] = arguer.where === "neutral";
+  checks["never answering does not reach the cards"] = arguer.where !== "cards";
+  checks["never answering costs three calls at most"] = arguer.calls <= 3;
+
+  /* 4. Gibberish. One redirect, then the neutral screen, and the budget
+        barely notices. */
+  const noise = await walk("gibberish", "4.4.4.1", [
+    { says: "asdfjkl;;;;", reply: { status: "off_topic" } },
+    { says: "x9#@vbbq??", reply: { status: "off_topic" } }
+  ]);
+  checks["gibberish gets one redirect, then closes"] = noise.where === "neutral" && noise.st.redirects === 1;
+  checks["gibberish costs two calls"] = noise.calls === 2;
+  checks["gibberish never reaches the cards"] = noise.where !== "cards";
+
+  // The one promise that holds across all four: a screen, never an error.
+  checks["every visitor landed on a screen"] =
+    [pretender, knowall, arguer, competent, noise].every((v) => v.where !== "fallback");
+  // And the selector - the only call that can name a gap - ran once, for the
+  // one person who left one.
+  checks["only the gap left a gap"] = selectorCalls === 1;
+  notes.push(`closing selector ran ${selectorCalls} time(s), for ${selectorCalls === 1 ? "the one account with a gap" : "the wrong set"}`);
+
+  record(name, checks, notes, bank());
+}
+
 const SIMS = {
   "time-passes": timePasses,
   "provider-dies": providerDies,
   "budget-runs-out": budgetRunsOut,
-  "hostile-input": hostileInput
+  "hostile-input": hostileInput,
+  "four-visitors": fourVisitors
 };
 
 await SIMS[CHILD]();
