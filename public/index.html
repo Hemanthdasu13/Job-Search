@@ -667,6 +667,11 @@ h1::before,h2::before{
   font-size:0.8125rem;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
+/* Only appears once somebody is near the limit. A counter on an empty box
+   reads as a word count to hit rather than a ceiling not to cross. */
+.counter{ margin:0.35rem 0 0; }
+.counter[data-over]{ color:var(--oxide); }
+
 .consent{
   margin:1rem 0 0;
   font-size:0.875rem;
@@ -804,7 +809,8 @@ h1::before,h2::before{
   <p class="note">Please don't include anything confidential.</p>
   <p class="note" id="s3-allowance" hidden>Your key is good for one run, so pick something you actually want to think about.</p>
   <form id="s3-form">
-    <textarea id="s3-input" rows="3" aria-labelledby="s3-prompt" required></textarea>
+    <textarea id="s3-input" rows="3" aria-labelledby="s3-prompt" maxlength="2000" required></textarea>
+    <p class="note counter" id="s3-count" hidden></p>
     <p class="consent" id="consent-row" hidden>
       <label>
         <input type="checkbox" id="consent">
@@ -823,7 +829,8 @@ h1::before,h2::before{
 <section class="screen" id="s4" hidden>
   <p class="question" id="s4-question" tabindex="-1"></p>
   <form id="s4-form">
-    <textarea id="s4-input" rows="3" aria-labelledby="s4-question" required></textarea>
+    <textarea id="s4-input" rows="3" aria-labelledby="s4-question" maxlength="2000" required></textarea>
+    <p class="note counter" id="s4-count" hidden></p>
     <div class="actions">
       <button type="submit">Continue</button>
     </div>
@@ -1120,7 +1127,7 @@ h1::before,h2::before{
   // the backstop has to allow one narrowing attempt per probing turn, plus
   // the single closing-selection call at the end.
   var MAX_MODEL_CALLS  = 14;
-  var MAX_INPUT_CHARS  = 1500;
+  var MAX_INPUT_CHARS  = 2000;   // and the maxlength on both boxes
 
   // Three replies with nothing in them, in any mix, and there is nothing to
   // work from. Deliberately a total rather than a streak: a person who
@@ -1573,6 +1580,29 @@ h1::before,h2::before{
   });
 
   /* ------------------------------- forms ------------------------------- */
+
+  // Shown only near the ceiling. A counter on an empty box reads as a target
+  // to hit; a counter at 1850 of 2000 reads as the warning it is. The box
+  // carries maxlength too, so the browser stops the paste rather than the
+  // submit handler quietly throwing away what did not fit - which is what
+  // this did before, and a long paste losing most of itself in silence is
+  // the one thing a page about unseen mistakes should not do.
+  ["s3", "s4"].forEach(function (id) {
+    var box = $(id + "-input");
+    var out = $(id + "-count");
+    box.addEventListener("input", function () {
+      var left = MAX_INPUT_CHARS - box.value.length;
+      if (left > 300) { out.hidden = true; return; }
+      out.hidden = false;
+      if (left <= 0) {
+        out.setAttribute("data-over", "");
+        out.textContent = "That is the limit. Keep the part about the one decision.";
+      } else {
+        out.removeAttribute("data-over");
+        out.textContent = left + " characters left";
+      }
+    });
+  });
 
   $("s3-form").addEventListener("submit", function (e) {
     e.preventDefault();

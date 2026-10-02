@@ -231,11 +231,22 @@ Always include a question, including when the status is "reached" or
 "verified", where it will not be shown.`;
 
 const MAX_ANSWERS = 12;
-const MAX_ANSWER_CHARS = 1500;
+// Around 330 words. Generous for one answer and still bounded: the opening
+// account is the long one and a reply to a single question rarely needs
+// half of it. The textarea carries the same number as a maxlength, so what
+// is in the box is what gets sent - the client used to slice silently here,
+// which meant a long paste lost most of itself without a word about it.
+const MAX_ANSWER_CHARS = 2000;
 const MAX_QUESTION_CHARS = 400;
 const MAX_REFLECTION_CHARS = 400;
 const MAX_NOTE_CHARS = 200;
-const MAX_TOTAL_CHARS = 9000;
+// Above anything the conversation can actually reach: six probing turns, two
+// free narrower questions and a redirect is about nine answers, and nine at
+// the per-answer limit is 18000. So this bounds a crafted payload rather
+// than a real conversation - and when it is hit, it trims rather than
+// refuses. The old 9000 was six full answers, which a verbose person could
+// reach honestly and be shown "the interactive part is unavailable" for.
+const MAX_TOTAL_CHARS = 20000;
 
 // Which code is running, so a failure can be attributed to a build without
 // anyone having to find a dashboard.
@@ -257,14 +268,34 @@ function buildMessages(body) {
   if (!answers.every((a) => typeof a === "string" && a.trim() && a.length <= MAX_ANSWER_CHARS)) return null;
   if (!questions.every((q) => typeof q === "string" && q.length <= MAX_QUESTION_CHARS)) return null;
 
-  const total = [...answers, ...questions].reduce((n, s) => n + s.length, 0);
+  // Over the total, drop from the middle rather than refuse. The first answer
+  // is the account and frames everything after it, and the most recent turns
+  // are what the next question has to come out of; the middle is what can go.
+  // Refusing instead meant a dead conversation on a closing screen that says
+  // the interactive part is unavailable, for the sin of writing too much.
+  const size = (i) => answers[i].length + (questions[i] ? questions[i].length : 0);
+  const keep = answers.map((_, i) => i);
+  let total = keep.reduce((n, i) => n + size(i), 0);
+  const dropped = [];
+  // Never the first, never the last two.
+  for (let i = 1; total > MAX_TOTAL_CHARS && keep.length > 3; i++) {
+    const at = keep.indexOf(i);
+    if (at === -1) continue;
+    if (i >= answers.length - 2) break;
+    total -= size(i);
+    keep.splice(at, 1);
+    dropped.push(i);
+  }
+  // A payload still over the limit with three turns left is not a
+  // conversation, it is a crafted body.
   if (total > MAX_TOTAL_CHARS) return null;
+  if (dropped.length) console.error("transcript_trimmed", dropped.length, "turn(s) of", answers.length);
 
   const messages = [];
-  answers.forEach((answer, i) => {
-    messages.push({ role: "user", content: answer.trim() });
-    if (i < questions.length) messages.push({ role: "assistant", content: questions[i] });
-  });
+  for (const i of keep) {
+    messages.push({ role: "user", content: answers[i].trim() });
+    if (questions[i]) messages.push({ role: "assistant", content: questions[i] });
+  }
   return messages;
 }
 
