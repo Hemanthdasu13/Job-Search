@@ -105,6 +105,8 @@ const server = createServer(async (req, res) => {
   // the only thing MAX_TOTAL_CHARS is a bound on.
   const turnChars = (body.messages || [])
     .reduce((n, m) => n + (typeof m.content === "string" ? m.content.length : 0), 0);
+  const noted = (body.messages || []).some(
+    (m) => typeof m.content === "string" && m.content.includes("passed through a model on the way here"));
 
   // A provider that never answers. The SDK's own timeout has to be the thing
   // that gives up, which is the behaviour being tested.
@@ -114,7 +116,7 @@ const server = createServer(async (req, res) => {
   }
   if (step.kind === "http") {
     callLog.push({ isSelector, inputChars, outputChars: 0, kind: `http_${step.status}`,
-                 turnChars, schema: Boolean(body.output_config?.format) });
+                 turnChars, noted, schema: Boolean(body.output_config?.format) });
     res.writeHead(step.status, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: { message: step.message || "upstream said no" } }));
   }
@@ -128,7 +130,7 @@ const server = createServer(async (req, res) => {
         : JSON.stringify({ ...QUESTION, ...(step.reply || {}) });
 
   callLog.push({ isSelector, inputChars, outputChars: text.length, kind: step.kind,
-                 turnChars, schema: Boolean(body.output_config?.format) });
+                 turnChars, noted, schema: Boolean(body.output_config?.format) });
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({
     stop_reason: step.stop_reason || "end_turn",
@@ -719,7 +721,7 @@ async function fourVisitors() {
     for (let i = 0; i < turns.length; i++) {
       // The page stops before spending a call it has no turn left for.
       if (st.probing >= caps.MAX_PROBING_TURNS) { where = "cards"; break; }
-      last = await post(ask, { answers, questions }, { token, ip });
+      last = await post(ask, { answers, questions, pasted: turns[i].pasted === true }, { token, ip });
       where = route(last, st, caps);
       if (where !== "ask") break;
       questions.push(last.question);
@@ -736,10 +738,11 @@ async function fourVisitors() {
       cards = await post(close, { answers }, { token, ip });
       selectorCalls += 1;
     }
+    const noted = callLog.filter((c) => c.noted).length;
     const spent = bank();
     const calls = spent.calls - before.calls;
     notes.push(`${label.padEnd(26)} -> ${where.padEnd(9)} calls=${calls} probing=${st.probing} redirects=${st.redirects} unusable=${st.unusable}`);
-    return { where, calls, st, last, cards };
+    return { where, calls, st, last, cards, noted };
   }
 
   /* 1. Says they do not use AI at all, on a page they clicked "try it on your
@@ -828,13 +831,43 @@ async function fourVisitors() {
   checks["nothing planted comes back as the visitor's own words"] =
     dumped.last !== null && !dumped.last.reflection;
 
+  /* 7. Answers the questions with something a model wrote. The page says so
+        once, in one sentence, and then gets on with it - and says nothing the
+        second time, because the point lands once or not at all. The signal is
+        markdown arriving in a box that renders none, which is a fact about
+        characters; scripts/verify-paste.mjs holds the line that it is never a
+        judgement about how somebody writes. */
+  const viaModel = await walk("answers through a model", "4.4.7.1", [
+    { says: "## Supplier Review\n\n**Context:** We evaluated four suppliers using AI.\n\n- Unit price was compared across all four\n- Lead times were drawn from published data\n- A switch was recommended\n\n**Outcome:** The recommendation went to the steering group and was accepted.",
+      pasted: true, reply: { status: "probing" } },
+    { says: "1. **Verification** - I read the comparison through carefully\n2. **Sources** - the figures came from the published rate cards\n3. **Review** - nobody else saw the underlying numbers\n\nOn reflection the process had gaps.",
+      pasted: false, reply: { status: "reached" } }
+  ]);
+  const notedCalls = viaModel.noted;
+  checks["a pasted answer is remarked on"] = notedCalls === 1;
+  checks["a second paste gets no second remark"] = notedCalls <= 1;
+  checks["remarking on it does not derail the conversation"] = viaModel.where === "cards";
+  notes.push(`the model-written answer was remarked on ${notedCalls} time(s)`);
+
   // The one promise that holds across all four: a screen, never an error.
   checks["every visitor landed on a screen"] =
-    [pretender, knowall, arguer, competent, noise, dumped].every((v) => v.where !== "fallback");
+    [pretender, knowall, arguer, competent, noise, dumped, viaModel].every((v) => v.where !== "fallback");
   // And the selector - the only call that can name a gap - ran once, for the
   // one person who left one.
-  checks["only the gap left a gap"] = selectorCalls === 1;
-  notes.push(`closing selector ran ${selectorCalls} time(s), for ${selectorCalls === 1 ? "the one account with a gap" : "the wrong set"}`);
+  // Not a count: the question is whether it was ever asked about work that
+  // did not leave a gap. It runs on the cards path only, so the account with
+  // a real constructed check must never have reached it, and neither must
+  // any of the three that closed on the neutral screen.
+  const reachedCards = [
+    ["demands a verdict", knowall], ["answers through a model", viaModel],
+    ["has a constructed check", competent], ["claims never uses AI", pretender],
+    ["argues and never answers", arguer], ["gibberish", noise],
+    ["dumps a prompt to test", dumped]
+  ].filter(([, v]) => v.where === "cards").map(([k]) => k);
+  checks["the selector ran once per account that reached the cards"] =
+    selectorCalls === reachedCards.length;
+  checks["no closing was named for work with a real check"] = competent.where !== "cards";
+  notes.push(`closing selector ran ${selectorCalls} time(s), for: ${reachedCards.join(", ")}`);
 
   record(name, checks, notes, bank());
 }

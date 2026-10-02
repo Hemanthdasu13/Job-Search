@@ -1147,6 +1147,7 @@ h1::before,h2::before{
     offTopic: 0,        // off-topic replies received
     unusable: 0,        // off-topic and unclear replies, over the whole run
     unclearRun: 0,      // consecutive unclear replies on the same thread
+    notedPaste: false,  // the aside is said once a conversation, or not at all
     reflection: null,   // a paraphrase of their account, shown on 5A or 5B.
                         // The server drops one that addresses the reader or
                         // shares no vocabulary with what they typed.
@@ -1405,7 +1406,13 @@ h1::before,h2::before{
     return fetch("/api/ask" + (STUB ? "?stub=1" : ""), {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, accessHeaders()),
-      body: JSON.stringify({ answers: state.answers, questions: state.questions })
+      // Said once. A second paste gets no second remark: the point lands the
+      // first time or not at all, and twice is nagging.
+      body: JSON.stringify({
+        answers: state.answers,
+        questions: state.questions,
+        pasted: pasteToNote()
+      })
     })
       .then(function (res) {
         return res.text().then(function (text) {
@@ -1549,6 +1556,41 @@ h1::before,h2::before{
     });
   }
 
+  /* ------------------------- where it came from ------------------------
+     Artefacts of having been composed somewhere that renders markdown, not
+     judgements about prose. Nobody types ** or ### into a plain box, so this
+     is evidence of a paste rather than an opinion about someone's writing.
+
+     Style detection was the other option and it is not built, deliberately.
+     "Reads like AI" misfires hardest on people writing in a second language,
+     people who write formally, and people who write well - which describes
+     most of who this page is for. Telling a senior practitioner their own
+     account looks machine-written when it does not is the one false positive
+     that cannot be taken back. This cannot make that mistake: it is looking
+     at characters, not at cadence. */
+  function looksPasted(text) {
+    var t = String(text || "");
+    if (t.length < 220) { return false; }
+    var marks = 0;
+    if (/\*\*[^*\n]{2,}\*\*/.test(t)) { marks += 2; }
+    if (/(^|\n)\s{0,3}#{1,6}\s+\S/.test(t)) { marks += 2; }
+    if (/(^|\n)\s{0,3}(---|\*\*\*)\s*(\n|$)/.test(t)) { marks += 2; }
+    if (/(^|\n)\s{0,3}\d+\.\s+\*\*/.test(t)) { marks += 2; }
+    if (/(^|\n)\s{0,3}\|.+\|/.test(t)) { marks += 2; }
+    // Three or more bullets is weaker than the rest: somebody does type a
+    // short list by hand. It only counts alongside something else.
+    if (/(^|\n)\s{0,3}[-*\u2022]\s+\S.*\n\s{0,3}[-*\u2022]\s+\S.*\n\s{0,3}[-*\u2022]\s+\S/.test(t)) { marks += 1; }
+    return marks >= 2;
+  }
+
+  function pasteToNote() {
+    if (state.notedPaste) { return false; }
+    var last = state.answers[state.answers.length - 1];
+    if (!looksPasted(last)) { return false; }
+    state.notedPaste = true;
+    return true;
+  }
+
   function submitAnswer(text) {
     state.answers.push(text.slice(0, MAX_INPUT_CHARS));
     if (state.probing >= MAX_PROBING_TURNS || state.calls >= MAX_MODEL_CALLS) {
@@ -1567,6 +1609,7 @@ h1::before,h2::before{
     state.unusable = 0;
     state.accessLost = false;
     state.unclearRun = 0;
+    state.notedPaste = false;
     state.reflection = null;
     state.closingNote = null;
     state.consent = false;

@@ -64,6 +64,14 @@ const REPLY_SCHEMA = jsonSchema({
   closing_note: { type: "string" }
 }, ["question", "status", "reflection", "closing_note"]);
 
+// Said on the turn it applies to, once. The client decides when - it is the
+// only side that sees what was typed, and it works from markdown syntax
+// arriving in a box that renders none, not from how the prose reads.
+const PASTED_NOTE =
+  "[Note, not part of the message above: this answer arrived with formatting " +
+  "this text box does not render, so it was composed somewhere else and " +
+  "passed through a model on the way here.]";
+
 const FORMAT_REMINDER =
   "[Format reminder, not part of the message above: reply with the JSON " +
   "object only. No prose before or after it, no code fence.]";
@@ -88,11 +96,15 @@ function statusShape(value) {
   return /^[A-Za-z_ -]{1,24}$/.test(value) ? JSON.stringify(value) : `odd, ${value.length} chars`;
 }
 
-function withFormatReminder(messages) {
+// Appended to the turn rather than the system prompt, which is cached and
+// identical on every call of a conversation.
+function withNote(messages, note) {
   const last = messages[messages.length - 1];
   if (!last || last.role !== "user") return messages;
-  return [...messages.slice(0, -1), { role: "user", content: `${last.content}\n\n${FORMAT_REMINDER}` }];
+  return [...messages.slice(0, -1), { role: "user", content: `${last.content}\n\n${note}` }];
 }
+
+
 
 export const SYSTEM = `You ask questions. You never explain, assess, advise, summarise or state
 conclusions. You never mention the research, the study, or any finding.
@@ -183,7 +195,18 @@ If an answer describes several different things, follow up on the single
 one most likely to contain something unchecked. Do not try to address
 everything they raised.
 
-Do not judge tone or sincerity. Respond to content only.
+Do not judge tone or sincerity. Respond to content only. You are never told
+anything about how an answer reads, and you must not guess: somebody writing
+carefully, formally, or in a second language is not evidence of anything.
+
+The one exception is a turn marked below as having arrived through a model,
+which is a fact about characters a text box does not render rather than a
+judgement about the writing. When that happens, say it once in one short
+sentence before your question - "That came through a model on the way
+here." - and then ask your question as normal. Nothing more: no comment on
+what it means, no joke that needs explaining, and no second mention later
+even if it happens again. The irony belongs to the person reading it, not
+to you.
 
 Never ask for confidential detail: no client names, prices, volumes or
 internal figures. If they volunteer any, do not repeat it back, in your
@@ -456,10 +479,14 @@ export default async function handler(req, res) {
     return fail(res, claim.reason);
   }
 
+  // What actually goes, note and all, so the retry below sends the same turn
+  // rather than a version of it with the note dropped.
+  const sent = body?.pasted === true ? withNote(messages, PASTED_NOTE) : messages;
+
   let response;
   const started = Date.now();
   try {
-    response = await callModel(key, model, SYSTEM, messages, undefined, { format: REPLY_SCHEMA });
+    response = await callModel(key, model, SYSTEM, sent, undefined, { format: REPLY_SCHEMA });
   } catch (error) {
     // Status and model only. The request body is never logged. A wrong or
     // retired MODEL_ID shows up here as a 400 or 404 naming the slug.
@@ -521,7 +548,8 @@ export default async function handler(req, res) {
           // The nudge rides on the last turn rather than in the system
           // prompt, which is cached: a changed system prompt is a cache miss
           // and a second full-price write of the largest thing sent.
-          response = await callModel(key, model, SYSTEM, withFormatReminder(messages), undefined, { format: REPLY_SCHEMA });
+          response = await callModel(key, model, SYSTEM, withNote(sent, FORMAT_REMINDER),
+            undefined, { format: REPLY_SCHEMA });
           text = textOf(response);
           parsed = extractJson(text);
           question = questionOf(parsed);
