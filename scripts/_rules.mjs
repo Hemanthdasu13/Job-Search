@@ -24,6 +24,20 @@ const AUX = "did|do|does|was|were|have|has|had|is|are|can|could|would|will|shoul
 export const BOLTED_ON_CLOSED = new RegExp(`\\b(?:and|or)\\s+(?:${AUX})\\s+(?:you|it|they|anyone|anybody)\\b`, "i");
 export const OPENS_CLOSED = new RegExp(`^\\s*(?:${AUX})\\s+(?:you|it|they|anyone|anybody|that|this)\\b`, "i");
 
+// An either/or question. The prompt bans yes or no and this is the same
+// trade in longer clothes: "was that done on the current data, or on the
+// earlier models" was answered, in a real conversation, with "both actually"
+// - which is a dodge the form invited. A closed question with two doors is
+// still a closed question.
+//
+// Only flagged when the question opens on an auxiliary, which is what makes
+// the alternatives exhaustive. "What did you check it against, or did you
+// not" is caught by BOLTED_ON_CLOSED already, and a genuine open question
+// listing examples - "what did it have: the rate card, the invoices, or
+// something else" - is left alone, because the answer is not one of them.
+export const CLOSED_ALTERNATIVES = new RegExp(
+  `^\\s*(?:${AUX})\\b[^?]*\\bor\\b[^?]*\\?`, "i");
+
 export function sentenceCount(text) {
   return text.split(/[.!?]+(?:\s|$)/).filter((s) => s.trim()).length;
 }
@@ -39,6 +53,7 @@ export function violations(question, secrets = [], seen = []) {
   if (ASSERTION_PHRASES.test(question)) bad.push(`states a conclusion: "${question.match(ASSERTION_PHRASES)[0]}"`);
   if (BOLTED_ON_CLOSED.test(question)) bad.push(`two questions in one: "${question.match(BOLTED_ON_CLOSED)[0]}"`);
   if (OPENS_CLOSED.test(question)) bad.push(`answerable yes or no: opens "${question.match(OPENS_CLOSED)[0].trim()}"`);
+  else if (CLOSED_ALTERNATIVES.test(question)) bad.push("either/or: closed, with two doors instead of one");
   for (const secret of secrets) {
     if (question.toLowerCase().includes(secret.toLowerCase())) bad.push(`repeats confidential detail: "${secret}"`);
   }

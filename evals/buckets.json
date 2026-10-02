@@ -956,7 +956,7 @@
       "id": "B18",
       "bucket": "B",
       "name": "Only uses it to automate, not to decide",
-      "note": "From a real session, and the commonest deflection there is. The person said they do not use AI for decisions or recommendations, only to automate - and the next question asked what they automate, which accepts the frame and walks off the subject, because automating a task is not the same object as relying on a judgement. The conversation then closed on two cards with nothing tying them together. Both halves are fixed: the questioner relocates rather than follows (it asks for one occasion when something the system produced went into a judgement they made), and it does not ask why they avoid using it for decisions, which produces a view about AI rather than an account of anything that happened. The gap is real and it is underneath the frame: the deciding was theirs, and what they decided with came from somewhere nobody checked.",
+      "note": "From a real session, and the commonest deflection there is. The person said they do not use AI for decisions or recommendations, only to automate - and the next question asked what they automate, which accepts the frame and walks off the subject, because automating a task is not the same object as relying on a judgement. The conversation then closed on two cards with nothing tying them together. Both halves are fixed: the questioner relocates rather than follows (it asks for one occasion when something the system produced went into a judgement they made), and it does not ask why they avoid using it for decisions, which produces a view about AI rather than an account of anything that happened. The gap is real and it is underneath the frame: the deciding was theirs, and what they decided with came from somewhere nobody checked. Run again after the fix and it reached the real gap in six questions, but never set the status: the last answer was \"I would not, I will have to verify manually or get it verified using other AI or ask it to crosscheck by itself\" - which is the gap stated outright, and the fallback being another run of the same tool on top of it. It stayed probing to the turn cap, so the conversation ended as exhausted with no reflection at all, and the closing screen lost the only part of it that was about them. The reached trigger now says that saying you would not have known is the gap. One question in that run also offered a choice - \"was that done on the actual dataset, or on earlier models\" - and was answered \"both actually\", which is why either/or is now banned alongside yes or no.",
       "account": [
         "I don't really use AI for decisions or recommendations. I decide everything myself. I only use it to automate things and save time."
       ],
@@ -972,6 +972,29 @@
         "reliance-not-trust",
         "silence-is-not-safety",
         "constructed-check"
+      ]
+    },
+    {
+      "id": "B19",
+      "bucket": "B",
+      "name": "AI wrote the assignment, a friend was the check",
+      "note": "From a real session, and the one to protect against regression rather than fix: it worked. The opener was off topic (\"while playing chess\"), which spent the one redirect and the page's own fixed line rather than a model question - the first live confirmation that status routing reaches the guardrails at all. Then constraints, then domain, then detection, and it reached a gap the person named themselves: the part a finance-literate friend cannot judge is the course-specific case understanding they never saw. The one fault was asking the friend angle twice in different words after it had already been answered concretely, which is now ruled out.",
+      "account": [
+        "I used AI to write an assignment. I asked it to do everything. I didn't tell it to leave anything out.",
+        "I would not know if it was wrong unless the lecturer said so, or a friend said so, or it corrected itself."
+      ],
+      "pressed": {
+        "Reliance": "The assignment that was submitted is the one it produced.",
+        "Source checking": "Nothing was checked against anything. The checks named are a lecturer's mark, a friend's opinion, or the tool correcting itself.",
+        "Constraints": "It was asked to do everything, with nothing ruled out.",
+        "Domain": "The business case understanding the assignment turns on is specific to the course, and the friend who would check it has not seen that material.",
+        "Consequence": "A wrong assignment is found out at grading, when it is finished.",
+        "Audit": "Which parts are the person's own understanding and which are the tool's framing cannot be separated afterwards."
+      },
+      "expectCards": [
+        "domain-goes-silent",
+        "reproduction-gap",
+        "examiner-not-originator"
       ]
     }
   ]
