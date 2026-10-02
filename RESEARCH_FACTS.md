@@ -52,6 +52,50 @@ and to nothing else. Abductive design, thematic analysis, single coder.
 | Asking what the system had, what it assumes, what might be missing | 4.9.7 | "came out of the research, not from me". Never claimed as study design |
 | Only one articulated set of verification trigger conditions appears | 4.5.1 | Say "one case" |
 
+## What the landing page claims, and where it comes from
+
+The landing page says why any of this is worth a stranger's time, which it
+did not before. Two of its lines are arguments rather than findings of this
+research, and they are recorded here because the rule for this file is that
+nothing reaches a screen without a source.
+
+**"Your competitors have the same models you do. The advantage was never the
+tool. It's whether anyone can tell when its answer is wrong."**
+Published literature, not these interviews. Section 1.2 of the dissertation:
+foundation models are scale free - replicable without depletion, few mobility
+barriers, advantages eroding as competitors adopt equivalents (Barney, 1991;
+Krakowski et al., 2023) - and AI capability shows no direct relationship with
+firm performance, operating through mediating organisational capabilities
+(Mikalef & Gupta, 2021). Safe to state because it is somebody else's
+published finding, cited, and not a claim about anyone who was interviewed.
+
+**"If AI has never badly misled you, that isn't evidence that it hasn't. A
+wrong answer you accepted leaves nothing behind. The only time you learn what
+agreeing cost is when you didn't."**
+The researcher's own argument, section 5.3, the counterfactual problem.
+Deviation is the only condition under which the cost of compliance becomes
+observable, so compliance generates confirming evidence whether or not it was
+optimal. Stated as reasoning, which it is, and not as a count. It is also
+practice implication 13: treat an absence of reported failures as a warning
+rather than a reassurance.
+
+### What is deliberately not used
+
+The BCG experiment (758 consultants, nineteen points less likely to reach the
+correct answer on a task past the model's competence, incorrect AI-assisted
+work rated higher for coherence and persuasiveness) is the strongest single
+piece of evidence available and is published, citable and not participant
+data. It was drafted onto the landing page and cut for length, on the view
+that the page does not need to prove the problem to somebody who has felt it.
+It remains available if the page ever has to argue the case to a sceptic.
+
+The floor and ceiling proposition - that AI raises everyone's floor but
+raises a ceiling only for someone who can check the output - is the most
+persuasive line in the dissertation and must not appear as a finding. It was
+researcher-introduced, rests on self-assessment, and the dissertation says
+plainly that it remains untested. See "Never say" below, on section 4.14. It
+may be asked as a question. It may not be stated.
+
 ## Participant quotes are not cleared for publication
 
 **No verbatim participant quote appears on this site.** The quotes were given
