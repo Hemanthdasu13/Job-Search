@@ -83,6 +83,20 @@ check("escaped quote, then truncated",
   extractJson('{"question": "Which part of the \\"comparison\\" did you check?", "sta'),
   { question: 'Which part of the "comparison" did you check?' });
 
+// 12a. A raw newline inside a string. Invalid JSON, and what a model writing
+//      a question across two lines produces. Escaping it changes nothing
+//      about what the string says.
+check("literal newline in a string",
+  extractJson('{"question": "What did you check those\nfigures against?", "status": "probing"}'),
+  { question: "What did you check those\nfigures against?", status: "probing" });
+
+// 12b. The live failure that had all four keys, balanced braces, and still
+//      would not parse. A typographic quote where JSON needs a straight one
+//      is invalid to the parser and invisible in every other diagnostic.
+check("typographic quotes round the question",
+  extractJson('{"question": \u201cWhat did you check those figures against?\u201d, "status": "probing"}'),
+  { question: "What did you check those figures against?", status: "probing" });
+
 // 12. No object at all: the model answered in prose. Not recoverable, and it
 //     should not pretend otherwise.
 check("prose only", extractJson("I would ask what the system had to work from."), null);
@@ -105,6 +119,16 @@ for (const want of ["blocks=thinking+text", "stop=end_turn", "starts=prose", "en
                     "braces=1/1", "keys=question,status,reflection,closing_note"]) {
   if (!shape.includes(want)) { failed++; console.error(`FAIL diagnostic missing ${want}\n       ${shape}`); }
 }
+for (const [body, want] of [
+  ['{"question": "x"}', "qopen=quote"],
+  ['{"question": \u201cx\u201d}', "qopen=curly_quote"],
+  ['{"question": null}', "qopen=maybe_null"],
+  ['{"status": "probing"}', "qopen=absent"]
+]) {
+  const got = describeReply({ stop_reason: "end_turn", content: [{ type: "text", text: body }] }, body);
+  if (!got.includes(want)) { failed++; console.error(`FAIL diagnostic ${want}\n       ${got}`); }
+}
+
 // A thinking-only reply has to be distinguishable from a fenced one, because
 // they need different fixes.
 const silent = describeReply({ stop_reason: "end_turn", content: [{ type: "thinking", thinking: "x" }] }, "");

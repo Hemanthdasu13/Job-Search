@@ -19,6 +19,10 @@ export function attributionHeaders() {
 
 let client = null;
 
+// Set once if the provider rejects a response schema, so the rest of this
+// container's calls do not each pay to rediscover it.
+let formatRejected = false;
+
 // Built on first use, so a missing key is a quiet fallback rather than a
 // throw while the module loads.
 function getClient(key) {
@@ -85,8 +89,34 @@ async function callChat(key, model, system, messages, maxTokens) {
 // is a loss, not a saving. The questioner sends the same prompt six or seven
 // times in a conversation and wants it; the closing selector runs once and
 // does not.
+// A reply schema the provider enforces, rather than a paragraph at the end of
+// the prompt asking nicely for JSON.
+//
+// This exists because of a day of logs. On most turns the model answered in
+// plain prose - 130 to 160 characters, no braces, no keys at all - and the
+// retry recovered it every time, at the cost of a second call on the majority
+// of turns. Constraining the format removes the failure instead of paying
+// twice for it.
+//
+// Deliberately the most conservative schema that expresses the contract:
+// every property required, no union or nullable types, one enum. A strict
+// validator has nothing to object to. Fields that do not apply come back as
+// an empty string, which the callers already read as absent.
+export function jsonSchema(properties, required) {
+  return { type: "object", properties, required, additionalProperties: false };
+}
+
+// A 400 naming the schema must not take the page down with it: the provider
+// may be an older model, a compatible endpoint in front of one, or something
+// that has never heard of the field.
+function isFormatRefusal(error) {
+  if (error?.status !== 400) return false;
+  const detail = `${error?.message || ""} ${JSON.stringify(error?.error || "")}`;
+  return /output_config|json_schema|schema|format/i.test(detail);
+}
+
 export async function callModel(key, model, system, messages, maxTokens = maxOutputTokens(),
-                                { cacheSystem = true } = {}) {
+                                { cacheSystem = true, format = null } = {}) {
   if (endpointMode() === "chat") {
     return callChat(key, model, system, messages, maxTokens);
   }
@@ -110,8 +140,24 @@ export async function callModel(key, model, system, messages, maxTokens = maxOut
   // Only sent when configured, so nothing here breaks a provider that has
   // never heard of it.
   const level = effort();
-  if (level) body.output_config = { effort: level };
-  return getClient(key).messages.create(body);
+  const output = {};
+  if (level) output.effort = level;
+  if (format && !formatRejected) output.format = { type: "json_schema", schema: format };
+  if (Object.keys(output).length) body.output_config = output;
+
+  try {
+    return await getClient(key).messages.create(body);
+  } catch (error) {
+    if (!body.output_config?.format || !isFormatRefusal(error)) throw error;
+    // Once, then never again in this container. Falling back to the prompt
+    // asking for JSON is exactly how this worked before the schema, so the
+    // worst case is the behaviour it replaced rather than a dead page.
+    formatRejected = true;
+    console.error("output_format_unsupported", model, error?.status || "", String(error?.message || "").slice(0, 120));
+    delete body.output_config.format;
+    if (!Object.keys(body.output_config).length) delete body.output_config;
+    return getClient(key).messages.create(body);
+  }
 }
 
 // Every failure looks identical to a visitor, so the reason has to be named
@@ -161,7 +207,10 @@ export function extractJson(text) {
   // the first "{" to the last "}", which reads two objects as one piece of
   // broken JSON and swallows any stray brace in the prose around them.
   for (const candidate of balancedObjects(text)) {
-    const parsed = safeParse(candidate) || safeParse(stripTrailingCommas(candidate));
+    const parsed = safeParse(candidate) ||
+                   safeParse(stripTrailingCommas(candidate)) ||
+                   safeParse(escapeControlChars(candidate)) ||
+                   safeParse(escapeControlChars(stripTrailingCommas(candidate)));
     if (parsed) return parsed;
   }
 
@@ -200,6 +249,30 @@ function* balancedObjects(text) {
   }
 }
 
+// Raw control characters inside a string are invalid JSON and are what a
+// model writing across two lines produces. Escaping them changes nothing
+// about what the string says.
+function escapeControlChars(text) {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (inString) {
+      if (escaped) { escaped = false; out += ch; continue; }
+      if (ch === "\\") { escaped = true; out += ch; continue; }
+      if (ch === '"') { inString = false; out += ch; continue; }
+      if (ch === "\n") { out += "\\n"; continue; }
+      if (ch === "\r") { out += "\\r"; continue; }
+      if (ch === "\t") { out += "\\t"; continue; }
+      out += ch;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    out += ch;
+  }
+  return out;
+}
+
 // A comma before a closing brace or bracket: legal in most of the languages
 // the model has read and not in JSON, and the commonest single character
 // that costs a whole otherwise-good object.
@@ -226,7 +299,12 @@ function closedStringValue(text, key) {
   if (colon === -1) return null;
   let i = colon + 1;
   while (i < text.length && /\s/.test(text[i])) i++;
-  if (text[i] !== '"') return null;
+  const opener = text[i];
+  // A typographic quote where JSON needs a straight one: invalid to the
+  // parser, and the salvage is the last thing standing between that and a
+  // dead conversation.
+  if (opener !== '"' && opener !== "\u201c" && opener !== "\u201d") return null;
+  const closer = opener === '"' ? '"' : "\u201d";
   let out = "";
   let escaped = false;
   for (i++; i < text.length; i++) {
@@ -236,7 +314,7 @@ function closedStringValue(text, key) {
       escaped = false;
     } else if (ch === "\\") {
       escaped = true;
-    } else if (ch === '"') {
+    } else if (ch === closer || ch === '"') {
       return out.trim();
     } else {
       out += ch;
@@ -255,6 +333,19 @@ function closedStringValue(text, key) {
 // known key names are present breaks none of that. The words would.
 const KNOWN_KEYS = ["question", "status", "reflection", "closing_note"];
 
+function openerOf(body) {
+  const m = body.match(/"question"\s*:\s*(.)/);
+  if (!m) return "absent";
+  const ch = m[1];
+  if (ch === '"') return "quote";
+  if (ch === "\u201c" || ch === "\u201d") return "curly_quote";
+  if (ch === "'") return "apostrophe";
+  if (ch === "{") return "object";
+  if (ch === "[") return "array";
+  if (ch === "n") return "maybe_null";
+  return "other";
+}
+
 export function describeReply(response, text, keys = KNOWN_KEYS) {
   const blocks = (response?.content || []).map((b) => b.type).join("+") || "none";
   const body = text || "";
@@ -272,7 +363,13 @@ export function describeReply(response, text, keys = KNOWN_KEYS) {
       `braces=${opens}/${closes}`,
       // Only names the caller passed in are ever printed, so no substring
       // of the reply can reach the log by looking like a key.
-      `keys=${keys.filter((k) => new RegExp(`"${k}"\\s*:`).test(body)).join(",") || "none"}`
+      `keys=${keys.filter((k) => new RegExp(`"${k}"\\s*:`).test(body)).join(",") || "none"}`,
+      // What the one field that matters opens on. A live failure had all four
+      // keys, balanced braces, and still would not parse, and the shapes that
+      // explain that - a typographic quote, a null, a nested object - are
+      // indistinguishable from each other in everything above. Categorical,
+      // so no character of the reply reaches the log.
+      `qopen=${openerOf(body)}`
     );
   }
   return parts.join(" ");

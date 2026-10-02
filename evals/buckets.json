@@ -951,6 +951,28 @@
         "reproduction-gap",
         "domain-goes-silent"
       ]
+    },
+    {
+      "id": "B18",
+      "bucket": "B",
+      "name": "Only uses it to automate, not to decide",
+      "note": "From a real session, and the commonest deflection there is. The person said they do not use AI for decisions or recommendations, only to automate - and the next question asked what they automate, which accepts the frame and walks off the subject, because automating a task is not the same object as relying on a judgement. The conversation then closed on two cards with nothing tying them together. Both halves are fixed: the questioner relocates rather than follows (it asks for one occasion when something the system produced went into a judgement they made), and it does not ask why they avoid using it for decisions, which produces a view about AI rather than an account of anything that happened. The gap is real and it is underneath the frame: the deciding was theirs, and what they decided with came from somewhere nobody checked.",
+      "account": [
+        "I don't really use AI for decisions or recommendations. I decide everything myself. I only use it to automate things and save time."
+      ],
+      "pressed": {
+        "Reliance": "What it produced went into work that went somewhere, even though the decision was taken by the person.",
+        "Source checking": "The output was read and used. Nothing outside it was checked, because it was treated as a time saving rather than as a claim.",
+        "Constraints": "It was told what to produce. Nothing was ruled out, because nothing about it was being treated as a judgement.",
+        "Domain": "Whether the automated step got it right is a question about the material, not about the tool.",
+        "Consequence": "An automated step that was wrong is wrong everywhere it was used, and nothing about it announced itself.",
+        "Audit": "Automated work is the work least likely to be looked at again, because looking at it is the thing being saved."
+      },
+      "expectCards": [
+        "reliance-not-trust",
+        "silence-is-not-safety",
+        "constructed-check"
+      ]
     }
   ]
 }

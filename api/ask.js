@@ -42,7 +42,7 @@
 
 import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
-import { callModel, describeFailure, describeReply, extractJson, safeParse, textOf } from "./_model.js";
+import { callModel, describeFailure, describeReply, extractJson, jsonSchema, safeParse, textOf } from "./_model.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -52,6 +52,17 @@ const STATUSES = ["probing", "reached", "verified", "unclear", "off_topic"];
 // already failed. The provider call times out at 20s, so a first call that
 // came back inside this leaves room for a second without risking the wall.
 const RETRY_IF_FIRST_CALL_UNDER_MS = 8000;
+
+// The reply contract, as something the provider enforces. Every field is
+// required and none is nullable, because that is the schema a strict
+// validator has nothing to say about; a field that does not apply comes back
+// as an empty string, which text_or_null already reads as absent.
+const REPLY_SCHEMA = jsonSchema({
+  question: { type: "string" },
+  status: { type: "string", enum: STATUSES },
+  reflection: { type: "string" },
+  closing_note: { type: "string" }
+}, ["question", "status", "reflection", "closing_note"]);
 
 const FORMAT_REMINDER =
   "[Format reminder, not part of the message above: reply with the JSON " +
@@ -135,6 +146,15 @@ Direction, based on what they describe checking:
 - Gave it more about themselves or the situation than the people the output
   was for ever had: ask what the answer took for granted about those people
   that was not true of them.
+- Says they do not use it for decisions - only to automate, to draft, to
+  summarise, to save time: do not ask what they automate. That accepts the
+  frame and walks off the subject. Ask instead for one occasion when
+  something it produced went into a judgement they made: the figure they
+  quoted, the summary they read before deciding, the shortlist they chose
+  from, the draft that went out. Their deciding is not in question. What it
+  handed them to decide with is. Do not ask why they avoid using it for
+  decisions either: that produces a view about AI, and a view is not an
+  account of anything that happened.
 
 If an answer is too vague to work with, ask one narrower, more specific
 question instead of repeating the same open one. If the narrower question
@@ -170,19 +190,19 @@ When status is "reached" or "verified", also return a "reflection": the
 substance of what they said, in their own words where possible, lightly
 cleaned up for grammar, with any client name, price, volume or figure
 replaced by a generic description of the same thing. Otherwise return
-"reflection": null.
+"reflection" as an empty string.
 
 If, and only if, they described a real negative outcome that already
 happened, not a risk they are worried about but something that did occur,
 also return a "closing_note": one short, generic sentence acknowledging
 that, with no specifics and no comment on how they handled it. Otherwise
-return "closing_note": null. This never changes your questions during the
+return "closing_note" as an empty string. This never changes your questions during the
 conversation, which stay exactly as strict as any other turn: it only
 affects what is shown on the closing screen afterward.
 
 Output format. Reply with one JSON object and nothing else: no prose before
 or after it, no markdown, no code fence. Exactly four keys:
-{"question": "your question here", "status": "one of ${STATUSES.join(", ")}", "reflection": null, "closing_note": null}
+{"question": "your question here", "status": "one of ${STATUSES.join(", ")}", "reflection": "", "closing_note": ""}
 Always include a question, including when the status is "reached" or
 "verified", where it will not be shown.`;
 
@@ -384,7 +404,7 @@ export default async function handler(req, res) {
   let response;
   const started = Date.now();
   try {
-    response = await callModel(key, model, SYSTEM, messages);
+    response = await callModel(key, model, SYSTEM, messages, undefined, { format: REPLY_SCHEMA });
   } catch (error) {
     // Status and model only. The request body is never logged. A wrong or
     // retired MODEL_ID shows up here as a 400 or 404 naming the slug.
@@ -446,7 +466,7 @@ export default async function handler(req, res) {
           // The nudge rides on the last turn rather than in the system
           // prompt, which is cached: a changed system prompt is a cache miss
           // and a second full-price write of the largest thing sent.
-          response = await callModel(key, model, SYSTEM, withFormatReminder(messages));
+          response = await callModel(key, model, SYSTEM, withFormatReminder(messages), undefined, { format: REPLY_SCHEMA });
           text = textOf(response);
           parsed = extractJson(text);
           question = questionOf(parsed);

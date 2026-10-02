@@ -107,7 +107,8 @@ const server = createServer(async (req, res) => {
     return; // socket left open on purpose
   }
   if (step.kind === "http") {
-    callLog.push({ isSelector, inputChars, outputChars: 0, kind: `http_${step.status}` });
+    callLog.push({ isSelector, inputChars, outputChars: 0, kind: `http_${step.status}`,
+                 schema: Boolean(body.output_config?.format) });
     res.writeHead(step.status, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: { message: step.message || "upstream said no" } }));
   }
@@ -120,7 +121,8 @@ const server = createServer(async (req, res) => {
         ? JSON.stringify(step.selection || { selected: [], evidence: {} })
         : JSON.stringify({ ...QUESTION, ...(step.reply || {}) });
 
-  callLog.push({ isSelector, inputChars, outputChars: text.length, kind: step.kind });
+  callLog.push({ isSelector, inputChars, outputChars: text.length, kind: step.kind,
+                 schema: Boolean(body.output_config?.format) });
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({
     stop_reason: step.stop_reason || "end_turn",
@@ -379,6 +381,30 @@ async function providerDies() {
         ["probing", "reached", "verified", "unclear", "off_topic"].includes(last.status);
     }
   }
+
+  // The response schema, and what happens when a provider has never heard of
+  // it. This runs last because the refusal is remembered for the life of the
+  // process, which is the point of it - the alternative is every call paying
+  // to rediscover the same 400.
+  plan = [{ kind: "http", status: 400, message: "output_config.format: unsupported for this model" }];
+  callLog = [];
+  const afterRefusal = await post(ask, {
+    answers: ["I used AI to draft a recommendation and did not check what it was working from."],
+    questions: []
+  }, { token, ip: "2.2.98.1" });
+  const sentSchema = callLog.filter((c) => c.schema).length;
+  checks["a schema is sent on the questioner's call"] = sentSchema >= 1;
+  checks["a provider that refuses the schema still answers"] = afterRefusal.ok === true;
+  checks["the refusal cost one extra call, not the turn"] = callLog.length === 2;
+  checks["the second call dropped the schema"] = callLog.length === 2 && callLog[1].schema === false;
+  notes.push(`schema refused -> ${afterRefusal.ok ? "answered anyway" : "reason=" + afterRefusal.reason}` +
+             `, calls=${callLog.length}, schema sent on ${sentSchema} of them`);
+
+  // And it is remembered: the next turn does not send it again.
+  plan = [];
+  callLog = [];
+  await post(ask, { answers: ["Another account entirely."], questions: [] }, { token, ip: "2.2.97.1" });
+  checks["the refusal is remembered"] = callLog.length === 1 && callLog[0].schema === false;
 
   // The closing selector dying must not take the closing with it: the page has
   // a general closing it has always been able to fall back to.

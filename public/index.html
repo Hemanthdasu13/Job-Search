@@ -195,7 +195,7 @@ main{
      is a lot of scrolling for something meant to be taken in at a glance. */
   #s5a,#s5b,#s5c{ max-width:58rem; }
   #s5a>*,#s5b>*,#s5c>*,
-  #s5a-general>*,#s5a-selected>h2,#s5a-selected>.lede{
+  #s5a-general>*,#s5a-selected>h2,#s5a-selected>.lede,#s5a-selected>.close-note{
     max-width:38rem;
     margin-inline:auto;
   }
@@ -548,6 +548,16 @@ main{position:relative;z-index:1}
 .practices .footnote{
   margin:0;
 }
+
+/* The ending. Set off from the cards, because it is about the conversation
+   rather than about any one card, and the screen used to stop dead on a
+   card's closing instruction. */
+.close-note{
+  margin:0.4rem 0 0;
+  padding:1.5rem 0 0;
+  border-top:1px solid var(--rule);
+}
+.close-note p:last-child{ margin-bottom:0; }
 @media (max-width:30rem){
   .practices>li{ padding-left:2.2rem; }
 }
@@ -838,6 +848,10 @@ h1::before,h2::before{
     <h2 tabindex="-1" id="s5a-selected-head"></h2>
     <p class="lede">Not things you got wrong. Things that kept coming up elsewhere, and did not come up in what you described.</p>
     <ol class="practices" id="s5a-practices"></ol>
+    <div class="close-note">
+      <p>One thing worth saying plainly: this cannot tell you whether you got it right. Neither can you, and that is the difficulty rather than a shortcoming of the page. A wrong answer you accepted gave you no reason to go back to it, so the sense that it went fine arrives either way.</p>
+      <p>What separated the people who handled this well was not how much they knew about AI. It was whether they had something to put the answer against when they could not tell. If the ones above are not already in place, that is the thing worth building — not because what you described was wrong, but because nothing in it would have told you if it was.</p>
+    </div>
   </div>
 
   <!-- The general closing. Shown when nothing was selected, when the
