@@ -346,7 +346,17 @@ async function providerDies() {
     { label: "status in the wrong case", calls: 3, ends: "answered",
       step: { kind: "ok", reply: { status: "Off-Topic" } } },
     { label: "status not on the list", calls: 3, ends: "answered",
-      step: { kind: "ok", reply: { status: "continue" } } }
+      step: { kind: "ok", reply: { status: "continue" } } },
+    // A closing turn with no question in it. The question is never rendered
+    // on reached or verified, so its absence is not a reason to discard a
+    // finished conversation - which is what happened to a real one, with its
+    // reflection already in hand.
+    { label: "closes with an empty question", calls: 3, ends: "answered",
+      step: { kind: "ok", reply: { question: "", status: "reached",
+        // Genuinely a restatement of the scripted answers, because the
+        // server's guard drops a reflection that is not drawn from them -
+        // which it did to the first version of this fixture, correctly.
+        reflection: "The pricing recommendation went to a steering group after a read through, with nothing else looked at." } } }
   ].map((c) => ({ calls: 3, ends: "fallback", ...c }));
 
   const token = access.mintToken(access.grantForPin("333333"));
@@ -387,6 +397,10 @@ async function providerDies() {
         typeof last.question === "string" && last.question.trim().length > 0;
       checks[`${c.label}: status is one the page knows`] =
         ["probing", "reached", "verified", "unclear", "off_topic"].includes(last.status);
+      if (c.step.reply && c.step.reply.question === "") {
+        checks[`${c.label}: the reflection survived`] =
+          typeof last.reflection === "string" && last.reflection.length > 0;
+      }
     }
   }
 

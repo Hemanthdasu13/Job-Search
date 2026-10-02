@@ -250,8 +250,8 @@ affects what is shown on the closing screen afterward.
 Output format. Reply with one JSON object and nothing else: no prose before
 or after it, no markdown, no code fence. Exactly four keys:
 {"question": "your question here", "status": "one of ${STATUSES.join(", ")}", "reflection": "", "closing_note": ""}
-Always include a question, including when the status is "reached" or
-"verified", where it will not be shown.`;
+Include a question on every turn that continues the conversation. On
+"reached" and "verified" it is not shown, so it may be left empty there.`;
 
 const MAX_ANSWERS = 12;
 // Around 330 words. Generous for one answer and still bounded: the opening
@@ -509,6 +509,19 @@ export default async function handler(req, res) {
   let text = textOf(response);
   let parsed = extractJson(text);
   let question = questionOf(parsed);
+  // On the two statuses that end the conversation the question is never
+  // rendered, so whether there is one is not a reason to throw the turn
+  // away. This cost a real conversation: the schema requires the field, the
+  // prompt said an empty string means the field does not apply, and on a
+  // closing turn a question genuinely does not - so the model sent "" and a
+  // finished conversation with its reflection in hand was discarded as
+  // unreadable.
+  // Normalised, because "Reached" is the same turn written differently and
+  // this gate must not be stricter than the one that routes the screen.
+  const closes = (p) => {
+    const form = normaliseStatus(p?.status);
+    return form === "reached" || form === "verified";
+  };
 
   // A reply that ran out of budget partway through is still worth reading.
   // The question is the first key in the object, so it is usually complete by
@@ -537,8 +550,12 @@ export default async function handler(req, res) {
   //   - logged separately either way, so the next look at the logs says
   //     whether retrying is actually buying anything.
   const firstPass = Date.now() - started;
-  if (!question) {
-    console.error("model_call_unparseable", model, describeReply(response, text));
+  if (!question && !closes(parsed)) {
+    // Two different failures, and calling both unparseable cost a round of
+    // guessing at logs: a reply that parsed and simply had no question in it
+    // is not a reply nobody could read.
+    console.error(parsed ? "model_call_no_question" : "model_call_unparseable",
+      model, describeReply(response, text));
     if (firstPass < RETRY_IF_FIRST_CALL_UNDER_MS) {
       const again = await claimModelCall(req);
       if (!again.allowed) {
@@ -561,7 +578,9 @@ export default async function handler(req, res) {
       }
     }
   }
-  if (!question) return fail(res, "unparseable_reply");
+  if (!question && !closes(parsed)) return fail(res, parsed ? "no_question" : "unparseable_reply");
+  // Never shown. The closing screens render the reflection and the note.
+  if (!question) question = "(not shown)";
 
   // "Probing", "off-topic" and " reached " are the five statuses written
   // differently, not five different statuses, and the live failure threw away
