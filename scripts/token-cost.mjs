@@ -33,16 +33,9 @@ const ONLY = (() => {
 })();
 const EXACT = args.includes("--exact");
 
-// Anthropic list prices, dollars per million tokens. Cache reads are a tenth
-// of input and cache writes are 1.25x, which is what makes caching a prompt
-// sent once a loss rather than a saving.
-const PRICES = {
-  "claude-opus-5": { in: 5, out: 25 },
-  "claude-sonnet-5": { in: 2, out: 10 },
-  "claude-haiku-4-5": { in: 1, out: 5 }
-};
-const CACHE_READ = 0.1;
-const CACHE_WRITE = 1.25;
+// Prices live in one place so that two scripts cannot disagree about what the
+// same run cost. See scripts/_prices.mjs.
+import { PRICES, CACHE_READ, CACHE_WRITE } from "./_prices.mjs";
 
 const estimate = (text) => Math.round(String(text).length / 3.7);
 

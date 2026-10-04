@@ -4,6 +4,7 @@
 //   node scripts/run-evals.mjs --bucket C      only the clean ones
 //   node scripts/run-evals.mjs --only B3,C7    named scenarios
 //   node scripts/run-evals.mjs --dry           print the cost and stop
+//   node scripts/run-evals.mjs --budget 0.25   refuse to start above that
 //
 // One provider call per scenario. Thirty scenarios is thirty calls, which is
 // why it says what it will spend before it spends it.
@@ -48,6 +49,7 @@
 // the suite that guards against shipping a false positive.
 
 import { readFile } from "node:fs/promises";
+import { price, usd } from "./_prices.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -55,6 +57,11 @@ const flag = (name) => {
   return i === -1 ? null : (args[i + 1] || "");
 };
 const DRY = args.includes("--dry");
+// The brake. Every call this script makes is priced before any of them is
+// sent, and a run whose estimate is over the ceiling does not start. The
+// default is deliberately low: a run that genuinely needs more than this
+// should have to say so on the command line.
+const BUDGET = Number(flag("--budget")) > 0 ? Number(flag("--budget")) : 0.5;
 const BUCKET = flag("--bucket");
 const ONLY = (flag("--only") || "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -70,7 +77,26 @@ if (ONLY.length) scenarios = set.scenarios.filter((s) => ONLY.includes(s.id));
 const key = process.env.MODEL_API_KEY || process.env.OPENROUTER_API_KEY;
 const model = process.env.MODEL_ID;
 
+// What a person would have typed: the account, then the six answers the
+// scenario says each line of questioning would surface. The tool never sees
+// the design intent, only what someone said.
+function answersFor(s) {
+  return [...s.account, ...Object.values(s.pressed)];
+}
+
+// Priced from the bytes this run will actually send, not from an assumed
+// length. Output is the one guess left, and it is a generous one: the schema
+// the selector answers in produces a few hundred tokens, and the ceiling is
+// what it is allowed to produce.
+const estTokens = (text) => Math.round(String(text).length / 3.7);
+const EST_OUTPUT_PER_CALL = 500;
+const estInput = scenarios.reduce(
+  (n, s) => n + estTokens(SELECT_SYSTEM) + estTokens(answersFor(s).join("\n\n")), 0);
+const estOutput = scenarios.length * EST_OUTPUT_PER_CALL;
+const estimate = price(model, estInput, estOutput);
+
 console.log(`${scenarios.length} scenario(s), one provider call each, on ${model || "(MODEL_ID unset)"}.`);
+console.log(`estimate: ${estInput} in / ${estOutput} out tokens, ${usd(estimate)} at list price.`);
 if (DRY) {
   for (const s of scenarios) console.log(`  ${s.id}  ${s.name}`);
   process.exit(0);
@@ -79,12 +105,10 @@ if (!key || !model) {
   console.error("MODEL_API_KEY and MODEL_ID must be set to run against a provider. Use --dry to list.");
   process.exit(2);
 }
-
-// What a person would have typed: the account, then the six answers the
-// scenario says each line of questioning would surface. The tool never sees
-// the design intent, only what someone said.
-function answersFor(s) {
-  return [...s.account, ...Object.values(s.pressed)];
+if (estimate > BUDGET) {
+  console.error(`Refusing to start: ${usd(estimate)} is over the ${usd(BUDGET)} ceiling.`);
+  console.error(`Raise it deliberately with --budget ${(Math.ceil(estimate * 100) / 100).toFixed(2)}, or narrow the run with --bucket or --only.`);
+  process.exit(3);
 }
 
 const isSubsequence = (picked, chain) => {
@@ -97,6 +121,11 @@ const isSubsequence = (picked, chain) => {
   return true;
 };
 
+// Actual usage, accumulated from what the provider says it billed rather than
+// from what this script guessed it would. The estimate above is the brake;
+// this is the receipt.
+const spent = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+
 const results = [];
 for (const s of scenarios) {
   const answers = answersFor(s);
@@ -105,6 +134,12 @@ for (const s of scenarios) {
     const response = await callModel(key, model, SELECT_SYSTEM, [
       { role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }
     ]);
+    const u = response?.usage || {};
+    spent.calls += 1;
+    spent.input += u.input_tokens || 0;
+    spent.output += u.output_tokens || 0;
+    spent.cacheRead += u.cache_read_input_tokens || 0;
+    spent.cacheWrite += u.cache_creation_input_tokens || 0;
     const parsed = extractJson(textOf(response));
     if (!parsed || !Array.isArray(parsed.selected)) {
       note = "unparseable reply";
@@ -204,6 +239,12 @@ if (t.length) {
   const near = t.filter((r) => r.near.length);
   if (near.length) console.log(`  also named a card that genuinely co-occurs: ${near.map((r) => `${r.id}[${r.near}]`).join(", ")}`);
 }
+console.log("");
+console.log(`spent: ${spent.calls} call(s), ${spent.input} in / ${spent.output} out`
+  + `${spent.cacheRead ? ` / ${spent.cacheRead} cache read` : ""}`
+  + `${spent.cacheWrite ? ` / ${spent.cacheWrite} cache write` : ""}`
+  + `, ${usd(price(model, spent.input, spent.output, spent.cacheRead, spent.cacheWrite))} at list price`
+  + ` (estimated ${usd(estimate)}).`);
 console.log("");
 console.log("A clean-scenario failure is worse than a gap-scenario failure: naming");
 console.log("something a careful practitioner did not miss is the one error that");
