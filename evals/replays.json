@@ -1,0 +1,70 @@
+{
+  "_comment": [
+    "Conversations this deployment actually produced, kept so that a change to",
+    "the prompt can be judged against real answers rather than invented ones.",
+    "",
+    "Taken from /api/contributions, which only returns conversations contributed",
+    "with consent. No identifiers are stored, so these cannot be linked to a",
+    "person. The answers are the owner's own test runs.",
+    "",
+    "Why a replay is worth having, and what it cannot tell you. The answers",
+    "here were given to the OLD questions. Replay them against a new prompt and",
+    "turn one is a fair comparison - the opening account is the same - while",
+    "every later answer is a reply to a question that was not asked. So a",
+    "replay is a test of how the questions READ and whether they presuppose,",
+    "not a test of how a conversation GOES. For the second thing there is no",
+    "substitute for a person typing."
+  ],
+  "conversations": [
+    {
+      "id": "restaurant",
+      "name": "Soho recommendation, no way to judge it",
+      "version": "0.3.0",
+      "endedOn": "exhausted",
+      "reflection": null,
+      "note": "The conversation that prompted the question rewrite. Five of six questions presupposed a deficit; the sixth asked what the system could have known and got the only answer that named the gap.",
+      "answers": [
+        "I was using it to recommend me for a restaurant/ pub near soho",
+        "I cannot weigh, I'm new to the place. But once I got the recommendation, I asked someone they said yeah it's a cool place",
+        "Local guy",
+        "I was looking to hookup",
+        "Wasted money and day.",
+        "It said me that it's a nice place with lot of young woman. Not too crowdy so can find time for introductions etc",
+        "That's AI reasoning, i wouldn't know much"
+      ],
+      "questions": [
+        "What did you weigh that recommendation against before deciding where to actually go?",
+        "What did that person actually know about the place—had they been there recently, or were they just going on reputation?",
+        "What was riding on this choice—were you going for a casual drink or something like marking an occasion—if the place had turned out wrong for that?",
+        "If the place had turned out to be the wrong vibe for that, what would that have cost you that evening?",
+        "Beyond picking a name for you, what did it actually tell you about the place that you couldn't have found yourself with a quick search?",
+        "Where would that read on the young-woman, not-too-crowded part have come from—what could it have actually known about that place's crowd on a given night?"
+      ]
+    },
+    {
+      "id": "four-hundred-roles",
+      "name": "Which of 400 roles to apply for",
+      "version": "0.3.0",
+      "endedOn": "exhausted",
+      "reflection": null,
+      "note": "Ran to the turn cap with no reflection, although the last answer names the gap outright - a reference he could give that the system could not know about, and a role closed internally that it could not see.",
+      "answers": [
+        "I was looking to use ai to  help me decide which of these 400 roles I can apply",
+        "I didn't yet apply yet, but I gave detail profile history, my personal preferences, all info about my background etc",
+        "I didn't understand the question, it has everything it needs about those roles like jd, company etc. What else does it need?",
+        "They are accurate",
+        "They are accurate. That's not the concern",
+        "Well, i would probably apply for the ones I am not qualified or not apply for the ones I'm qualified",
+        "Manually verify, if it over shot or under shot a role. I mean, said am not qualified for a role based one it's matching criteria but probably i might have a reference to give it a shot it wouldn't know. Or something it thinks am qualified but the role might be too popular and might have been closed internally"
+      ],
+      "questions": [
+        "What did you ask it to use in narrowing down those 400 roles, and what happened once you applied that shortlist?",
+        "Beyond what you gave it about yourself, what did it actually have about the 400 roles themselves to judge fit against?",
+        "Where did those job descriptions and company details come from, and how recent or accurate did you confirm them to be?",
+        "What did you actually compare those listings against to confirm they were accurate and current?",
+        "What would happen to your job search if the shortlist it produced turned out to be wrong for you in some way you hadn't yet spotted?",
+        "What would you actually need to see to catch a case where it called you qualified or unqualified wrongly, before you acted on that call?"
+      ]
+    }
+  ]
+}
