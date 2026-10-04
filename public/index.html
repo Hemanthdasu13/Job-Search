@@ -195,11 +195,11 @@ main{
      is a lot of scrolling for something meant to be taken in at a glance. */
   #s5a,#s5b,#s5c{ max-width:58rem; }
   #s5a>*,#s5b>*,#s5c>*,
-  #s5a-general>*,#s5a-selected>h2,#s5a-selected>.lede,#s5a-selected>.close-note{
+  #s5a-general>*,#s5a-ledger>div>h2,#s5a-ledger>div>.lede,#s5a-ledger>div>.takeaway{
     max-width:38rem;
     margin-inline:auto;
   }
-  #s5a>#s5a-selected,#s5a-general{ max-width:none; }
+  #s5a>#s5a-ledger,#s5a-general{ max-width:none; }
   .practices{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -264,6 +264,33 @@ a{
   line-height:1.45;
   margin:0 0 0.8rem;
 }
+/* The ledger. Held first, exposed second, and neither coloured - a green
+   tick and a red flag would turn two descriptions into a score, which is the
+   one thing this page does not do. */
+.ledger{ list-style:none; margin:1rem 0 0; padding:0; }
+.ledger>li{ margin:0 0 1.75rem; }
+.ledger>li>h3{ margin:0.35rem 0 0.2rem; font-size:1rem; }
+.ledger-said{
+  margin:0;
+  padding-left:0.9rem;
+  border-left:2px solid var(--rule);
+  color:var(--muted);
+  font-style:italic;
+}
+.ledger-principle{ margin:0.2rem 0 0; font-weight:600; }
+.ledger-why{ margin:0.35rem 0 0; }
+.ledger details{ margin:0.5rem 0 0; font-size:0.9375rem; }
+.ledger summary{ cursor:pointer; color:var(--muted); }
+.ledger details>*{ margin:0.6rem 0 0; }
+
+/* The one line a reader repeats to somebody else. */
+.takeaway{
+  margin:1.25rem 0 0;
+  padding:0.9rem 1rem;
+  border:1px solid var(--rule);
+  font-weight:500;
+}
+
 /* The two-line conclusion, at the top of the closing screen. The second line
    is the one that does the work - what the check would and would not have
    caught - so it is not set quieter than the first. */
@@ -786,7 +813,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.5.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.6.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -879,21 +906,39 @@ h1::before,h2::before{
     <p class="boundary" id="s5a-boundary" hidden><span id="s5a-boundary-text"></span></p>
   </div>
 
-  <!-- Shown when the selector named practices this account did not touch.
-       Every word of research in here is written above, in PRACTICES. The
-       model chose which of them to show and quoted the person back; it
-       wrote none of the text. -->
-  <div id="s5a-selected" hidden>
-    <h2 tabindex="-1" id="s5a-selected-head"></h2>
-    <p class="lede">Not things you got wrong. Things that kept coming up elsewhere, and did not come up in what you described.</p>
-    <ol class="practices" id="s5a-practices"></ol>
-    <div class="close-note">
-      <p>One thing worth saying plainly: this cannot tell you whether you got it right. Neither can you, and that is the difficulty rather than a shortcoming of the page. A wrong answer you accepted gave you no reason to go back to it, so the sense that it went fine arrives either way.</p>
-      <p>What separated the people who handled this well was not how much they knew about AI. It was whether they had something to put the answer against when they could not tell. If the ones above are not already in place, that is the thing worth building — not because what you described was wrong, but because nothing in it would have told you if it was.</p>
+  <!-- The ledger. Order is the design decision, not the content: strengths
+       first, then the one thing exposed, then the single line to act on.
+       A reader who already works carefully and is shown a fault first stops
+       reading, and tells people the tool is not serious.
+
+       Every word of research in here is written above, in PRACTICES and
+       STRENGTHS. The model chose which to show and quoted the person back;
+       it wrote none of the text. -->
+  <div id="s5a-ledger" hidden>
+
+    <div id="s5a-held-block" hidden>
+      <h2 tabindex="-1" id="s5a-held-head">What held</h2>
+      <ol class="ledger held" id="s5a-held"></ol>
+    </div>
+
+    <div id="s5a-exposed-block" hidden>
+      <h2 id="s5a-exposed-head">What is exposed</h2>
+      <p class="lede">Not something you got wrong. Something that did not come up in what you described.</p>
+      <ol class="ledger exposed" id="s5a-practices"></ol>
+      <p class="takeaway" id="s5a-takeaway"></p>
+    </div>
+
+    <!-- Shown when the account supports strengths and no gap. The outcome the
+         screen could not previously reach: a Soho pub recommendation checked
+         about as hard as a Soho pub recommendation deserves. -->
+    <div id="s5a-nothing" hidden>
+      <h2 id="s5a-nothing-head">Nothing here needs fixing</h2>
+      <p>What you described was checked about as hard as being wrong would have cost. That is the judgement the people who handled this well were making, whether or not they said so.</p>
     </div>
   </div>
 
   <!-- The general closing. Shown when nothing was selected, when the
+
        selection could not be made, and whenever the library has no filled
        card to show for it. -->
   <div id="s5a-general">
@@ -1193,6 +1238,7 @@ h1::before,h2::before{
     notedPaste: false,  // the aside is said once a conversation, or not at all
     reflection: null,   // a paraphrase of their account, shown on 5A or 5B.
     boundary: null,     // what that check would and would not have caught.
+    held: [],           // what the account positively showed. Max two.
                         // The server drops one that addresses the reader or
                         // shares no vocabulary with what they typed.
     closingNote: null,  // one line, only when a real outcome was described
@@ -1277,17 +1323,138 @@ h1::before,h2::before{
       .then(function (data) {
         if (data && data.build) { state.build = data.build; }
         if (data && data.ok === false) { state.lastFailure = data.reason || "close_failed"; }
-        return (data && Array.isArray(data.selected)) ? data.selected : [];
+        return {
+          selected: (data && Array.isArray(data.selected)) ? data.selected : [],
+          held: (data && Array.isArray(data.held)) ? data.held : []
+        };
       })
-      .catch(function () { return []; });
+      .catch(function () { return { selected: [], held: [] }; });
+  }
+
+  /* --------------------------------------------------------------------
+     What held. The other side of the ledger, and the reason it exists:
+     every one of the seventeen practice cards names something missing, so
+     every path through the closing ended in a gap - and a tool that finds a
+     gap in a pub recommendation finds one in everything.
+
+     These carry no research citation on purpose. The screen may cite the
+     research twice and no more, the gap card below already spends one, and
+     a strength does not need a count behind it: each of these is true by
+     construction rather than by finding. "An answer checked against
+     something it did not produce can fail that check" is not a claim about
+     anyone who was interviewed. It is what the words mean.
+
+     Short on purpose too. A strength is work already done, so it needs a
+     name and a reason and nothing else. Anything longer reads as flattery,
+     and flattery is the quickest way to lose the reader who already
+     suspected a machine wrote this.
+
+     Ids must match api/_strengths.js exactly. A test asserts it.
+  -------------------------------------------------------------------- */
+  var STRENGTHS = {
+    "source-outside-the-model": {
+      concept: "a source it could not have produced",
+      principle: "Something came from outside the answer.",
+      why: "An answer checked against something it did not produce can fail that check. One checked against itself cannot."
+    },
+    "said-what-to-exclude": {
+      concept: "what to leave out",
+      principle: "Scope was part of the instruction, not just the request.",
+      why: "An answer can only be wrong against a brief that said what wrong would be."
+    },
+    "check-that-could-fail": {
+      concept: "a check that could have failed",
+      principle: "Something was built that a wrong answer would have broken.",
+      why: "A check that cannot come out badly is not a check. This one could have."
+    },
+    "named-the-unknowable": {
+      concept: "naming what it could not know",
+      principle: "You put a limit on the answer rather than a complaint about it.",
+      why: "Asking what a system could have known takes no expertise in the subject, which is why it works where judging the answer does not."
+    },
+    "independent-knowledge": {
+      concept: "a second source that saw something else",
+      principle: "The person you asked knew something the model never saw.",
+      why: "Two readings of the same material agree for reasons that have nothing to do with being right."
+    },
+    "effort-matched-to-stakes": {
+      concept: "effort matched to the stakes",
+      principle: "You priced being wrong before deciding how hard to look.",
+      why: "Checking everything to the same depth spends the most care where it matters least."
+    },
+    "chased-the-doubt": {
+      concept: "chasing the thing that looked off",
+      principle: "Something did not sit right and you followed it.",
+      why: "A doubt you act on is a check. A doubt you make a note of is a memory."
+    },
+    "path-can-be-walked": {
+      concept: "a path someone else could walk",
+      principle: "The route from inputs to answer is recorded, not remembered.",
+      why: "A result nobody can reproduce is a result nobody can defend."
+    },
+    "judgement-stayed-theirs": {
+      concept: "the judgement stayed yours",
+      principle: "It assembled the material and you made the call.",
+      why: "The difference is whether the recommendation arrived or was arrived at."
+    }
+  };
+
+  function strengthReady(id) {
+    var s = STRENGTHS[id];
+    return Boolean(s && s.principle && s.why);
   }
 
   var PRACTICE_HEADS = ["One thing", "Two things", "Three things"];
 
-  function paintPractices(selected) {
-    // Only cards someone has written the research into. A selected card with
-    // an empty why is dropped here rather than rendered blank.
-    var show = selected.filter(function (s) { return s && practiceReady(s.id); });
+  // One gap, not three. The library allows three and the server still sends
+  // up to three; the screen shows the first. Three gaps is a report card, and
+  // the complaint that started this work was that the closing was too long
+  // and said nothing repeatable. One thing to look at is repeatable.
+  var MAX_SHOWN_GAPS = 1;
+
+  function quoteLine(text) {
+    var p = document.createElement("p");
+    p.className = "ledger-said";
+    p.textContent = "“" + text + "”";
+    return p;
+  }
+
+  function line(tag, cls, text) {
+    var el = document.createElement(tag);
+    if (cls) { el.className = cls; }
+    el.textContent = text;
+    return el;
+  }
+
+  // What held. Short by design: a name, a sentence, and the person's own
+  // words. No research citation, no quote from anyone else, no action - this
+  // is work already done and anything more reads as flattery.
+  function paintHeld(held) {
+    var show = (held || []).filter(function (h) { return h && strengthReady(h.id); });
+    if (!show.length) { return false; }
+
+    var list = $("s5a-held");
+    list.textContent = "";
+    show.forEach(function (sel) {
+      var card = STRENGTHS[sel.id];
+      var li = document.createElement("li");
+      li.appendChild(quoteLine(sel.evidence));
+      li.appendChild(line("h3", null, card.concept));
+      li.appendChild(line("p", "ledger-principle", card.principle));
+      li.appendChild(line("p", "ledger-why", card.why));
+      list.appendChild(li);
+    });
+    return true;
+  }
+
+  // What is exposed, plus the one line to act on. The long research paragraph
+  // and the participant quote move behind a disclosure: the reader with
+  // ninety seconds gets the name, the principle and the action, and the
+  // reader who wants the evidence can open it.
+  function paintExposed(selected) {
+    var show = (selected || [])
+      .filter(function (s) { return s && practiceReady(s.id); })
+      .slice(0, MAX_SHOWN_GAPS);
     if (!show.length) { return false; }
 
     var list = $("s5a-practices");
@@ -1295,62 +1462,50 @@ h1::before,h2::before{
     show.forEach(function (sel) {
       var card = PRACTICES[sel.id];
       var li = document.createElement("li");
+      li.appendChild(quoteLine(sel.evidence));
+      li.appendChild(line("h3", null, card.concept));
+      li.appendChild(line("p", "ledger-principle", card.principle));
 
-      // Their words first. This is the only part of the screen that is about
-      // them, and it is verbatim: the server refused anything that was not.
-      var said = document.createElement("p");
-      said.className = "practice-said";
-      said.textContent = "\u201c" + sel.evidence + "\u201d";
-      li.appendChild(said);
-
-      var name = document.createElement("h3");
-      name.textContent = card.concept;
-      li.appendChild(name);
-
-      var principle = document.createElement("p");
-      principle.className = "practice-principle";
-      principle.textContent = card.principle;
-      li.appendChild(principle);
-
-      var why = document.createElement("p");
-      why.textContent = card.why;
-      li.appendChild(why);
-
+      var more = document.createElement("details");
+      more.appendChild(line("summary", null, "Why this one keeps coming up"));
+      more.appendChild(line("p", null, card.why));
       if (card.quote && card.quote.text) {
-        // Labelled, because the label is the claim. Two quotes sit in every
-        // card - the visitor's own sentence at the top and a participant's
-        // here - and unlabelled they read as one voice. Saying where this one
-        // came from is the difference between a line of prose that sounds
-        // plausible and a piece of evidence someone can weigh.
-        var source = document.createElement("p");
-        source.className = "quote-source";
-        source.textContent = "From the research";
-        li.appendChild(source);
-
+        // Labelled, because the label is the claim. Two quotes sit in a card
+        // - the visitor's own sentence and a participant's - and unlabelled
+        // they read as one voice.
+        more.appendChild(line("p", "quote-source", "From the research"));
         var bq = document.createElement("blockquote");
         bq.textContent = card.quote.text;
-        li.appendChild(bq);
-        if (card.quote.who) {
-          var who = document.createElement("p");
-          who.className = "footnote";
-          who.textContent = card.quote.who;
-          li.appendChild(who);
-        }
+        more.appendChild(bq);
+        if (card.quote.who) { more.appendChild(line("p", "footnote", card.quote.who)); }
       }
-
-      var action = document.createElement("p");
-      action.className = "practice-action";
-      action.textContent = card.action;
-      li.appendChild(action);
-
+      li.appendChild(more);
       list.appendChild(li);
     });
 
-    $("s5a-selected-head").textContent =
-      (PRACTICE_HEADS[show.length - 1] || show.length + " things") +
-      " came up again and again in my research, and not in your answers.";
+    // The takeaway is the card's own action text, already written, already
+    // in his words, and already free of any term of art. It is the sentence
+    // a reader repeats to somebody else, which is the whole test this screen
+    // has to pass.
+    $("s5a-takeaway").textContent = PRACTICES[show[0].id].action;
     return true;
   }
+
+  // Assembles the ledger and says whether there is anything in it. Returns
+  // false only when neither side has anything the page can render, which is
+  // when the general closing stays up.
+  function paintLedger(selection) {
+    var anyHeld = paintHeld(selection && selection.held);
+    var anyGap = paintExposed(selection && selection.selected);
+    if (!anyHeld && !anyGap) { return false; }
+
+    $("s5a-held-block").hidden = !anyHeld;
+    $("s5a-exposed-block").hidden = !anyGap;
+    // Strengths and no gap is the outcome the screen could not reach before.
+    $("s5a-nothing").hidden = !(anyHeld && !anyGap);
+    return true;
+  }
+
 
   function closeGapSurfaced(unavailable) {
     setBusy(false);
@@ -1365,11 +1520,11 @@ h1::before,h2::before{
     // it replaces that; if it fails, times out, or selects nothing, the
     // visitor never learns there was supposed to be more.
     if (unavailable) { return; }
-    selectPractices().then(function (selected) {
-      if (paintPractices(selected)) {
-        $("s5a-selected").hidden = false;
+    selectPractices().then(function (selection) {
+      if (paintLedger(selection)) {
+        $("s5a-ledger").hidden = false;
         $("s5a-general").hidden = true;
-        $("s5a-selected-head").focus({ preventScroll: true });
+        $("s5a-held-head").focus({ preventScroll: true });
       }
     });
   }

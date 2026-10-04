@@ -24,7 +24,8 @@
 import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, textOf } from "./_model.js";
-import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection } from "./_practices.js";
+import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection, isVerbatim, normaliseForMatch } from "./_practices.js";
+import { MAX_STRENGTHS, STRENGTH_IDS, triggerList as heldTriggerList, validateHeld } from "./_strengths.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -56,8 +57,12 @@ You never write an explanation, a finding, an assessment, a score, advice, or
 any sentence of your own. You never describe the person. You choose ids and
 you copy their words.
 
-The items:
+The items that did not come up:
 ${triggerList()}
+
+The items that DID come up. These are the same kind of thing read the other
+way: something the account positively shows, not something missing from it.
+${heldTriggerList()}
 
 Choosing:
 - Choose at most ${MAX_SELECTED}. Fewer is better. Two precise beats three
@@ -88,11 +93,25 @@ Quoting:
   only line that would show an item contains one, choose a different span or
   do not choose that item.
 
+Choosing what did come up:
+- Choose at most ${MAX_STRENGTHS} from the second list. Fewer is better, and
+  none is a legitimate answer.
+- The same rules apply. A quotable line has to show it, the line has to show
+  that item rather than something nearby, and judge only what they described.
+- Never quote the same sentence for both lists. If one line is all you have,
+  it belongs to the first list, and the second list is empty.
+- Do not reach for one of these to soften the list above. An account with
+  nothing in the second list and one thing in the first is a common and
+  correct answer. Choosing a strength that is a stretch is worse than
+  choosing none, because a person reading something generous that their own
+  words do not support stops believing the rest of the screen.
+
 Output format. Reply with one JSON object and nothing else: no prose before or
-after it, no markdown, no code fence. Exactly two keys:
-{"selected": ["id", "id"], "evidence": {"id": "their exact words", "id": "their exact words"}}
-Every id in "selected" must have an entry in "evidence". To choose nothing,
-reply {"selected": [], "evidence": {}}.`;
+after it, no markdown, no code fence. Exactly four keys:
+{"selected": ["id"], "evidence": {"id": "their exact words"}, "held": ["id"], "held_evidence": {"id": "their exact words"}}
+Every id in "selected" must have an entry in "evidence", and every id in
+"held" an entry in "held_evidence". To choose nothing for either, give an
+empty array and an empty object.`;
 
 const BUILD = `${VERSION}@${(process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}`;
 
@@ -108,14 +127,35 @@ const fall = (res, reason) => {
 // exercises the clipping, the field names and the ordering that production
 // uses. A stub answering in its own shape is a stub that lets a rendering
 // bug through, which is the one thing it exists to prevent.
-const answer = (res, build, kept, rejected) =>
+const answer = (res, build, kept, rejected, held = [], heldRejected = []) =>
   res.status(200).json({
     ok: true,
     build,
     selected: kept.map(({ id, evidence }) => ({ id, evidence: clipEvidence(evidence) })),
-    rejected: rejected.map(({ id, why }) => ({ id, why })),
-    library: PRACTICE_IDS.length
+    held: held.map(({ id, evidence }) => ({ id, evidence: clipEvidence(evidence) })),
+    rejected: rejected.concat(heldRejected).map(({ id, why }) => ({ id, why })),
+    library: PRACTICE_IDS.length + STRENGTH_IDS.length
   });
+
+// The same sentence cannot be the evidence for both sides of the ledger.
+//
+// Every validator passes when it happens: the quote is verbatim, both ids are
+// real, both triggers are arguably met. It still reads as a machine that
+// found one quotable line and used it twice, which is exactly the suspicion
+// the screen is trying not to confirm. A strength loses, not a gap: the gap
+// is the thing there is something to do about.
+function dropSharedEvidence(held, kept) {
+  const spent = new Set(kept.map((k) => normaliseForMatch(k.evidence)));
+  const out = { kept: [], rejected: held.rejected.slice() };
+  for (const item of held.kept) {
+    if (spent.has(normaliseForMatch(item.evidence))) {
+      out.rejected.push({ id: item.id, why: "same quote as a selected gap" });
+      continue;
+    }
+    out.kept.push(item);
+  }
+  return out;
+}
 
 function sameOrigin(req) {
   const origin = req.headers.origin;
@@ -159,7 +199,10 @@ function stubbedSelection(answers) {
   const joined = answers.join(" ").toLowerCase();
   if (joined.includes("#none")) return { selected: [], evidence: {} };
   if (joined.includes("#bogus")) {
-    return { selected: ["not-a-real-card"], evidence: { "not-a-real-card": "words nobody typed here" } };
+    return {
+      selected: ["not-a-real-card"], evidence: { "not-a-real-card": "words nobody typed here" },
+      held: ["not-a-real-strength"], held_evidence: { "not-a-real-strength": "nor these" }
+    };
   }
   // Quote the longest thing they said, which is at least certain to be theirs.
   const span = answers.slice().sort((a, b) => b.length - a.length)[0];
@@ -168,7 +211,11 @@ function stubbedSelection(answers) {
   // an unwritten card off the screen.
   return {
     selected: ["constructed-check", "reliance-not-trust"],
-    evidence: { "constructed-check": span, "reliance-not-trust": span }
+    evidence: { "constructed-check": span, "reliance-not-trust": span },
+    // The second-longest, so a stubbed walk shows two different sentences and
+    // the dedupe rule is exercised by #bogus rather than by every walk.
+    held: ["named-the-unknowable"],
+    held_evidence: { "named-the-unknowable": answers.slice().sort((a, b) => b.length - a.length)[1] || span }
   };
 }
 
@@ -189,8 +236,10 @@ export default async function handler(req, res) {
   if (!access.ok) return fall(res, access.reason);
 
   if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {
-    const { kept, rejected } = validateSelection(stubbedSelection(answers), answers);
-    return answer(res, BUILD + "+stub", kept, rejected);
+    const stubbed = stubbedSelection(answers);
+    const { kept, rejected } = validateSelection(stubbed, answers);
+    const held = dropSharedEvidence(validateHeld(stubbed, answers, isVerbatim), kept);
+    return answer(res, BUILD + "+stub", kept, rejected, held.kept, held.rejected);
   }
 
   const key = modelApiKey();
@@ -235,14 +284,16 @@ export default async function handler(req, res) {
   }
 
   const { kept, rejected } = validateSelection(parsed, answers);
+  const held = dropSharedEvidence(validateHeld(parsed, answers, isVerbatim), kept);
 
   // An empty result is a legitimate answer, not a failure: it is what a
   // well-run piece of work should produce. But an empty result caused by the
   // model inventing ids or quotes is a different thing, and the page's owner
   // needs to be able to tell them apart.
-  if (rejected.length) {
-    console.error("close_selection_rejected", model, JSON.stringify(rejected.map((r) => r.why)));
+  if (rejected.length || held.rejected.length) {
+    console.error("close_selection_rejected", model,
+      JSON.stringify(rejected.concat(held.rejected).map((r) => r.why)));
   }
 
-  return answer(res, BUILD, kept, rejected);
+  return answer(res, BUILD, kept, rejected, held.kept, held.rejected);
 }

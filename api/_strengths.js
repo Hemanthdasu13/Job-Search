@@ -76,3 +76,27 @@ export function isStrengthId(id) {
 export function triggerList() {
   return STRENGTH_IDS.map((id) => `- ${id}: ${STRENGTHS[id].trigger}`).join("\n");
 }
+
+// Same validator as the gaps, pointed at this library. A strength has to be
+// evidenced by the person's own words exactly as a gap does - more so, if
+// anything. A gap named on a paraphrase is a wrong diagnosis; a strength
+// named on a paraphrase is flattery the tool invented, and flattery is the
+// fastest way to be dismissed by the reader who was already suspicious.
+export function validateHeld(raw, answers, isVerbatim) {
+  const selected = Array.isArray(raw?.held) ? raw.held : [];
+  const evidence = raw?.held_evidence && typeof raw.held_evidence === "object" ? raw.held_evidence : {};
+  const kept = [];
+  const rejected = [];
+  const seen = new Set();
+
+  for (const id of selected) {
+    if (!isStrengthId(id)) { rejected.push({ id: String(id).slice(0, 40), why: "not in the library" }); continue; }
+    if (seen.has(id)) { rejected.push({ id, why: "duplicate" }); continue; }
+    if (kept.length >= MAX_STRENGTHS) { rejected.push({ id, why: "past the ceiling of " + MAX_STRENGTHS }); continue; }
+    const span = evidence[id];
+    if (!isVerbatim(span, answers)) { rejected.push({ id, why: "quote is not the person's own words" }); continue; }
+    seen.add(id);
+    kept.push({ id, evidence: String(span).trim() });
+  }
+  return { kept, rejected };
+}
