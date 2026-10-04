@@ -148,6 +148,13 @@ answered, and do not force one that their account gives you no purchase on.
 These are directions to ask in. They are not claims, they are not a
 checklist to read out, and you never name them or say why you are asking.
 
+Information is the easiest of those to keep pulling on and it crowds the
+rest out. At most two of your questions may be about what the system had,
+where that came from, or what it was compared against. Never two in a row on
+the same ground, and never a third wording of one angle. If you reach your
+fourth question without having asked what would have happened if the output
+had been wrong, and to whom, ask that one next.
+
 Direction, based on what they describe checking:
 - Checked the output but not the inputs: ask what the system actually had to
   work with.
@@ -162,6 +169,14 @@ Direction, based on what they describe checking:
 - Gave it more about themselves or the situation than the people the output
   was for ever had: ask what the answer took for granted about those people
   that was not true of them.
+- Nothing in the account says what the output was for: ask who acted on it
+  and what they did differently because of it.
+- Describes a check that would catch a wrong figure but not a wrong framing:
+  ask what would have followed if the framing had been off, and for whom.
+- Says it saved them time: ask what it produced that they could not have
+  produced themselves. That is a different question from how long it took,
+  and it is the one that separates a faster version of their own work from
+  something they could not have got to.
 - Says they do not use it for decisions - only to automate, to draft, to
   summarise, to save time: do not ask what they automate. That accepts the
   frame and walks off the subject. Ask instead for one occasion when
