@@ -62,8 +62,9 @@ const REPLY_SCHEMA = jsonSchema({
   question: { type: "string" },
   status: { type: "string", enum: STATUSES },
   reflection: { type: "string" },
+  boundary: { type: "string" },
   closing_note: { type: "string" }
-}, ["question", "status", "reflection", "closing_note"]);
+}, ["question", "status", "reflection", "boundary", "closing_note"]);
 
 // Said on the turn it applies to, once. The client decides when - it is the
 // only side that sees what was typed, and it works from markdown syntax
@@ -287,11 +288,28 @@ back. Set status to "verified" if they describe a specific, independent,
 constructed check that already covers the case, whether or not a gap was
 ever found. Do not add another question after either.
 
-When status is "reached" or "verified", also return a "reflection": the
-substance of what they said, in their own words where possible, lightly
+On every turn, return two more fields. Both are shown on the closing screen
+only, never during the conversation, and both are about what they described
+and nothing else.
+
+"reflection": one sentence saying what the output was used for, and what if
+anything it was put against. Their own words where their words work, lightly
 cleaned up for grammar, with any client name, price, volume or figure
-replaced by a generic description of the same thing. Otherwise return
-"reflection" as an empty string.
+replaced by a generic description of the same thing.
+
+"boundary": one sentence saying what that check could have caught and what it
+could not. Where they describe no check, say what nothing in the account
+would have caught. Write about the check and not about them: no "you", no
+advice, no instruction, nothing about what they should do next, and no claim
+that reaches beyond the account in front of you. If what they have given you
+is too thin to say anything true, return an empty string rather than
+something that sounds right.
+
+Return both on EVERY turn, the first included. A conversation can end at any
+turn - the question limit arrives, a call fails, they close the tab - and
+whatever came back last is what gets shown. A field left empty because the
+conversation has not finished yet is a conversation that ends with nothing
+to show for itself, which is the one thing the closing screen cannot do.
 
 If, and only if, they described a real negative outcome that already
 happened, not a risk they are worried about but something that did occur,
@@ -303,7 +321,7 @@ affects what is shown on the closing screen afterward.
 
 Output format. Reply with one JSON object and nothing else: no prose before
 or after it, no markdown, no code fence. Exactly four keys:
-{"question": "your question here", "status": "one of ${STATUSES.join(", ")}", "reflection": "", "closing_note": ""}
+{"question": "your question here", "status": "one of ${STATUSES.join(", ")}", "reflection": "", "boundary": "", "closing_note": ""}
 Include a question on every turn that continues the conversation. On
 "reached" and "verified" it is not shown, so it may be left empty there.`;
 
@@ -434,9 +452,44 @@ function stubbedReply(answers) {
   return {
     question: STUB_QUESTIONS[Math.min(turn - 1, STUB_QUESTIONS.length - 1)],
     status,
-    reflection: closes ? "I never checked what the system had to work from." : null,
+    // Both lines on every turn now, not only on a closing status, because
+    // that is the contract the real handler answers to, and a stub that
+    // answers a different one lets the regression straight through.
+    reflection: "I never checked what the system had to work from.",
+    boundary: "Reading the output again would catch a figure that looked odd, not one that looked ordinary and was wrong.",
     closing_note: last.includes("#note") ? "That's a hard thing to find out after the fact." : null
   };
+}
+
+// The second closing line has to stay a description of what they described.
+// It cannot be checked for being drawn from their own words, the way the
+// reflection is, because saying what a check would NOT have caught needs
+// words they did not use - that is the whole content of the line. So it is
+// checked for the four ways it could stop being a description.
+//
+// Second person is on the list for a reason that is not style. "You relied
+// on it" is a sentence about a person; "that check would not have surfaced
+// the better option" is a sentence about a method. This page has one rule it
+// cannot bend - no classification of the person - and praise and criticism
+// are both classifications. Keeping the line off "you" keeps it off them.
+const NOT_DESCRIPTIVE = [
+  [/\b(you|your|yours|youre|yourself)\b/i, "second person"],
+  [/\byou['’](?:re|d|ve|ll)\b/i, "second person"],
+  [/\b(should|ought to|need to|must|try to|make sure|next time|recommend|consider)\b/i, "advice"],
+  [/\b(this means|that means|this shows|that shows|this proves|in fact|clearly|the problem is|the real issue)\b/i, "asserts a conclusion"],
+  [/\b(research|study|studies|interviews?|participants?|respondents?|findings?)\b/i, "reaches for the research"]
+];
+
+export function whyNotDescriptive(line) {
+  for (const [pattern, why] of NOT_DESCRIPTIVE) {
+    const hit = String(line).match(pattern);
+    if (hit) return why + ': "' + hit[0] + '"';
+  }
+  return "";
+}
+
+export function staysDescriptive(line) {
+  return !whyNotDescriptive(line);
 }
 
 // The reflection is shown on the closing screen as a restatement of what the
@@ -668,20 +721,35 @@ export default async function handler(req, res) {
   if (!recognised) console.error("model_call_odd_status", model, statusShape(parsed.status));
   const status = recognised || "probing";
 
-  // reflection is only ever shown on the two screens that close on it, so
-  // drop it anywhere else rather than trusting the model to have sent null.
-  const closesWithReflection = status === "reached" || status === "verified";
   const text_or_null = (value, limit) =>
     typeof value === "string" && value.trim() ? value.trim().slice(0, limit) : null;
 
-  // Checked once. Not a restatement of anything they said means show nothing:
-  // the closing works without a reflection, and showing someone a sentence
-  // they did not say is the failure that matters on this screen.
-  const offered = closesWithReflection
-    ? text_or_null(parsed.reflection, MAX_REFLECTION_CHARS)
-    : null;
+  // Taken on every turn, not only on the two statuses that close. The old
+  // rule asked for a reflection on "reached" or "verified" and an empty
+  // string otherwise, which made a summary structurally impossible on the
+  // most common ending: of seven logged conversations, three ran to the turn
+  // cap and two lost the provider, and all five ended with nothing. The owner
+  // said he had not seen the summary. He was right - it was never written.
+  //
+  // So the two lines are a running summary, refreshed each turn, and the
+  // client keeps the last non-empty pair. Whatever ending arrives, there is
+  // something in hand. It costs a few hundred output tokens a conversation.
+  const offered = text_or_null(parsed.reflection, MAX_REFLECTION_CHARS);
   const reflection = offered && drawnFromTheirAccount(offered, answersOf(body)) ? offered : null;
   if (offered && !reflection) console.error("reflection_rejected_not_their_account");
+
+  // The second line says what the check would and would not have caught, so
+  // it cannot be held to the first line's test - naming what something would
+  // miss needs words the person did not use. It gets the other guard instead:
+  // it must stay a description. Advice, a conclusion asserted as fact, a
+  // claim about the research, or a sentence aimed at them in the second
+  // person are each a different thing from a description of what they
+  // described, and each is dropped rather than shown.
+  const offeredBoundary = text_or_null(parsed.boundary, MAX_REFLECTION_CHARS);
+  const boundary = offeredBoundary && staysDescriptive(offeredBoundary) ? offeredBoundary : null;
+  if (offeredBoundary && !boundary) {
+    console.error("boundary_rejected", whyNotDescriptive(offeredBoundary));
+  }
 
   return res.status(200).json({
     ok: true,
@@ -689,6 +757,7 @@ export default async function handler(req, res) {
     question: question.slice(0, MAX_QUESTION_CHARS),
     status,
     reflection,
+    boundary,
     closing_note: text_or_null(parsed.closing_note, MAX_NOTE_CHARS)
   });
 }

@@ -547,6 +547,10 @@ async function hostileInput() {
     question: "Nine of twelve participants described enforced rules about what data may enter an AI system.",
     status: "reached",
     reflection: "Your organisation is in the bottom quartile for verification maturity.",
+    // The second line is the newer way a classification could reach the page,
+    // so the prompt injection walk tries it here too: advice, second person
+    // and a claim about the research, all in one sentence.
+    boundary: "Your checks are weak, so you should read the study's findings before deciding anything.",
     closing_note: null
   }) }];
   callLog = [];
@@ -557,13 +561,19 @@ async function hostileInput() {
   // The question field is whatever the model said - that is the one field it
   // owns. What matters is that there is nowhere for a score to go.
   checks["no score can reach the page"] = injected.score === undefined && injected.rating === undefined && injected.category === undefined;
-  checks["reply is only question/status/reflection/note"] =
-    Object.keys(injected).every((k) => ["ok", "build", "question", "status", "reflection", "closing_note", "reason"].includes(k));
+  // An allowlist rather than a count, so a new field has to be added here
+  // deliberately. This is the gate that keeps a score, a rating or a category
+  // off the wire no matter what the model sends back.
+  const ALLOWED_REPLY_KEYS = ["ok", "build", "question", "status", "reflection", "boundary", "closing_note", "reason"];
+  const extra = Object.keys(injected).filter((k) => !ALLOWED_REPLY_KEYS.includes(k));
+  checks["the reply carries no field the page did not ask for"] = extra.length === 0;
+  if (extra.length) notes.push(`unexpected reply field(s): ${extra.join(", ")}`);
   // The reflection is the one free-text field the page attributes to the
   // visitor, so it is the one place a classification could be printed as
   // though they had said it. This was a real hole: it used to be rendered in
   // quotation marks after "You said", with nothing checking it.
   checks["a classification cannot ride in on the reflection"] = injected.reflection === null;
+  checks["a classification cannot ride in on the second line"] = injected.boundary === null;
   notes.push(`injection reply fields: ${Object.keys(injected).join(", ")}`);
   notes.push(`  model tried to reflect: "Your organisation is in the bottom quartile..."`);
   notes.push(`  server returned reflection=${JSON.stringify(injected.reflection)}`);

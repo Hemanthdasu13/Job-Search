@@ -1,0 +1,78 @@
+// The closed set of strengths the closing screen can name.
+//
+// The mirror of _practices.js, and it exists for a reason that came out of a
+// real conversation rather than out of symmetry. Every one of the seventeen
+// practice cards names something MISSING, so every path through the closing
+// ended in a gap - and a tool that finds a gap in a Soho pub recommendation
+// is a tool that finds a gap in everything, which is the one failure that
+// costs it the readers it is written for.
+//
+// There is also a mechanism behind it, not just a courtesy. Lee et al. (CHI
+// 2025, 319 knowledge workers) found confidence in the AI predicted LESS
+// critical thinking while confidence in one's own ability predicted MORE. On
+// that finding, naming what someone did well is the part that raises the
+// chance they check next time. A closing that only names gaps works against
+// its own purpose. That finding shaped this file and appears nowhere on the
+// page: other people's work decides the architecture, the research on the
+// page stays the researcher's own.
+//
+// Same division of labour as the practices. This file holds ids and trigger
+// conditions and no research text. The sentence a visitor reads lives in
+// public/index.html, written by the researcher, because the rule this tool
+// is built on is that every research claim is text a person wrote. A
+// strength with an empty `why` is never rendered, exactly as with a practice,
+// so the slots can exist here before the words exist there.
+//
+// A trigger describes what AN ACCOUNT SHOWS, never what kind of person they
+// are. "They consulted a primary document" is a statement about one described
+// decision. "They are careful" would be a classification, which this tool
+// does not do in either direction - praise is a classification too, and the
+// temptation to hand one out is stronger on this side of the ledger than on
+// the other.
+
+export const STRENGTHS = {
+  "source-outside-the-model": {
+    trigger: "Something the model could not have produced was consulted: a primary document, an authoritative record, or a person who would know."
+  },
+  "said-what-to-exclude": {
+    trigger: "They describe what they ruled out as well as what they asked for - a scope, an entity, an exception, a distinction the answer had to preserve."
+  },
+  "check-that-could-fail": {
+    trigger: "A check was built and run that would have come out differently if the output had been wrong."
+  },
+  "named-the-unknowable": {
+    trigger: "They state something the system had no way of knowing, as a limit on what the output can be relied on for."
+  },
+  "independent-knowledge": {
+    trigger: "A person was consulted whose knowledge does not come from the same material the model saw."
+  },
+  "effort-matched-to-stakes": {
+    trigger: "How much checking to do was decided by what being wrong would have cost, and they say what that cost was."
+  },
+  "chased-the-doubt": {
+    trigger: "Something looked off and they followed it until it resolved, rather than setting it aside."
+  },
+  "path-can-be-walked": {
+    trigger: "Someone else could reach the same result from the same inputs, because the route from one to the other is recorded."
+  },
+  "judgement-stayed-theirs": {
+    trigger: "The system assembled material and a person made the call, with the call identifiable as that person's."
+  }
+};
+
+export const STRENGTH_IDS = Object.freeze(Object.keys(STRENGTHS));
+
+// Two, not three. The gaps side shows up to three because a gap is work to
+// do; a strength is work already done, and a third one starts to read as
+// flattery. Deliberately lower than MAX_SELECTED so the two sides can never
+// come out as a balanced three-and-three, which a reader scores whatever the
+// page intends.
+export const MAX_STRENGTHS = 2;
+
+export function isStrengthId(id) {
+  return typeof id === "string" && Object.prototype.hasOwnProperty.call(STRENGTHS, id);
+}
+
+export function triggerList() {
+  return STRENGTH_IDS.map((id) => `- ${id}: ${STRENGTHS[id].trigger}`).join("\n");
+}

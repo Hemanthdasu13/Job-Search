@@ -264,6 +264,20 @@ a{
   line-height:1.45;
   margin:0 0 0.8rem;
 }
+/* The two-line conclusion, at the top of the closing screen. The second line
+   is the one that does the work - what the check would and would not have
+   caught - so it is not set quieter than the first. */
+.conclusion{
+  margin:0 0 2.5rem;
+  padding-left:1rem;
+  border-left:2px solid var(--rule);
+}
+.conclusion .reflection{ margin:0; }
+.boundary{
+  margin:0.6rem 0 0;
+  font-weight:500;
+}
+
 /* Sits between the closing and the links: quieter than the body, louder than
    the footnote, because it bounds what the screen above it just claimed. */
 .caveat{
@@ -772,7 +786,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.4.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.5.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -860,7 +874,10 @@ h1::before,h2::before{
   <!-- Not in quotation marks, and not "you said": the reflection is a
        paraphrase by design, because the prompt has it generalise names and
        figures. Quoting a paraphrase puts words in someone's mouth. -->
-  <p class="reflection" id="s5a-reflection" hidden>From what you described — <span id="s5a-reflection-text"></span></p>
+  <div class="conclusion" id="s5a-reflection" hidden>
+    <p class="reflection">From what you described — <span id="s5a-reflection-text"></span></p>
+    <p class="boundary" id="s5a-boundary" hidden><span id="s5a-boundary-text"></span></p>
+  </div>
 
   <!-- Shown when the selector named practices this account did not touch.
        Every word of research in here is written above, in PRACTICES. The
@@ -899,7 +916,10 @@ h1::before,h2::before{
 <!-- Screen 5B - Closing, an independent check already in place. Fixed text. -->
 <section class="screen" id="s5b" hidden>
   <p class="closing-note" id="s5b-note" hidden></p>
-  <p class="reflection" id="s5b-reflection" hidden>From what you described — <span id="s5b-reflection-text"></span></p>
+  <div class="conclusion" id="s5b-reflection" hidden>
+    <p class="reflection">From what you described — <span id="s5b-reflection-text"></span></p>
+    <p class="boundary" id="s5b-boundary" hidden><span id="s5b-boundary-text"></span></p>
+  </div>
   <h2 tabindex="-1">You described a constructed check, not a careful read.</h2>
   <p>That is what the people who caught real errors had in common. Not more attention, but something independent for the output to fail against: a reconciliation, a second model, a colleague who knows the area, a check written before the answer was produced.</p>
   <p>It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.</p>
@@ -1172,6 +1192,7 @@ h1::before,h2::before{
     unclearRun: 0,      // consecutive unclear replies on the same thread
     notedPaste: false,  // the aside is said once a conversation, or not at all
     reflection: null,   // a paraphrase of their account, shown on 5A or 5B.
+    boundary: null,     // what that check would and would not have caught.
                         // The server drops one that addresses the reader or
                         // shares no vocabulary with what they typed.
     closingNote: null,  // one line, only when a real outcome was described
@@ -1233,6 +1254,13 @@ h1::before,h2::before{
     quote.hidden = !state.reflection;
     if (state.reflection) {
       $(screen + "-reflection-text").textContent = state.reflection;
+      // The second line is what the owner asked for and what was missing:
+      // a conclusion that says what the check he described would and would
+      // not have caught. Hidden on its own if the server dropped it, so one
+      // line still reads as a conclusion rather than as a dangling half.
+      var edge = $(screen + "-boundary");
+      edge.hidden = !state.boundary;
+      if (state.boundary) { $(screen + "-boundary-text").textContent = state.boundary; }
     }
   }
 
@@ -1520,7 +1548,12 @@ h1::before,h2::before{
       if (!data && state.accessLost) { handleExpiredAccess(); return; }
       if (!data) { closeGapSurfaced(true); return; }
 
-      state.reflection = typeof data.reflection === "string" ? data.reflection : null;
+      // Kept, not replaced. Both lines come back on every turn now, but a
+      // turn the server dropped one on must not wipe the one already in
+      // hand - the whole point is that a conversation ending at any turn has
+      // something to show.
+      if (typeof data.reflection === "string" && data.reflection) { state.reflection = data.reflection; }
+      if (typeof data.boundary === "string" && data.boundary) { state.boundary = data.boundary; }
       state.closingNote = typeof data.closing_note === "string" ? data.closing_note : null;
 
       if (data.status === "reached") {
@@ -1634,6 +1667,7 @@ h1::before,h2::before{
     state.unclearRun = 0;
     state.notedPaste = false;
     state.reflection = null;
+    state.boundary = null;
     state.closingNote = null;
     state.consent = false;
     $("consent").checked = false;
@@ -1821,7 +1855,8 @@ h1::before,h2::before{
           endedOn: endedOn,
           answers: state.answers,
           questions: state.questions,
-          reflection: state.reflection
+          reflection: state.reflection,
+          boundary: state.boundary
         })
       }).catch(function () {});
     } catch (e) { /* nothing here may affect the page */ }

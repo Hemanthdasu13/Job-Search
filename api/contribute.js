@@ -49,7 +49,8 @@ function clean(body) {
     turns: answers.length,
     answers,
     questions,
-    reflection: typeof body?.reflection === "string" ? body.reflection.slice(0, 400) : null
+    reflection: typeof body?.reflection === "string" ? body.reflection.slice(0, 400) : null,
+    boundary: typeof body?.boundary === "string" ? body.boundary.slice(0, 400) : null
   };
 }
 
