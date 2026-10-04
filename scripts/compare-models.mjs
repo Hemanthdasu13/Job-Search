@@ -142,7 +142,8 @@ for (const model of MODELS) {
         }
         tally[model].ms.push(r.ms);
         tally[model].questions += 1;
-        const bad = violations(r.question || "", scenario.secrets || [], seen);
+        const bad = violations(r.question || "", scenario.secrets || [],
+          { seen, answers: messages.filter((m) => m.role === "user").map((m) => m.content) });
         if (r.reflection && !["reached", "verified"].includes(r.status)) {
           bad.push(`reflection returned on status "${r.status}"`);
         }

@@ -38,13 +38,173 @@ export const OPENS_CLOSED = new RegExp(`^\\s*(?:${AUX})\\s+(?:you|it|they|anyone
 export const CLOSED_ALTERNATIVES = new RegExp(
   `^\\s*(?:${AUX})\\b[^?]*\\bor\\b[^?]*\\?`, "i");
 
+// -------------------------------------------------------------------- length
+//
+// Twenty words. The questions this deployment produced averaged twenty-two,
+// and the owner's complaint was not that they were long but that he had to
+// re-read them to work out what was being asked. Length is the proxy that
+// can be checked; the circularity is what it stands in for.
+//
+// The best question in the restaurant log was twenty-six words:
+//
+//   "Where would that read on the young-woman, not-too-crowded part have
+//    come from - what could it have actually known about that place's crowd
+//    on a given night?"
+//
+// It is also the same question as "what could it have known about the crowd
+// on a given night", which is thirteen. Nothing was lost by the cut, which
+// is why the limit is set where a good question still fits.
+export const MAX_QUESTION_WORDS = 20;
+
+export function wordCount(text) {
+  return (String(text).trim().match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+}
+
+// An aside inside a question. Three of the six questions in the restaurant
+// log carried one, and an aside is how a question acquires a second idea
+// without acquiring a second question mark - which is the shape the person
+// reading it has to unpick before answering.
+export const ASIDE = /\u2014|\u2013|\s-\s|\(|\)|;/;
+
+// ------------------------------------------------------- presupposed action
+//
+// "What did you weigh that recommendation against before deciding where to
+// actually go?" was answered "I cannot weigh, I'm new to the place."
+//
+// The question presupposes the weighing. Someone who did not weigh it has to
+// correct the question before they can answer it, and the easiest way to
+// correct it is to say what they lacked - which is how a question about
+// checking turns into an answer about missing information. Ask what happened
+// instead: "what did you do once it gave you the name" presupposes nothing.
+const PRESUPPOSED = "weigh|check|verify|compare|validate|test|cross-check|crosscheck";
+export const PRESUPPOSES_ACTION = new RegExp(
+  `\\bwhat (?:did|do) (?:you|they)\\s+(?:${PRESUPPOSED})\\b`, "i");
+
+// ------------------------------------------------------------- introduced words
+//
+// The NICHD investigative interview protocol ranks question types by how much
+// they contaminate the account: open invitations first, then focused recall
+// which may only address details the person has ALREADY mentioned, then
+// option-posing sparingly, and suggestive utterances not at all.
+//
+// By that taxonomy this question is both option-posing and suggestive:
+//
+//   "What did that person actually know about the place - had they been
+//    there recently, or were they just going on reputation?"
+//
+// "Recently" and "reputation" are the tool's words, not his. Both are ways
+// of being inadequate, so the question hands over the answer it then
+// receives. The rule that catches it is mechanical: a question may not
+// introduce content words the person has not used.
+//
+// The allowlist is the scaffolding a question needs regardless of what was
+// said - interrogatives, auxiliaries, pronouns, and the small set of frame
+// words this tool asks in. Everything else has to come from them.
+const SCAFFOLD = new Set(`
+a an and the of to in on at for from with by about into over after before
+what which where how who whom whose why when
+did do does done was were is are am be been being have has had
+can could would will shall should may might must
+you your yours they them their it its this that these those there here
+i me my we us our one anyone anybody someone something anything nothing
+not no nor or if so then than as but also just only even still yet
+actually really specifically instead rather otherwise beyond outside within
+other another same different first next last own more most less least
+thing things part parts bit piece case point side way ways
+output outputs answer answers reply result results
+know knew known knowing tell told telling say said saying
+ask asked asking give gave given giving get got gets
+use used using go went going come came coming
+make made making take took taken taking
+happen happened happens find found finds
+look looked looking see saw seen read
+think thought thinking mean meant means
+let put kept keep need needed want wanted
+produce produced produces able possible
+time times long short once twice out
+name names named call called
+cost costs costing worth
+wrong right wrongly
+turn turned turns
+decide decided deciding decision decisions
+against like unlike such
+myself yourself himself herself itself themselves ourselves
+dont doesnt didnt cant couldnt wouldnt wasnt isnt werent arent
+havent hasnt hadnt wont shouldnt
+ai model tool system
+`.trim().split(/\s+/));
+
+const POSSESSIVE = /[’']s\b/g;
+
+export function contentWordsOf(text) {
+  return (String(text).toLowerCase().replace(POSSESSIVE, "")
+    .match(/[\p{L}][\p{L}'’-]*/gu) || [])
+    // "couldn't" is scaffolding spelled with punctuation in it, so the
+    // apostrophe comes out before the lookup rather than the list carrying
+    // every spelling of every contraction.
+    .map((w) => w.replace(/['’]/g, "").replace(/^[-]+|[-]+$/g, ""))
+    .filter((w) => w.length > 2 && !SCAFFOLD.has(w));
+}
+
+// A hyphenated coinage the tool built out of their words - "young-woman",
+// "not-too-crowded" - is their content, not an introduction, so each half is
+// checked separately rather than the whole as one unknown word.
+function* partsOf(word) {
+  yield word;
+  if (word.includes("-")) for (const part of word.split("-")) if (part.length > 2) yield part;
+}
+
+// Two is the allowance, not zero: a question often needs one word of its own
+// to point at what they described without quoting it back whole. Three is
+// where it stops being their account and starts being the tool's.
+export const MAX_INTRODUCED_WORDS = 2;
+
+export function introducedWords(question, answers = []) {
+  if (!answers.length) return [];
+  const theirs = new Set();
+  for (const answer of answers) for (const word of contentWordsOf(answer)) {
+    for (const part of partsOf(word)) theirs.add(part);
+    // Their own stemming, roughly: "recommend" covers "recommendation", so a
+    // question is not flagged for inflecting a word they used.
+    if (word.length > 5) theirs.add(word.slice(0, -1));
+    if (word.length > 6) theirs.add(word.slice(0, -2));
+  }
+  const introduced = [];
+  for (const word of contentWordsOf(question)) {
+    const known = [...partsOf(word)].some((part) =>
+      theirs.has(part) || (part.length > 5 && (theirs.has(part.slice(0, -1)) || theirs.has(part.slice(0, -2))))
+      || [...theirs].some((t) => t.length > 4 && part.startsWith(t.slice(0, Math.max(4, t.length - 2)))));
+    if (!known && !introduced.includes(word)) introduced.push(word);
+  }
+  return introduced;
+}
+
 export function sentenceCount(text) {
   return text.split(/[.!?]+(?:\s|$)/).filter((s) => s.trim()).length;
 }
 
 // Returns a list of the rules this question breaks. Empty means it obeyed.
-export function violations(question, secrets = [], seen = []) {
+//
+// The third argument used to be the questions already asked. It still is, so
+// that every existing caller keeps working, but passing an object instead
+// carries the answers too - which the introduced-word rule needs, because
+// whether a word is the tool's or theirs is not a property of the question
+// alone.
+export function violations(question, secrets = [], seenOrOptions = []) {
+  const options = Array.isArray(seenOrOptions) ? { seen: seenOrOptions } : (seenOrOptions || {});
+  const seen = options.seen || [];
+  const answers = options.answers || [];
   const bad = [];
+  const words = wordCount(question);
+  if (words > MAX_QUESTION_WORDS) bad.push(`${words} words, max ${MAX_QUESTION_WORDS}`);
+  if (ASIDE.test(question)) bad.push("carries an aside, which is a second idea without a second question mark");
+  if (PRESUPPOSES_ACTION.test(question)) {
+    bad.push(`presupposes they did it: "${question.match(PRESUPPOSES_ACTION)[0]}" - ask what happened instead`);
+  }
+  const introduced = introducedWords(question, answers);
+  if (introduced.length > MAX_INTRODUCED_WORDS) {
+    bad.push(`introduces ${introduced.length} words they never used: ${introduced.join(", ")}`);
+  }
   const marks = (question.match(/\?/g) || []).length;
   if (marks !== 1) bad.push(`${marks} question marks, must be exactly 1`);
   if (sentenceCount(question) > 2) bad.push(`${sentenceCount(question)} sentences, max 2`);

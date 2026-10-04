@@ -75,7 +75,8 @@ for (const scenario of SCENARIOS) {
     reflection = r.data.reflection;
     note = r.data.closing_note || note;
 
-    problems.push(...violations(r.data.question, scenario.secrets || [], seen).map((v) => `question: ${v}`));
+    problems.push(...violations(r.data.question, scenario.secrets || [], { seen, answers })
+      .map((v) => `question: ${v}`));
     if (scenario.forbid && scenario.forbid.test(r.data.question)) {
       problems.push(`question: flags the contradiction: "${r.data.question.match(scenario.forbid)[0]}"`);
     }

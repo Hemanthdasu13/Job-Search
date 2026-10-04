@@ -716,9 +716,19 @@ async function fourVisitors() {
   for (const [k, v] of Object.entries(caps)) {
     if (!Number.isInteger(v)) throw new Error(`could not read ${k} out of public/index.html`);
   }
-  checks["the page's caps were readable"] =
-    caps.MAX_PROBING_TURNS === 6 && caps.MAX_UNUSABLE === 3 && caps.MAX_MODEL_CALLS === 14;
-  notes.push(`page caps: ${caps.MAX_PROBING_TURNS} probing turns, ${caps.MAX_UNUSABLE} unusable, ${caps.MAX_MODEL_CALLS} calls`);
+  // This used to assert the three numbers themselves, which made it a copy of
+  // the page that had to be edited whenever the page was - and which said
+  // nothing about whether the numbers worked together. What matters is the
+  // relationship: the call backstop has to cover one narrowing attempt per
+  // probing turn plus the single closing selection. Cut the calls without
+  // cutting the turns and a conversation stops on the backstop instead of the
+  // turn cap, which truncates it silently and looks like the model giving up.
+  const callsNeeded = 2 * caps.MAX_PROBING_TURNS + 1;
+  checks["the call backstop covers the turns the page allows"] =
+    caps.MAX_MODEL_CALLS >= callsNeeded;
+  checks["the caps are in a sane band"] =
+    caps.MAX_PROBING_TURNS >= 3 && caps.MAX_PROBING_TURNS <= 8 && caps.MAX_UNUSABLE >= 2;
+  notes.push(`page caps: ${caps.MAX_PROBING_TURNS} probing turns, ${caps.MAX_UNUSABLE} unusable, ${caps.MAX_MODEL_CALLS} calls (needs ${callsNeeded})`);
 
   const token = access.mintToken(access.grantForPin("333333"));
   let selectorCalls = 0;

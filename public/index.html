@@ -264,6 +264,15 @@ a{
   line-height:1.45;
   margin:0 0 0.8rem;
 }
+/* Sits between the closing and the links: quieter than the body, louder than
+   the footnote, because it bounds what the screen above it just claimed. */
+.caveat{
+  margin:2.25rem 0 0;
+  color:var(--muted);
+  font-size:0.875rem;
+  line-height:1.5;
+}
+
 .footnote{
   margin:3.5rem 0 0;
   padding-top:1.1rem;
@@ -763,7 +772,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.3.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.4.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -879,6 +888,7 @@ h1::before,h2::before{
   <p><strong>One more thing:</strong> of twelve, four had a rule they could state for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a rule they already used for something else and pointed it at AI, with nobody telling them to.</p>
   <p class="beat beat-close"><span>Maybe the most human thing about an AI answer is not the answer.</span><span>It is us believing it.</span></p>
   </div>
+    <p class="caveat">This is a read of what you described in a few minutes, not an audit of your work. What is not named here was not checked — it only means it did not come up.</p>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">How I did it</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
@@ -894,6 +904,7 @@ h1::before,h2::before{
   <p>That is what the people who caught real errors had in common. Not more attention, but something independent for the output to fail against: a reconciliation, a second model, a colleague who knows the area, a check written before the answer was produced.</p>
   <p>It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.</p>
   <p class="beat beat-close"><span>The people who handled it best were not the ones who knew the most about AI.</span><span>They were the ones who had something to put the answer against when they could not tell.</span></p>
+  <p class="caveat">This is a read of what you described in a few minutes, not an audit of your work. What is not named here was not checked — it only means it did not come up.</p>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">How I did it</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
@@ -1124,15 +1135,21 @@ h1::before,h2::before{
     return Boolean(c && c.principle && c.why && c.action);
   }
 
-  // Six, not four. A closing that names what did not come up can only do
-  // that honestly if the conversation had room to come up with it: four
-  // turns cannot cross six dimensions, and a gap the tool never asked
-  // about is not a gap the person left.
-  var MAX_PROBING_TURNS = 6;   // hard ceiling on probing questions
-  // An unclear turn does not count toward the six but still costs a call, so
+  // Four, not six. This said "six, not four" until the logs came in, and the
+  // argument for six was sound on its own terms: four turns cannot cross six
+  // dimensions, and a gap the tool never asked about is not a gap the person
+  // left. What that argument assumed was a closing which implies it looked
+  // everywhere. It does not any more - the caveat on the closing screens now
+  // says plainly that what is not named was not checked - and once the
+  // closing stops claiming completeness, turns five and six stop paying for
+  // themselves. In every logged conversation the material worth having
+  // arrived by the third or fourth question; the last two repeated ground or
+  // went fishing, which is also where the questions got longest.
+  var MAX_PROBING_TURNS = 4;   // hard ceiling on probing questions
+  // An unclear turn does not count toward the four but still costs a call, so
   // the backstop has to allow one narrowing attempt per probing turn, plus
   // the single closing-selection call at the end.
-  var MAX_MODEL_CALLS  = 14;
+  var MAX_MODEL_CALLS  = 10;
   var MAX_INPUT_CHARS  = 2000;   // and the maxlength on both boxes
 
   // Three replies with nothing in them, in any mix, and there is nothing to
