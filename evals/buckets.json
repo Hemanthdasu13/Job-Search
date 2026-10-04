@@ -30,6 +30,38 @@
     "     These are the entries that matter most: a tool that finds a gap in",
     "     every account is not reading the account.",
     "",
+    "  T  Seventeen targeted accounts, one per card. Where bucket B asks",
+    "     whether a chain of gaps in a messy account comes out in the right",
+    "     order, bucket T asks a narrower question: is a single named gap",
+    "     picked up at all, or does the logic reach for the gap it is used to",
+    "     finding. Each account is written so that exactly one card is right -",
+    "     everything else a careful reader could reach for is closed off in the",
+    "     text, usually by the person having done that thing properly.",
+    "     'confusable' names the cards the account does not support, and",
+    "     selecting one is the failure that matters. Some of those are closed",
+    "     off explicitly and the note says how: T10 keeps a written-up method a",
+    "     second team re-derived the number from, which leaves the audit gap",
+    "     with nothing to hide behind; T12 keeps every prompt and file version,",
+    "     which leaves the reproduction gap standing on its own.",
+    "     'nearMiss' names a card that genuinely co-occurs, where a pick is",
+    "     worth seeing but is not held against the run: examiner-not-originator",
+    "     cannot happen without reliance, and the T15 distinction between a",
+    "     belief the person held and a team saying the system handed back with",
+    "     authority is the hardest discrimination in the whole set.",
+    "",
+    "     T is not in the default run. It is seventeen more calls, and it",
+    "     measures the naming of a gap, not the route to it - which questions",
+    "     got asked on the way is what scripts/coverage.mjs measures, from real",
+    "     conversations rather than scripted ones.",
+    "",
+    "     Two cards collect almost every declared confusable in the set:",
+    "     constructed-check in sixteen scenarios and independent-source-check",
+    "     in fifteen. That is not an accident of the writing. They are the two",
+    "     cards whose triggers fit almost any account of using AI, which makes",
+    "     them the two the logic can always fall back on, and the two a drift",
+    "     would most likely land on. scripts/verify-targets.mjs prints that",
+    "     table, so the bias in the test is visible before the test is trusted.",
+    "",
     "Every one of the seventeen cards now appears in a bucket B chain.",
     "examiner-not-originator was the last hole in the set - it appeared only as",
     "bucket C bait, so nothing tested that it could be selected at all - and",
@@ -996,6 +1028,463 @@
         "reproduction-gap",
         "examiner-not-originator"
       ]
+    },
+    {
+      "id": "T1",
+      "bucket": "T",
+      "name": "I don't rely on it",
+      "account": [
+        "I used it to draft the commentary in a client note on a mid-cap industrials name. I don't rely on AI for anything that matters, it's a drafting tool, I treat it the way I'd treat a junior's first pass. The numbers all came out of our own model and I checked every one against the filings myself. What went out was its paragraphs with my edits on top, under my name, and the recommendation in it was the one the note argued for."
+      ],
+      "pressed": {
+        "information": "The figures were from the 10-K and our own spreadsheet, I opened both. I didn't take a single number from the model.",
+        "constraints": "I told it the sector, the period, the two comparables to use, and to leave out anything about the pending litigation.",
+        "reliance": "I wouldn't call it reliance, I rewrote most of it. But the structure of the argument and a fair bit of the wording are its, and the note went to about forty clients.",
+        "domain": "This is my coverage, I've been on industrials eleven years. There was nothing in there I couldn't judge.",
+        "consequence": "If a number had been wrong we'd have had to put out a correction, which is embarrassing but survivable. I had thought about that.",
+        "advantage": "It saved me maybe two hours on the write-up. The review step was the same as always, my desk head read it."
+      },
+      "expectCards": [
+        "reliance-not-trust"
+      ],
+      "target": "reliance-not-trust",
+      "confusable": [
+        "independent-source-check",
+        "constructed-check",
+        "domain-goes-silent"
+      ],
+      "note": "Everything checkable was checked and the person denies relying on it. The reliance is still the fact of the matter: its argument, under their name, to forty clients."
+    },
+    {
+      "id": "T2",
+      "bucket": "T",
+      "name": "Internally consistent, entirely self-sourced",
+      "account": [
+        "I needed a number for the addressable market in the Nordics for a board paper. I was specific about what I wanted: four countries, named segments, and I told it to break the total down so I could see the parts. It gave me a build-up, population then penetration then average spend, and a total. I added up the parts myself and they matched the total. So I used it. I never opened a statistics office release or an industry report. The whole thing came from the model."
+      ],
+      "pressed": {
+        "information": "What it had was whatever it knows. I didn't give it a source and I didn't go and get one.",
+        "constraints": "Four countries only, the three segments we actually sell into, exclude the public sector, and show me the workings.",
+        "reliance": "The number went into the board paper as the market size. The investment case was sized off it.",
+        "domain": "I know this market reasonably well. Nothing in there was outside what I can assess.",
+        "consequence": "If it's overstated we over-invest. Understated and we miss the opportunity, which here would cost us less. I'd thought about both directions.",
+        "advantage": "Two days of desk research I didn't have to do."
+      },
+      "expectCards": [
+        "independent-source-check"
+      ],
+      "target": "independent-source-check",
+      "confusable": [
+        "constructed-check",
+        "manufactured-divergence",
+        "constrain-the-generation"
+      ],
+      "note": "A check was built and run, the parts sum to the total, and the generation was constrained. The arithmetic is internally consistent and nothing outside the model was ever consulted."
+    },
+    {
+      "id": "T3",
+      "bucket": "T",
+      "name": "I never said what to leave out",
+      "account": [
+        "Someone on the exec team asked how many people we employ in regulated roles. I asked AI to pull it together from the HR extract I pasted in. I did check it, I ran the same count in the extract with a filter and got the same figure, and I sent my method to the HR analyst, who agreed with it. What I didn't do was tell it what to leave out. It counted the Jersey entity, which isn't in scope for this regulator, and it counted contractors. I only found that when compliance asked."
+      ],
+      "pressed": {
+        "information": "I gave it our own HR extract, and I checked the count back against that extract myself.",
+        "constraints": "I asked it for a count of regulated roles. That was it, that was the whole instruction.",
+        "reliance": "The number went to the exec team in writing and it's the one they're using.",
+        "domain": "Regulated-role definitions are my area, and the person who knows the HR data best saw my method.",
+        "consequence": "Over-counting makes us look more exposed than we are, under-counting is a regulatory problem. Both were on my mind.",
+        "advantage": "It was quicker than building the pivot, though I built the pivot anyway as the check."
+      },
+      "expectCards": [
+        "constrain-the-generation"
+      ],
+      "target": "constrain-the-generation",
+      "confusable": [
+        "independent-source-check",
+        "constructed-check",
+        "domain-goes-silent"
+      ],
+      "note": "The source was checked, a check was built, and a knowledgeable second person saw the method. The only hole is that nothing was ruled out."
+    },
+    {
+      "id": "T4",
+      "bucket": "T",
+      "name": "It read like a lawyer wrote it",
+      "account": [
+        "I had a reseller agreement to get through, below the value that needs counsel under our policy. I gave it the agreement and asked for the termination and liability positions, and told it to quote the clause for anything it asserted. It came back clause by clause and I read each one in the contract to make sure the clause said what it claimed. It was coherent, the reasoning followed through, it read like something a lawyer would have written. That's why I was comfortable with it. I did nothing to test whether its reading of those clauses was right, beyond the clauses existing and saying roughly that."
+      ],
+      "pressed": {
+        "information": "The contract itself. I opened every clause it cited and read it.",
+        "constraints": "Those two positions only, quote the clause, and say where something isn't covered at all.",
+        "reliance": "I signed off the commercial terms on that basis and the agreement is executed.",
+        "domain": "Commercial terms I do all the time, this one wasn't exotic.",
+        "consequence": "Getting liability wrong is the expensive direction, getting termination wrong just means a longer notice period. I weighed it that way round.",
+        "advantage": "I got through it in an afternoon instead of a day and a half."
+      },
+      "expectCards": [
+        "constructed-check"
+      ],
+      "target": "constructed-check",
+      "confusable": [
+        "independent-source-check",
+        "borrowed-rule",
+        "domain-goes-silent"
+      ],
+      "note": "The primary document was opened and every citation verified to exist. What was never built is a test of the interpretation, and fluency is what carried it."
+    },
+    {
+      "id": "T5",
+      "bucket": "T",
+      "name": "I checked because I had a quiet afternoon",
+      "account": [
+        "I used it to work out the indexation assumption in a tender response. I checked it properly, pulled the actual ONS series, recomputed it in a sheet, and it was right to the decimal. The reason I checked is that I had a quiet afternoon. There is nothing in our process that says a pricing assumption from AI has to be verified before it goes into a bid. If that week had looked like the week before it, I'd have taken the number and moved on, and nobody would have asked."
+      ],
+      "pressed": {
+        "information": "The ONS series, downloaded, and my own recomputation in Excel.",
+        "constraints": "I named the series, the base year and the window, and told it not to substitute a different index.",
+        "reliance": "It set the indexation in a bid worth about four million.",
+        "domain": "Pricing is what I do. I could see immediately whether the number was plausible and then I proved it.",
+        "consequence": "Too high and we lose the bid, too low and we carry the cost for six years. The second is worse and I said so in the pricing note.",
+        "advantage": "It saved the half hour of finding the right series. The checking took longer than the saving."
+      },
+      "expectCards": [
+        "named-triggers"
+      ],
+      "target": "named-triggers",
+      "confusable": [
+        "independent-source-check",
+        "speed-not-advantage",
+        "constructed-check"
+      ],
+      "nearMiss": [
+        "structural-not-instructional"
+      ],
+      "note": "This instance was verified to the decimal. Whether the next one is depends on the diary, because no rule names this kind of claim in advance."
+    },
+    {
+      "id": "T6",
+      "bucket": "T",
+      "name": "It didn't flag anything",
+      "account": [
+        "Before we onboarded a supplier I asked it to look over the documents I pasted in, the registry extract, the ownership chart and our own supplier list, and tell me if there was any connection to anyone at our end. It came back with a clean read and flagged nothing. I'd given it the actual documents and I spot-checked two of the ownership lines back to the registry. What I took from it was that there wasn't a connection. There turned out to be one, through a director's spouse, which wasn't in anything I'd given it."
+      ],
+      "pressed": {
+        "information": "Registry extract and ownership chart, both of which I pulled myself, plus our own supplier list. I checked two lines back to the registry.",
+        "constraints": "Only what I'd pasted, name the document for anything it asserts, and say if something can't be determined from what it has.",
+        "reliance": "The onboarding went ahead on it.",
+        "domain": "Supplier onboarding is mine, I've done hundreds of these.",
+        "consequence": "A missed connection is a conflict we have to disclose later. Flagging one that isn't there costs a week's delay. I knew which way round that was.",
+        "advantage": "It read three documents in a minute that would have taken me an hour."
+      },
+      "expectCards": [
+        "silence-is-not-safety"
+      ],
+      "target": "silence-is-not-safety",
+      "confusable": [
+        "constructed-check",
+        "independent-source-check",
+        "constrain-the-generation"
+      ],
+      "note": "The constraint explicitly asked it to say when something could not be determined. It said nothing, and the nothing is what was read as an answer."
+    },
+    {
+      "id": "T7",
+      "bucket": "T",
+      "name": "Only the false positives were counted",
+      "account": [
+        "We were tuning the threshold on a transaction-monitoring rule and I used AI to model where to put it. I gave it twelve months of our own alert data and I rebuilt its output in Python to confirm the curve. Every bit of it was about one thing, how many false positives we'd kill. That's what the ops team was shouting about and that's what I asked for. I never asked what we'd stop catching at that threshold, and it never came up. The paper I wrote had one number in it, the reduction in alert volume."
+      ],
+      "pressed": {
+        "information": "Twelve months of our own alerts, and I reproduced the whole curve myself in Python.",
+        "constraints": "Our data only, this rule only, the threshold range we were willing to consider, and show the alert volume at each point.",
+        "reliance": "The threshold change went to the financial crime committee with my name on it and was approved.",
+        "domain": "Monitoring tuning is my job, and a colleague in model risk reviewed the method.",
+        "consequence": "The whole case was the false positive reduction. Thirty per cent fewer alerts, which is four analysts' worth of time.",
+        "advantage": "It did in a day what would have been a fortnight, and the method is one we now reuse."
+      },
+      "expectCards": [
+        "two-failure-modes"
+      ],
+      "target": "two-failure-modes",
+      "confusable": [
+        "named-triggers",
+        "constructed-check",
+        "speed-not-advantage"
+      ],
+      "note": "The analysis is reproducible and reviewed. One direction of error was costed and the opposite one was never named."
+    },
+    {
+      "id": "T8",
+      "bucket": "T",
+      "name": "It said what I'd been saying for six months",
+      "account": [
+        "I'd thought for a while that our churn was driven by the onboarding handover, and I asked AI to look at the account data I gave it and tell me what was driving it. It came back with onboarding as the main driver. That's the point where I stopped pushing. The two secondary things it named I did go and test, and one of them didn't hold up. The onboarding finding I took straight into the plan, because it was what I'd been saying in leadership meetings for six months."
+      ],
+      "pressed": {
+        "information": "Our own account and ticket data. The two secondary drivers I checked against the CRM and dropped one of them.",
+        "constraints": "The last eight quarters, mid-market only, exclude accounts we offboarded ourselves, and tell me what it couldn't see in the data.",
+        "reliance": "It set the priority in the retention plan. Two people's roles changed because of it.",
+        "domain": "Retention is my area, and the data team lead went through the analysis with me.",
+        "consequence": "If onboarding wasn't the driver we'd have spent a quarter on the wrong thing. I did think about that, I just didn't think it was likely.",
+        "advantage": "It was faster than waiting for the analytics queue, and the analysis got reviewed the same as any other would."
+      },
+      "expectCards": [
+        "borrowed-rule"
+      ],
+      "target": "borrowed-rule",
+      "confusable": [
+        "constructed-check",
+        "independent-source-check",
+        "junior-heuristic"
+      ],
+      "note": "The findings that contradicted nothing the person held were tested. The one that agreed with them was the one that was not."
+    },
+    {
+      "id": "T9",
+      "bucket": "T",
+      "name": "The baseline looked low to me",
+      "account": [
+        "The business case needed a benefits number and I used AI to build it from our operational data. I checked it properly, recomputed the uplift from the raw extract and got the same answer. One thing bothered me: the baseline it used for current handling time looked low, lower than what I see on the floor. I made a note to go back and find out where that came from. Then the deadline moved up and I didn't. The number in the approved case still rests on that baseline."
+      ],
+      "pressed": {
+        "information": "Our own operational extract, and I rebuilt the calculation from it myself.",
+        "constraints": "This process only, the two sites, exclude the pilot period, and show the baseline and the uplift separately.",
+        "reliance": "It's the benefits number in an approved case and the funding was released against it.",
+        "domain": "Operations in this area is what I've done for nine years, and the site manager read the case.",
+        "consequence": "Overstating the benefit means we're judged against something we can't hit. Understating it means the case fails. Both were in the paper.",
+        "advantage": "It saved the modelling time, and the model is one we've reused twice since."
+      },
+      "expectCards": [
+        "gut-feel-signal"
+      ],
+      "target": "gut-feel-signal",
+      "confusable": [
+        "constructed-check",
+        "independent-source-check",
+        "interaction-audit"
+      ],
+      "note": "The arithmetic was reproduced and the input was ours. A specific doubt was noticed, written down, and never chased."
+    },
+    {
+      "id": "T10",
+      "bucket": "T",
+      "name": "Eight weeks later, asked why",
+      "account": [
+        "Eight weeks ago I produced the gender pay gap figure for the annual statement using AI on the payroll extract. I checked it, recomputed it in a sheet, and I wrote the method up so the reward team could follow it, which they did, they got the same number from the same extract. Last week an exec asked why the figure differs from last year's and I couldn't tell them what I'd actually asked it, which version of the extract I used, or whether that extract was before or after the February adjustment. None of that was kept."
+      ],
+      "pressed": {
+        "information": "The payroll extract and my own recomputation. I just can't now say which extract it was.",
+        "constraints": "In-scope entities, full-time equivalents, the reference date, exclude leavers before it.",
+        "reliance": "It's the published figure in the annual statement.",
+        "domain": "Reward is my area, and the reward team re-derived the number independently from my write-up.",
+        "consequence": "Too high and we have a story we can't explain, too low and we've misreported. Misreporting is the serious one and I treated it that way.",
+        "advantage": "It saved a day, and the method it produced is the one we'll use next year."
+      },
+      "expectCards": [
+        "interaction-audit"
+      ],
+      "target": "interaction-audit",
+      "confusable": [
+        "reproduction-gap",
+        "independent-source-check",
+        "constructed-check"
+      ],
+      "note": "The method was written up and a second team re-derived the same number from it, which closes reproduction. What is gone is the prompt and the version of the input."
+    },
+    {
+      "id": "T11",
+      "bucket": "T",
+      "name": "The VAT paragraph nobody can read",
+      "account": [
+        "I built a pricing paper for a new service line with AI doing the heavy lifting. The commercial side I know, and I checked it line by line against our own cost data. There is one section on the VAT treatment of the bundled element, whether it's a single supply or two, and I have no real way to tell whether that's right. I had no way to form a view either way, so it went into the paper as it was. Nobody in tax has seen it. We don't have anybody in tax."
+      ],
+      "pressed": {
+        "information": "Our own cost data for the commercial part, which I checked line by line. For the VAT part, nothing, I wouldn't know what to open.",
+        "constraints": "Our products, the UK market, and keep to the three price points we were considering.",
+        "reliance": "It's the paper the price was set from, and the price is live.",
+        "domain": "The commercial modelling is squarely mine. The VAT part is not, and that's the bit I can't judge.",
+        "consequence": "If the VAT treatment is wrong we're under-collecting and it's our liability, not the customer's. Had we been too conservative we'd just have been slightly expensive.",
+        "advantage": "It let one person produce a paper that would normally take three, and the structure is reusable."
+      },
+      "expectCards": [
+        "domain-goes-silent"
+      ],
+      "target": "domain-goes-silent",
+      "confusable": [
+        "independent-source-check",
+        "constructed-check",
+        "silence-is-not-safety"
+      ],
+      "note": "Everything inside the person's competence was checked against primary data. One paragraph sits outside it and no one who could judge it has read it."
+    },
+    {
+      "id": "T12",
+      "bucket": "T",
+      "name": "Forty exchanges and an eleven per cent gap",
+      "account": [
+        "I produced a demand forecast for the supply chain review through a long back-and-forth with AI. The inputs were ours, I've got the whole conversation saved, every prompt, and the file versions are in the folder with dates on them. I validated the output against last year's actuals. The problem is that the number came out of about forty exchanges where I kept nudging it, and there's no path from the inputs to the forecast that anyone could walk. My colleague tried to rebuild it from the same data and got something eleven per cent off, and neither of us can say which of us is wrong."
+      ],
+      "pressed": {
+        "information": "Our own shipment and order data, and I tested the output against last year's actuals.",
+        "constraints": "These four SKU families, the two regions, twelve months out, exclude the promotional spikes.",
+        "reliance": "The inventory policy was changed on it.",
+        "domain": "Demand planning is my background, and the supply chain director went through it with me.",
+        "consequence": "Forecast high and we hold stock we can't sell, forecast low and we stock out in peak. Stocking out is worse for us and that was stated in the review.",
+        "advantage": "It was faster than the statistical model, and we kept the statistical model running alongside it."
+      },
+      "expectCards": [
+        "reproduction-gap"
+      ],
+      "target": "reproduction-gap",
+      "confusable": [
+        "interaction-audit",
+        "constructed-check",
+        "independent-source-check"
+      ],
+      "note": "The prompts and the file versions are all kept, which closes the audit card. What cannot be done is arriving at the same number from the same inputs."
+    },
+    {
+      "id": "T13",
+      "bucket": "T",
+      "name": "A second provider, the same pack",
+      "account": [
+        "I had a valuation range for a small acquisition and I wanted a second opinion before it went to committee. So I took the same memo and the same figures and put them through a different model from a different provider, and asked it to assess the range independently. It came out within four per cent. That agreement is what settled it for me. I didn't take it to a third party or to our corporate finance adviser."
+      ],
+      "pressed": {
+        "information": "The target's accounts, which I'd read myself, and our own model. Then the same pack through the second AI.",
+        "constraints": "The comparable set I'd chosen, the multiple range, the adjustments to normalise, and no new comparables.",
+        "reliance": "The range went to the investment committee as the basis for the offer.",
+        "domain": "I've done a dozen of these, and the FD reviewed the model itself.",
+        "consequence": "Paying over is capital we don't get back, pitching low loses the deal to someone else. Both were in the paper.",
+        "advantage": "It compressed a week into a day, and the comparable analysis is reusable."
+      },
+      "expectCards": [
+        "manufactured-divergence"
+      ],
+      "target": "manufactured-divergence",
+      "confusable": [
+        "independent-source-check",
+        "constructed-check",
+        "borrowed-rule"
+      ],
+      "note": "Primary accounts were read and the model was reviewed by the FD. The thing treated as corroboration saw nothing the first one hadn't."
+    },
+    {
+      "id": "T14",
+      "bucket": "T",
+      "name": "A morning instead of four days",
+      "account": [
+        "I got the quarterly investor update out in a morning instead of four days, which was the whole point. The way that happened is that the update normally goes round three people, finance, legal and my chair, and this time it went to the chair only. I know the numbers are right, they're straight off our own management accounts and I tied them out. The time didn't come from AI being clever, it came from me dropping two of the three reviews because the draft looked finished."
+      ],
+      "pressed": {
+        "information": "Management accounts, tied out line by line. Nothing in the numbers came from the model.",
+        "constraints": "The quarter, our own figures, no forward-looking statements, and no comparisons to anyone else.",
+        "reliance": "It went to twenty-two investors.",
+        "domain": "This is my company, I know every number in it.",
+        "consequence": "An error in an investor update is a trust problem and possibly a disclosure one. Being vague instead would have invited questions, and I'd rather have the questions.",
+        "advantage": "Four days to a morning."
+      },
+      "expectCards": [
+        "speed-not-advantage"
+      ],
+      "target": "speed-not-advantage",
+      "confusable": [
+        "named-triggers",
+        "independent-source-check",
+        "constructed-check"
+      ],
+      "nearMiss": [
+        "structural-not-instructional"
+      ],
+      "note": "The numbers were tied out to source by someone who knows them. The saving came from removing two of the three reviews, not from a control that was ready to reuse."
+    },
+    {
+      "id": "T15",
+      "bucket": "T",
+      "name": "Three times cover, now with a model behind it",
+      "account": [
+        "There's a rule of thumb in our team that a pipeline needs to be three times the target to close. Nobody knows where it came from, it's just what gets said. I asked AI what coverage we needed for next quarter given our conversion history, and it came back with three times. That was the end of it for me. I did give it our own data and I checked its conversion maths against the CRM, which was right. But the coverage number is the one we already use, and having it come back out of the model is what made it feel like a real number rather than a saying."
+      ],
+      "pressed": {
+        "information": "Our CRM conversion data, and I checked its conversion arithmetic against the CRM myself.",
+        "constraints": "Our own pipeline, this segment, the last six quarters, and the deal sizes we actually run.",
+        "reliance": "The quarter's pipeline target was set on it and the team is carrying it.",
+        "domain": "Sales operations is my job, and the regional directors went through the numbers with me.",
+        "consequence": "Too much coverage means we chase junk, too little means we miss the number. Missing the number is the one that gets noticed and I said so.",
+        "advantage": "It took an afternoon off the planning cycle, and the model gets reused each quarter."
+      },
+      "expectCards": [
+        "junior-heuristic"
+      ],
+      "target": "junior-heuristic",
+      "confusable": [
+        "constructed-check",
+        "independent-source-check",
+        "manufactured-divergence"
+      ],
+      "nearMiss": [
+        "borrowed-rule"
+      ],
+      "note": "The hardest discrimination in the set. An unexamined team saying came back out of the system with authority it never earned. A borrowed-rule pick is a near miss, not a false positive: the distinction is between a belief the person held and a rule the institution repeats."
+    },
+    {
+      "id": "T16",
+      "bucket": "T",
+      "name": "The scoring decided who got a conversation",
+      "account": [
+        "We had sixty applications for two roles. I gave it the criteria and the anonymised applications and asked it to score each one out of ten against the criteria and rank them. I interviewed the top eight. I did read all sixty myself afterwards to see whether anything obvious had been missed, and I kept the criteria, the prompt and the scores. The scoring was the thing that decided who got a conversation, though. I didn't score them myself and then compare."
+      ],
+      "pressed": {
+        "information": "The applications themselves, and I read all sixty after the fact.",
+        "constraints": "The five criteria, the anonymised text only, ignore institution names, and no inference about anything not written down.",
+        "reliance": "Eight people got interviews and fifty-two didn't, on its ranking.",
+        "domain": "I hire for this role regularly, and the hiring manager agreed the criteria before I started.",
+        "consequence": "Scoring someone down who was good means we lose them and never know. Scoring someone up just costs an interview. I knew the first was the real risk.",
+        "advantage": "It turned two days of reading into an hour, and the criteria set gets reused."
+      },
+      "expectCards": [
+        "examiner-not-originator"
+      ],
+      "target": "examiner-not-originator",
+      "confusable": [
+        "constructed-check",
+        "interaction-audit",
+        "independent-source-check"
+      ],
+      "nearMiss": [
+        "reliance-not-trust"
+      ],
+      "note": "The criteria were agreed, the prompt and scores were kept, and all sixty were read afterwards. The judgement itself was still issued by the model."
+    },
+    {
+      "id": "T17",
+      "bucket": "T",
+      "name": "The fix was a better prompt",
+      "account": [
+        "We had a near miss earlier in the year. A client-facing summary went out with a figure in it that AI had taken from the wrong year. I caught it, just, before it mattered. What I did about it was rewrite the standard prompt we all use, I added that it must state the source year for every figure and must not infer a period. It's a better prompt and it's working. Nothing changed about who has to look at a client-facing figure before it goes, which is still nobody in particular."
+      ],
+      "pressed": {
+        "information": "In that case I did open the source, and that's how I caught it.",
+        "constraints": "The prompt is quite tight now. Source year on every figure, no inferred periods, named entity only, and say when it can't tell.",
+        "reliance": "Client-facing summaries go out on these prompts every week, across four of us.",
+        "domain": "It's my area and I know when a figure looks wrong. The others are more junior than me.",
+        "consequence": "A wrong figure to a client is a credibility problem and possibly a fee one. Being slower would have cost us nothing much.",
+        "advantage": "The prompt means the drafting is quick and reasonably safe, and it's the same prompt for everybody now, which is the part I was pleased about."
+      },
+      "expectCards": [
+        "structural-not-instructional"
+      ],
+      "target": "structural-not-instructional",
+      "confusable": [
+        "constrain-the-generation",
+        "independent-source-check",
+        "constructed-check"
+      ],
+      "nearMiss": [
+        "named-triggers"
+      ],
+      "note": "The remedy after a near miss was a better sentence in the prompt. Who must look before a client-facing figure moves is unchanged, and three of the four users are more junior than the person who caught it."
     }
   ]
 }
