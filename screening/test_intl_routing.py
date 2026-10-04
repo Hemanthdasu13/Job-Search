@@ -96,6 +96,20 @@ if n("Language Gated") != 2:
 if n("No Language Gate") + n("Language Gated") != len(ns["deduped"]):
     problems.append("the two sheets do not partition the rows")
 
+# the actual bug he reported: a gated role still appearing as a suggestion
+for sheet in ("Jobs", "Rolling Top 20", "New Since Last Run", "Contract Roles"):
+    ws = wb[sheet]
+    hdr = [c.value for c in ws[1]]
+    if "Language Gate" not in hdr:
+        continue
+    gi = hdr.index("Language Gate") + 1
+    ti = hdr.index("Title") + 1
+    leaked = [ws.cell(row=r, column=ti).value for r in range(2, ws.max_row + 1)
+              if str(ws.cell(row=r, column=gi).value or "").startswith("Gate:")]
+    print(f"  {sheet:<22} gated rows present: {len(leaked)} {leaked}")
+    if leaked:
+        problems.append(f"{sheet} still lists language-gated roles: {leaked}")
+
 print("\n  rare-fit reasons")
 ws = wb["Rare Fit - Best Odds"]; hdr=[c.value for c in ws[1]]
 ti, wi = hdr.index("Title")+1, hdr.index("Worth Sponsoring?")+1

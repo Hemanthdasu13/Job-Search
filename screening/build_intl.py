@@ -13,6 +13,7 @@ def setsrc(i, text):
     cells[i]["source"] = text.splitlines(keepends=True)
     cells[i]["outputs"] = []; cells[i]["execution_count"] = None
 
+ENRICH_SRC = read("i_enrich.py")
 report = []
 def sub(text, pattern, repl, count, label, flags=0):
     new, n = re.subn(pattern, lambda m: repl, text, count=count, flags=flags)
@@ -126,6 +127,14 @@ c15 = src(15)
 # UK build's foreign-city blocklist. The ATS and LinkedIn paths use it, and UAE,
 # Ireland and Portugal have no Adzuna endpoint, so leaving it would have made
 # those three markets silently return nothing at all.
+# The score, the honest gaps and the language gate all read the description, so
+# enrichment has to happen BEFORE the scoring loop, not after it.
+c15 = sub(c15, r"all_jobs = board_jobs \+ company_jobs \+ linkedin_jobs",
+          ENRICH_SRC.strip("\n") + "\n\n"
+          "all_jobs = board_jobs + company_jobs + linkedin_jobs\n"
+          "all_jobs = enrich_descriptions(all_jobs)",
+          1, "cell 15: descriptions enriched before scoring")
+
 c15 = sub(c15, r"STRICT_NON_UK_TERMS = \[.*?\]",
           "STRICT_NON_UK_TERMS = EXCLUDED_LOCATIONS  # single source, cell 1",
           1, "cell 15: strict blocklist retargeted", re.S)
@@ -134,11 +143,17 @@ c15 = sub(c15, r"deduped = annotate_contract_fields\(deduped\)",
           "deduped = annotate_contract_fields(deduped)\n"
           "\n"
           "# Market, language gate, permit route and rare-fit signal.\n"
-          "deduped = annotate_international_fields(deduped)",
+          "deduped = annotate_international_fields(deduped)\n"
+          "\n"
+          "# A role whose advert requires a language he does not have is not a near\n"
+          "# miss to be ranked low - it is a no. Defined here because Rolling Top 20\n"
+          "# is assembled before the sheet split and must honour it too.\n"
+          "_is_gated = lambda r: str(r.get(\"Language Gate\", \"\")).startswith(\"Gate:\")",
           1, "cell 15: international annotation")
 
 c15 = sub(c15, r'    "Contract Type", "Term", "Start Friction", "Start Friction Why",',
-          '    "Market", "Language Gate", "Worth Sponsoring?", "Service Hub",\n'
+          '    "Market", "Language Gate", "Advert Complete?", "Worth Sponsoring?",\n'
+          '    "Service Hub", "Advert Language", "Advert Length",\n'
           '    "Recognised Sponsor", "Permit Route", "Permit Gate", "Language Note",\n'
           '    "Language Evidence", "Market Rank",\n'
           '    "Contract Type", "Term", "Start Friction", "Start Friction Why",',
@@ -150,14 +165,32 @@ c15 = sub(c15, r'WRAP_COLUMNS = \{\n    "Why New", "Start Friction Why",',
           1, "cell 15: wrap the new prose columns")
 
 # the decision sheets
+c15 = sub(c15,
+          r'_contract_rows  = \[r for r in deduped if r\.get\("Contract Type"\) in CONTRACT_KINDS\]\n'
+          r'_permanent_rows = \[r for r in deduped if r\.get\("Contract Type"\) not in CONTRACT_KINDS\]',
+          '# A role whose advert requires a language he does not have is not a near\n'
+          '# miss to be ranked low - it is a no. Leaving them on Jobs and Rolling\n'
+          '# Top 20 is what made the tool look like it still recommended them.\n'
+          '_contract_rows  = [r for r in deduped\n'
+          '                   if r.get("Contract Type") in CONTRACT_KINDS and not _is_gated(r)]\n'
+          '_permanent_rows = [r for r in deduped\n'
+          '                   if r.get("Contract Type") not in CONTRACT_KINDS and not _is_gated(r)]',
+          1, "cell 15: gated roles off the working sheets")
+
+c15 = sub(c15, r"_top20_df = pd\.DataFrame\(deduped\)",
+          "# Excluded here too: a Top 20 led by a role requiring fluent Dutch is\n"
+          "# worse than no Top 20 at all.\n"
+          "_top20_df = pd.DataFrame([r for r in deduped if not _is_gated(r)])",
+          1, "cell 15: gated roles out of Rolling Top 20")
+
 c15 = sub(c15, r'df_contract     = _frame\(_contract_rows, cols\)',
           'df_contract     = _frame(_contract_rows, cols)\n'
           '\n'
           '# The sheet to actually work from. A role whose advert REQUIRES a language\n'
           '# he does not have is not a near miss, it is a no, so it is kept off the\n'
           '# working list rather than ranked low on it.\n'
-          '_gated   = [r for r in deduped if str(r.get("Language Gate","")).startswith("Gate:")]\n'
-          '_open    = [r for r in deduped if r not in _gated]\n'
+          '_gated   = [r for r in deduped if _is_gated(r)]\n'
+          '_open    = [r for r in deduped if not _is_gated(r)]\n'
           '_rare    = [r for r in _open if str(r.get("Worth Sponsoring?","")).startswith("Rare fit")]\n'
           'df_open     = _frame(_open, cols)\n'
           'df_gated    = _frame(_gated, cols)\n'

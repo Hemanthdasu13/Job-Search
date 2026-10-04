@@ -61,9 +61,30 @@ def annotate_international_fields(rows):
         market = market_for_location(location, r.get("Country", ""))
         cfg = MARKETS.get(market, {})
 
-        status, language, evidence = detect_language_requirement(
-            r.get("Title", ""), r.get("Job Description", ""))
+        jd = r.get("Job Description", "")
+        status, language, evidence = detect_language_requirement(r.get("Title", ""), jd)
         verdict, explain = language_verdict(status, language)
+
+        # An advert written in the local language is the strongest evidence there
+        # is that the job is done in that language, and no sentence in it will
+        # say so. Treated as a gate, but labelled as inference not quotation.
+        advert_lang, share = advert_language_guess(jd)
+        r["Advert Language"] = advert_lang or ("English" if len(str(jd)) > 400 else "")
+        if advert_lang and status != "REQUIRED":
+            verdict = f"Gate: advert written in {advert_lang}"
+            explain = (f"{int(share * 100)} percent of this advert is {advert_lang} "
+                       f"function words. Nothing in it states a language requirement, "
+                       f"but an advert written in {advert_lang} is a job done in "
+                       f"{advert_lang}. Inferred, not quoted.")
+            evidence = evidence or f"{advert_lang} stopword share {share}"
+
+        # Enrichment status, so a thin row is never mistaken for a clean one.
+        chars = len(str(jd).strip())
+        r["Advert Length"] = chars
+        r["Advert Complete?"] = (
+            "Full advert" if chars >= 1200 else
+            "Partial" if chars >= ENRICH_MIN_CHARS else
+            "SNIPPET ONLY - score and language gate are both unreliable")
 
         r["Market"] = market or "Unmatched"
         r["Market Rank"] = cfg.get("rank", 99)
