@@ -1485,6 +1485,25 @@
         "named-triggers"
       ],
       "note": "The remedy after a near miss was a better sentence in the prompt. Who must look before a client-facing figure moves is unchanged, and three of the four users are more junior than the person who caught it."
+    },
+    {
+      "id": "C16",
+      "bucket": "C",
+      "name": "A laptop for his son",
+      "account": [
+        "I used AI to help me pick between two laptops for my son. I told it the budget and that it needed at least 16GB of RAM. Afterwards I checked the specs on the manufacturer's own site and they matched. Worst case he ends up with a slightly worse laptop, so I did not do anything else. It did not seem worth more than that."
+      ],
+      "pressed": {
+        "Reliance": "It narrowed two options and I bought one of them.",
+        "Source checking": "The manufacturer's own spec page, which I opened myself.",
+        "Constraints": "Budget and a minimum amount of memory.",
+        "Consequence": "A slightly worse laptop. Nothing else rides on it.",
+        "Effort": "Proportionate to that, deliberately.",
+        "Domain": "I know enough about laptops to read a spec sheet."
+      },
+      "expectCards": [],
+      "mustNotSelect": "gut-feel-signal",
+      "note": "From a real run. The live selector named gut-feel-signal and constrain-the-generation here, then told him about a thousand rows checked by hand and a count fourteen times higher - about a laptop. The downside was priced in the account and ignored by the selector, which is what the proportion rule in SELECT_SYSTEM now addresses."
     }
   ]
 }

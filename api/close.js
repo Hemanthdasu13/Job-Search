@@ -82,6 +82,15 @@ Choosing:
 - If they described a specific, independent, constructed check that already
   covers the case, choose nothing. An empty list is a valid and often correct
   answer.
+- Weigh what being wrong would have cost before choosing anything. Where they
+  say what the downside was, and the downside is small, and the checking they
+  describe is in proportion to it, choose nothing from the first list. Someone
+  who says the worst case is a slightly worse laptop has priced the decision
+  and spent about the right effort on it. A gap named there is not a finding,
+  it is a lecture, and the person reading it stops believing the screen for
+  the decision that actually mattered. Proportion is the judgement; a short
+  account of a small decision handled lightly is a correct empty list, not a
+  thin one.
 - If the account is too thin to show anything, choose nothing.
 
 Quoting:
