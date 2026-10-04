@@ -40,6 +40,13 @@ c2 = c2.rstrip("\n") + "\n" + read("i_language.py").replace("import re\n", "", 1
      + read("i_annotate.py")
 setsrc(2, c2)
 
+# ── collection ceilings: the actual reason the row count was low ─────────────
+# Three hardcoded limits were capping intake far below what the sources offer:
+#   - Adzuna was requesting "/search/1" - page one only, forever
+#   - at 25 results per page, when the API allows 50
+#   - the Workday cell searched SEARCH_TERMS[:2], a leftover debug slice
+# Each page stops early when it comes back short, so a narrow keyword in a
+# small market still costs exactly one call.
 # ── cell 3: Adzuna loops over the market country codes ───────────────────────
 c3 = src(3)
 old_url = '''        f"https://api.adzuna.com/v1/api/jobs/gb/search/1"'''
@@ -55,6 +62,10 @@ c3 = c3.replace('''def fetch_adzuna(keyword):
         f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"''', 1)
 c3 = c3.replace('f"&where={requests.utils.quote(LOCATION)}"',
                 'f"&where={requests.utils.quote(where)}"', 1)
+c3 = c3.replace('f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"',
+                'f"https://api.adzuna.com/v1/api/jobs/{country}/search/{page}"', 1)
+c3 = c3.replace('def fetch_adzuna(keyword, country="gb", where=""):',
+                'def fetch_adzuna(keyword, country="gb", where="", page=1):', 1)
 c3 = c3.replace('"source":  "Adzuna",', '"source":  f"Adzuna {country.upper()}",', 1)
 
 # Reed is a UK-only board. Keeping it would spend a call per keyword to collect
@@ -77,8 +88,12 @@ def fetch_adzuna_all_markets(keyword):
     for name, cfg in sorted(MARKETS.items(), key=lambda kv: kv[1]["rank"]):
         if not cfg["adzuna"]:
             continue
-        found = fetch_adzuna(keyword, cfg["adzuna"], cfg["where"])
-        out.extend(found)
+        for page in range(1, ADZUNA_PAGES + 1):
+            found = fetch_adzuna(keyword, cfg["adzuna"], cfg["where"], page)
+            out.extend(found)
+            # A short page means there is no next page. Costs one call to learn.
+            if len(found) < RESULTS_PER_SOURCE:
+                break
     return out
 
 
@@ -93,6 +108,15 @@ setsrc(3, c3)
 report.append("cell 3: Adzuna per-country loop, Reed disabled")
 
 # ── every other NON_UK / UK_LOCATIONS definition points at the one source ────
+c9 = src(9)
+c9 = sub(c9, r"for search_term in SEARCH_TERMS\[:2\]:  # Test first 2 terms",
+         "for search_term in SEARCH_TERMS:  # was SEARCH_TERMS[:2], a leftover debug slice",
+         1, "cell 9: Workday searches the whole term list, not the first two")
+c9 = sub(c9, r'"limit": 20,\n            "offset": 0,',
+         '"limit": 50,\n            "offset": 0,',
+         1, "cell 9: Workday page size raised")
+setsrc(9, c9)
+
 for idx in (4, 7):
     c = src(idx)
     c = sub(c, r"NON_UK = \[.*?\]",

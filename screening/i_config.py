@@ -115,6 +115,18 @@ GBS_HUBS = {
 # Leave blank and the column reads "register not loaded" rather than guessing.
 SPONSOR_REGISTER_CSV = ""   # e.g. "/content/drive/MyDrive/ind_recognised_sponsors.csv"
 
+# ── COLLECTION CEILINGS ──────────────────────────────────────────────────────
+# Three hardcoded limits were capping intake far below what the sources offer:
+# Adzuna was asked for "/search/1" - page one, forever - at 25 results when the
+# API allows 50, and the Workday cell searched SEARCH_TERMS[:2], a leftover
+# debug slice. Defined here, after the original values, so these win.
+#
+# Pagination stops the moment a page comes back short, so a narrow keyword in a
+# small market still costs exactly one call. Raising ADZUNA_PAGES costs runtime
+# roughly linearly on the keywords that actually have depth.
+RESULTS_PER_SOURCE = 50     # Adzuna's per-page maximum
+ADZUNA_PAGES       = 3      # pages per keyword per country, with early stop
+
 # Everything the targeted markets are not. Keeps the UK out of this notebook -
 # the UK one already covers it, including Scotland and Wales.
 EXCLUDED_LOCATIONS = [

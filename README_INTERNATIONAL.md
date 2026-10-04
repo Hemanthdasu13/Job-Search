@@ -173,6 +173,42 @@ cannot get locally or score the role down and say why.
 
 ---
 
+## Collection ceilings that were capping the row count
+
+Three hardcoded limits were holding intake far below what the sources offer,
+and all three are lifted:
+
+- Adzuna was being asked for `/search/1` - **page one, forever.** It now walks
+  `ADZUNA_PAGES` pages per keyword per country and stops the moment a page
+  comes back short, so a narrow keyword in a small market still costs exactly
+  one call.
+- `results_per_page` was 25. The API allows **50**.
+- The Workday cell searched `SEARCH_TERMS[:2]` - a leftover debug slice,
+  comment and all - so twelve banks and consultancies were being searched for
+  two phrases out of its list. Now the whole list, at 50 per request.
+
+`test_pagination.py` drives a stubbed API to prove the walk happens, stops on a
+short page, and never spends more than one call on an empty market.
+
+## Still not built - the honest coverage gap
+
+This is where more roles live. None of it exists yet:
+
+- **Region-specific boards.** None at all. Pracuj.pl, NoFluffJobs and
+  Nationale Vacaturebank are the dominant boards in their markets; Adzuna is an
+  aggregator with partial coverage.
+- **English-language expat boards** - the best-fitting category for this
+  candidate and entirely absent: IamExpat (NL, DE), Undutchables (NL),
+  EnglishJobs.de, Landing.jobs (PT, ES).
+- **EURES**, the official EU portal covering every member state.
+- **Indeed country sites** (nl, pl, ie, de, es, fr, pt, ae) - the largest board
+  in most of these markets.
+- **UAE boards**: Bayt, GulfTalent, Naukrigulf.
+- **Non-UK ATS employer lists.** The Greenhouse, Lever, Workday and CSRF lists
+  hold 61 UK and UK-fintech employers chosen for a UK search. UAE, Ireland and
+  Portugal have no Adzuna endpoint and depend entirely on that path, so those
+  three markets are close to unsearched rather than thin.
+
 ## Limits worth stating
 
 - **Coverage is uneven.** Six markets have Adzuna; UAE, Ireland and Portugal
