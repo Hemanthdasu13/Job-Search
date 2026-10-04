@@ -107,6 +107,9 @@ const server = createServer(async (req, res) => {
     .reduce((n, m) => n + (typeof m.content === "string" ? m.content.length : 0), 0);
   const noted = (body.messages || []).some(
     (m) => typeof m.content === "string" && m.content.includes("passed through a model on the way here"));
+  const groundNote = (body.messages || [])
+    .map((m) => (typeof m.content === "string" ? m.content : ""))
+    .find((c) => c.includes("[Ground note")) || null;
 
   // A provider that never answers. The SDK's own timeout has to be the thing
   // that gives up, which is the behaviour being tested.
@@ -116,7 +119,7 @@ const server = createServer(async (req, res) => {
   }
   if (step.kind === "http") {
     callLog.push({ isSelector, inputChars, outputChars: 0, kind: `http_${step.status}`,
-                 turnChars, noted, schema: Boolean(body.output_config?.format) });
+                 turnChars, noted, groundNote, schema: Boolean(body.output_config?.format) });
     res.writeHead(step.status, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: { message: step.message || "upstream said no" } }));
   }
@@ -130,7 +133,7 @@ const server = createServer(async (req, res) => {
         : JSON.stringify({ ...QUESTION, ...(step.reply || {}) });
 
   callLog.push({ isSelector, inputChars, outputChars: text.length, kind: step.kind,
-                 turnChars, noted, schema: Boolean(body.output_config?.format) });
+                 turnChars, noted, groundNote, schema: Boolean(body.output_config?.format) });
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({
     stop_reason: step.stop_reason || "end_turn",
@@ -719,6 +722,7 @@ async function fourVisitors() {
 
   const token = access.mintToken(access.grantForPin("333333"));
   let selectorCalls = 0;
+  const walks = [];
 
   // Walks one conversation. `turns` is what the provider says each time and
   // what the person types back.
@@ -753,10 +757,13 @@ async function fourVisitors() {
       selectorCalls += 1;
     }
     const noted = callLog.filter((c) => c.noted).length;
+    const ground = callLog.filter((c) => !c.isSelector).map((c) => c.groundNote ?? null);
     const spent = bank();
     const calls = spent.calls - before.calls;
-    notes.push(`${label.padEnd(26)} -> ${where.padEnd(9)} calls=${calls} probing=${st.probing} redirects=${st.redirects} unusable=${st.unusable}`);
-    return { where, calls, st, last, cards, noted };
+    notes.push(`${label.padEnd(30)} -> ${where.padEnd(9)} calls=${calls} probing=${st.probing} redirects=${st.redirects} unusable=${st.unusable}`);
+    const result = { label, where, calls, st, last, cards, noted, ground };
+    walks.push(result);
+    return result;
   }
 
   /* 1. Says they do not use AI at all, on a page they clicked "try it on your
@@ -863,21 +870,38 @@ async function fourVisitors() {
   checks["remarking on it does not derail the conversation"] = viaModel.where === "cards";
   notes.push(`the model-written answer was remarked on ${notedCalls} time(s)`);
 
+  /* 8. What the server tells the model about its own coverage. Measured over
+        six real conversations, three questions in five were about what the
+        system had - so the ground is now stated as a fact in the request
+        rather than left as a rule the prompt asks the model to enforce on
+        itself, which is the mistake that produced the last two bugs. */
+  const covered = await walk("is told what ground it covered", "4.4.8.1", [
+    { says: "We used AI to compare four suppliers and I put the result into a steering group paper.",
+      reply: { status: "probing" } },
+    { says: "I checked it against the published rate cards and nothing else.",
+      reply: { status: "probing" } },
+    { says: "Nobody else looked at the underlying numbers.", reply: { status: "reached" } }
+  ]);
+  const notes1 = covered.ground[0];
+  const notes2 = covered.ground[1];
+  checks["no ground note on the first question"] = notes1 === null;
+  checks["a ground note arrives from the second"] = typeof notes2 === "string";
+  checks["the note counts the question"] = Boolean(notes2 && notes2.includes("this is question 2"));
+  checks["the note names ground nothing has touched"] =
+    Boolean(notes2 && notes2.includes("not yet touched") && notes2.includes("consequence"));
+  checks["the note claims nothing it cannot know"] =
+    Boolean(notes2 && !/questions? left/.test(notes2));
+  notes.push(`ground note on question 2: ${notes2 ? notes2.slice(13, 110) : "(none)"}`);
+
   // The one promise that holds across all four: a screen, never an error.
-  checks["every visitor landed on a screen"] =
-    [pretender, knowall, arguer, competent, noise, dumped, viaModel].every((v) => v.where !== "fallback");
+  checks["every visitor landed on a screen"] = walks.every((w) => w.where !== "fallback");
   // And the selector - the only call that can name a gap - ran once, for the
   // one person who left one.
   // Not a count: the question is whether it was ever asked about work that
   // did not leave a gap. It runs on the cards path only, so the account with
   // a real constructed check must never have reached it, and neither must
   // any of the three that closed on the neutral screen.
-  const reachedCards = [
-    ["demands a verdict", knowall], ["answers through a model", viaModel],
-    ["has a constructed check", competent], ["claims never uses AI", pretender],
-    ["argues and never answers", arguer], ["gibberish", noise],
-    ["dumps a prompt to test", dumped]
-  ].filter(([, v]) => v.where === "cards").map(([k]) => k);
+  const reachedCards = walks.filter((w) => w.where === "cards").map((w) => w.label);
   checks["the selector ran once per account that reached the cards"] =
     selectorCalls === reachedCards.length;
   checks["no closing was named for work with a real check"] = competent.where !== "cards";

@@ -43,6 +43,7 @@
 import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, jsonSchema, safeParse, textOf } from "./_model.js";
+import { coverageNote } from "./_axes.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -149,11 +150,16 @@ These are directions to ask in. They are not claims, they are not a
 checklist to read out, and you never name them or say why you are asking.
 
 Information is the easiest of those to keep pulling on and it crowds the
-rest out. At most two of your questions may be about what the system had,
-where that came from, or what it was compared against. Never two in a row on
-the same ground, and never a third wording of one angle. If you reach your
-fourth question without having asked what would have happened if the output
-had been wrong, and to whom, ask that one next.
+rest out: measured across real conversations it took three questions in
+every five, while what would have happened if the output was wrong took one
+in twenty-five and what it bought them none at all.
+
+From the second question onward you are told which ground your own earlier
+questions covered, and which of the six nothing has touched yet. Read it
+rather than working it out. At most two of your questions may be about
+information - what it had, where that came from, what it was compared
+against. Never two in a row on the same ground. If you are on your fourth
+question and consequence is still untouched, take that one next.
 
 Direction, based on what they describe checking:
 - Checked the output but not the inputs: ask what the system actually had to
@@ -286,6 +292,15 @@ const MAX_NOTE_CHARS = 200;
 // reach honestly and be shown "the interactive part is unavailable" for.
 const MAX_TOTAL_CHARS = 20000;
 
+// Notes are appended to the last turn after the transcript has been trimmed
+// to the cap, so the cap has to leave room for them or it stops being the
+// bound it claims to be. Three can attach at once - the ground note, the
+// note that an answer came through a model, and the format reminder on a
+// retry - and together they are under 600 characters.
+// Not MAX_NOTE_CHARS, which is already the cap on the closing_note field.
+const MAX_ATTACHED_NOTE_CHARS = 600;
+const TRANSCRIPT_BUDGET = MAX_TOTAL_CHARS - MAX_ATTACHED_NOTE_CHARS;
+
 // Which code is running, so a failure can be attributed to a build without
 // anyone having to find a dashboard.
 const BUILD = `${VERSION}@${(process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}`;
@@ -316,7 +331,7 @@ function buildMessages(body) {
   let total = keep.reduce((n, i) => n + size(i), 0);
   const dropped = [];
   // Never the first, never the last two.
-  for (let i = 1; total > MAX_TOTAL_CHARS && keep.length > 3; i++) {
+  for (let i = 1; total > TRANSCRIPT_BUDGET && keep.length > 3; i++) {
     const at = keep.indexOf(i);
     if (at === -1) continue;
     if (i >= answers.length - 2) break;
@@ -326,7 +341,7 @@ function buildMessages(body) {
   }
   // A payload still over the limit with three turns left is not a
   // conversation, it is a crafted body.
-  if (total > MAX_TOTAL_CHARS) return null;
+  if (total > TRANSCRIPT_BUDGET) return null;
   if (dropped.length) console.error("transcript_trimmed", dropped.length, "turn(s) of", answers.length);
 
   const messages = [];
@@ -496,7 +511,15 @@ export default async function handler(req, res) {
 
   // What actually goes, note and all, so the retry below sends the same turn
   // rather than a version of it with the note dropped.
-  const sent = body?.pasted === true ? withNote(messages, PASTED_NOTE) : messages;
+  // Facts the server already holds, stated rather than left for the model to
+  // work out from its own transcript. Asking it to keep its own count is the
+  // same mistake as the two before it: a rule in the prompt that nothing
+  // enforces. The server receives every question asked, so it says what
+  // ground they covered.
+  let sent = messages;
+  if (body?.pasted === true) sent = withNote(sent, PASTED_NOTE);
+  const ground = coverageNote(body?.questions);
+  if (ground) sent = withNote(sent, ground);
 
   let response;
   const started = Date.now();

@@ -15,66 +15,16 @@
 // asking the same thing over and over".
 
 import { readFileSync } from "node:fs";
+import { AXES, classify } from "../api/_axes.js";
 
 const arg = (n, d = null) => {
   const i = process.argv.indexOf(`--${n}`);
   return i === -1 ? d : process.argv[i + 1];
 };
 
-// The six from the prompt, plus two that the questions keep landing on which
-// the prompt does not name: how they would find out, and what the thing it
-// was checked against could itself see.
-const AXES = {
-  "inputs/source": [
-    /what (it|the (model|system|tool)) (actually )?(had|have)/i,
-    /did you (check|compare|verify|confirm)[^?]*(against|with)/i,
-    /where did .* come from/i,
-    /beyond what you gave it/i,
-    /source(d|s)?\b/i, /\bmaterial\b/i, /\binputs?\b/i,
-    /had no way of seeing/i, /wouldn't have seen/i, /couldn't see/i,
-    /identical material/i, /same (brief|prompt|material|data)/i,
-    /accurate|current|recent/i
-  ],
-  "constraints": [
-    /what did you (ask|tell) it to (include|use|do)/i,
-    /tell it (not )?to leave out/i, /told it not to/i,
-    /rule(d)? out/i, /instruct/i
-  ],
-  "reliance": [
-    /what (did you do|happened) (with|once|after)/i,
-    /what it (fed|produced) .*(went|used)/i,
-    /acted on/i, /went to/i, /applied that/i
-  ],
-  "domain": [
-    /you already knew/i, /well enough to judge/i,
-    /knowledge specific to/i, /outside (your|that) (own )?(domain|knowledge)/i,
-    /could .* judge it/i, /guessing at/i
-  ],
-  "consequence": [
-    /what would happen (to|if)/i, /if it (had been|turned out|was) wrong/i,
-    /who (would|was) (be )?affected/i, /cost\b/i, /\bat stake\b/i
-  ],
-  "advantage": [
-    /what did (using )?it (actually )?(buy|give) you/i,
-    /beyond the time/i, /faster|quicker|saved you/i,
-    /what you could not have done/i
-  ],
-  "detection": [
-    /how (will|would) you (find out|know|catch)/i,
-    /what would (alert|tell|warn) you/i,
-    /catch an error/i, /before you acted/i, /need to see to catch/i,
-    /came up that weren't/i
-  ]
-};
-
-function classify(q) {
-  const hits = [];
-  for (const [axis, pats] of Object.entries(AXES)) {
-    if (pats.some((p) => p.test(q))) hits.push(axis);
-  }
-  return hits;
-}
-
+// The classifier lives in api/_axes.js, because the server uses it to tell
+// the model what ground is covered. Two copies would drift, and the copy
+// that matters is the one the model is told.
 const file = arg("file");
 let data;
 if (file) {
