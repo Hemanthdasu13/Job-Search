@@ -813,7 +813,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.7.1</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.7.2</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -1291,6 +1291,39 @@ h1::before,h2::before{
   }
 
   // Model output, so textContent throughout: never innerHTML.
+  // What a visitor reads when the interactive part did not run.
+  //
+  // This used to print the server's reason code: "no_api_key",
+  // "unparseable_reply", "daily_cap". The owner met "no_api_key" himself on a
+  // stale deployment and it reads exactly like a broken site, which is the one
+  // thing the fallback exists to avoid. It also tells a stranger more about
+  // the inside of the service than they need.
+  //
+  // The cap is the case worth wording properly, because on a launch day it is
+  // the likely one: a shared daily budget being spent is not a fault, and
+  // saying so plainly is better than implying a crash.
+  var WHY = {
+    daily_cap: "Today's shared allowance has run out. It resets tomorrow.",
+    ip_rate_limit: "That is more goes than this allows from one place in a short window.",
+    key_spent: "That access key has been used for the conversations it was good for.",
+    no_api_key: "It is not configured on this deployment.",
+    no_model_id: "It is not configured on this deployment.",
+    bad_token: "That access key is not valid.",
+    no_token: "This needs an access key.",
+    upstream_timeout: "It took too long to answer and the attempt was dropped.",
+    upstream_429: "The service behind it is busy. A minute usually fixes it."
+  };
+
+  function whyUnavailable(reason) {
+    var said = WHY[reason] || "The research below is the whole of it either way.";
+    // The code itself is still reachable, because the owner needs it when
+    // something is wrong and a reader does not.
+    if (/[?&]debug=1\b/.test(window.location.search) && reason) {
+      return said + " (" + reason + ")";
+    }
+    return said;
+  }
+
   function paintClosing(screen) {
     var note = $(screen + "-note");
     note.hidden = !state.closingNote;
@@ -1510,7 +1543,7 @@ h1::before,h2::before{
   function closeGapSurfaced(unavailable) {
     setBusy(false);
     $("s5a-unavailable").hidden = !unavailable;
-    $("s5a-why").textContent = unavailable ? (state.lastFailure || "") : "";
+    $("s5a-why").textContent = unavailable ? whyUnavailable(state.lastFailure) : "";
     paintClosing("s5a");
     contribute(unavailable ? "unavailable" : (state.probing >= MAX_PROBING_TURNS ? "exhausted" : "reached"));
     show("s5a");

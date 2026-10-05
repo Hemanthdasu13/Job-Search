@@ -30,8 +30,16 @@ import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
 const MAX_ANSWERS = 12;
-const MAX_ANSWER_CHARS = 1500;
-const MAX_TOTAL_CHARS = 9000;
+// Matched to ask.js, which is the only place these numbers can come from: the
+// questioner accepts 2000 characters an answer and 20000 a conversation, so
+// anything tighter here refuses a conversation the rest of the tool has
+// already had. It did. At 1500 and 9000, one long answer - and the textarea
+// allows 2000 - or five ordinary ones from a verbose person returned
+// bad_request_shape, which drops the whole ledger and shows the general
+// closing instead. ask.js carried exactly this bug and had it fixed; the
+// closing kept it, because nobody checked that the two agreed.
+const MAX_ANSWER_CHARS = 2000;
+const MAX_TOTAL_CHARS = 20000;
 const MAX_EVIDENCE_CHARS = 300;
 
 // The evidence is the visitor's own sentence, shown back to them. A hard
@@ -200,9 +208,31 @@ async function readJsonBody(req) {
 function readAnswers(body) {
   const answers = body?.answers;
   if (!Array.isArray(answers) || answers.length < 1 || answers.length > MAX_ANSWERS) return null;
-  if (!answers.every((a) => typeof a === "string" && a.trim() && a.length <= MAX_ANSWER_CHARS)) return null;
-  if (answers.reduce((n, s) => n + s.length, 0) > MAX_TOTAL_CHARS) return null;
-  return answers.map((a) => a.trim());
+  if (!answers.every((a) => typeof a === "string" && a.trim())) return null;
+
+  // Clipped and trimmed rather than refused. A refusal here costs the person
+  // the entire closing screen, which is a worse answer to "you wrote a lot"
+  // than a selection made from most of what they wrote. Each answer is cut to
+  // the per-answer limit first, then the middle of the conversation goes if
+  // the total is still over - the opening account and the last turns are the
+  // ones carrying the quotable lines.
+  const clipped = answers.map((a) => a.trim().slice(0, MAX_ANSWER_CHARS));
+  const total = (list) => list.reduce((n, a) => n + a.length, 0);
+  if (total(clipped) <= MAX_TOTAL_CHARS) return clipped;
+
+  const head = clipped.slice(0, 1);
+  const tail = clipped.slice(-2);
+  const middle = clipped.slice(1, -2);
+  const kept = [...head];
+  let room = MAX_TOTAL_CHARS - total(head) - total(tail);
+  for (const answer of middle) {
+    if (answer.length > room) continue;
+    kept.push(answer);
+    room -= answer.length;
+  }
+  kept.push(...tail);
+  console.error("close_answers_trimmed", `${answers.length} to ${kept.length}`);
+  return total(kept) <= MAX_TOTAL_CHARS ? kept : [...head, ...tail].map((a) => a.slice(0, MAX_TOTAL_CHARS / 3));
 }
 
 // Deterministic stand-in for the model, so the closing screen, the card

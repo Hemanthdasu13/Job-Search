@@ -85,6 +85,23 @@ check("every strength has a sentence written for it", whys.length === STRENGTH_I
 const longest = whys.reduce((n, w) => Math.max(n, w.split(/\s+/).length), 0);
 check("no strength runs past 25 words", longest <= 25, `longest is ${longest}`);
 
+// The questioner and the closing must agree about how much a person may write.
+// They did not: the closing refused at 1500 characters an answer and 9000 a
+// conversation while the questioner accepted 2000 and 20000, so a long
+// conversation lost its entire ledger and fell through to the general
+// closing. Nothing caught it because nothing compared them.
+const askSrc = readFileSync(new URL("../api/ask.js", import.meta.url), "utf8");
+const closeSrc = readFileSync(new URL("../api/close.js", import.meta.url), "utf8");
+const limitOf = (src, name) => {
+  const hit = src.match(new RegExp(`const ${name} = (\\d+);`));
+  return hit ? Number(hit[1]) : null;
+};
+for (const name of ["MAX_ANSWER_CHARS", "MAX_TOTAL_CHARS", "MAX_ANSWERS"]) {
+  const a = limitOf(askSrc, name), c = limitOf(closeSrc, name);
+  check(`the closing accepts as much as the questioner does (${name})`,
+    a !== null && c !== null && c >= a, `ask=${a} close=${c}`);
+}
+
 console.log("");
 if (failed) { console.log(`${failed} check(s) failed.`); process.exit(1); }
 console.log(`Ledger holds: ${PRACTICE_IDS.length} gaps, ${STRENGTH_IDS.length} strengths,`);
