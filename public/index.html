@@ -813,7 +813,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.7.2</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.7.3</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -1239,6 +1239,7 @@ h1::before,h2::before{
     reflection: null,   // a paraphrase of their account, shown on 5A or 5B.
     boundary: null,     // what that check would and would not have caught.
     held: [],           // what the account positively showed. Max two.
+    thin: false,        // the server's read: mostly non-answers, nothing to conclude from.
                         // The server drops one that addresses the reader or
                         // shares no vocabulary with what they typed.
     closingNote: null,  // one line, only when a real outcome was described
@@ -1740,6 +1741,10 @@ h1::before,h2::before{
       // turn the server dropped one on must not wipe the one already in
       // hand - the whole point is that a conversation ending at any turn has
       // something to show.
+      // Not sticky, unlike the two conclusion lines: thinness is a property of
+      // the whole conversation as it stands, and one real answer late on
+      // should lift it.
+      state.thin = data.thin === true;
       if (typeof data.reflection === "string" && data.reflection) { state.reflection = data.reflection; }
       if (typeof data.boundary === "string" && data.boundary) { state.boundary = data.boundary; }
       state.closingNote = typeof data.closing_note === "string" ? data.closing_note : null;
@@ -1774,6 +1779,14 @@ h1::before,h2::before{
 
       if (data.status === "unclear") {
         state.unusable += 1;
+        // A conversation that is mostly non-answers, and has run out of turns
+        // to recover in, ends neutrally. Before this it ended on a two-line
+        // conclusion: a live run went "nothing lol", "no idea", "i would look
+        // silly" and got a confident summary, because the conclusion was made
+        // unconditional to fix a different bug - it used to be missing
+        // entirely - and nothing replaced the condition that had been doing
+        // this job by accident.
+        if (state.thin && state.probing >= MAX_PROBING_TURNS - 1) { closeNeutral(); return; }
         // A whole conversation of non-answers must not arrive at the closing
         // screen, which would then be naming gaps in four words of input.
         // Six probing turns made that reachable; this closes it off.
@@ -1837,6 +1850,13 @@ h1::before,h2::before{
 
   function submitAnswer(text) {
     state.answers.push(text.slice(0, MAX_INPUT_CHARS));
+    // A conversation with nothing in it reaches the turn cap like any other,
+    // and the cap is the commonest way this ends. Routing only the unclear
+    // path would leave the main road open.
+    if (state.thin && (state.probing >= MAX_PROBING_TURNS || state.calls >= MAX_MODEL_CALLS)) {
+      closeNeutral();
+      return;
+    }
     if (state.probing >= MAX_PROBING_TURNS || state.calls >= MAX_MODEL_CALLS) {
       closeGapSurfaced(false);
       return;

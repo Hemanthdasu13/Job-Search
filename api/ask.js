@@ -512,6 +512,54 @@ export function staysDescriptive(line) {
   return !whyNotDescriptive(line);
 }
 
+// A non-answer, measured rather than asked for.
+//
+// The prompt has defined "unclear" for a non-answer since 0.3.0 and the model
+// does not use it. A live conversation went "nothing lol", "no idea", "i would
+// look silly" and came back probing, probing, reached - so the unusable
+// counter never moved, the thin-account guard in the page was unreachable, and
+// the tool wrote a confident two-line conclusion about twenty-five characters
+// of content.
+//
+// This is the same lesson as the ground note and the second pass: a rule the
+// prompt states and nothing enforces is decoration. The server can see a
+// non-answer without being told.
+//
+// Deliberately an explicit list rather than a length or a word count. "Local
+// guy" is nine characters and two words and was one of the most useful answers
+// this tool has had; "nothing lol" is eleven characters and is not an answer.
+// Length cannot tell them apart. The difference is that one names something.
+const FILLER = /\b(lol|lmao|haha+|hmm+|erm+|um+|uh+|well|really|much|actually|tbh|honestly|mate|sorry)\b/g;
+const NON_ANSWERS = new Set([
+  "nothing", "none", "no", "nope", "nah", "na", "n/a", "nil", "never",
+  "no idea", "noidea", "no clue", "dunno", "dont know", "do not know",
+  "didnt know", "not sure", "unsure", "cant say", "cannot say", "cant tell",
+  "cant remember", "dont remember", "idk", "not really", "nothing really",
+  "no comment", "pass", "skip", "same", "ditto", "unknown"
+]);
+
+export function isNonAnswer(text) {
+  const bare = String(text || "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(FILLER, " ")
+    .replace(/[^a-z0-9/ ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!bare) return true;
+  return NON_ANSWERS.has(bare);
+}
+
+// Whether the conversation has anything to conclude from. The opening account
+// is excluded: it is the one turn that is always substantial, and counting it
+// would mean a good opening excused three non-answers after it.
+export function conversationIsThin(answers) {
+  const replies = (answers || []).slice(1);
+  if (!replies.length) return false;
+  const empty = replies.filter((a) => isNonAnswer(a)).length;
+  return empty * 2 >= replies.length;
+}
+
 // The reflection is shown on the closing screen as a restatement of what the
 // visitor described. The prompt asks for their own words where possible, with
 // figures and names generalised - so it is a paraphrase by design and can
@@ -739,7 +787,28 @@ export default async function handler(req, res) {
   // cost of being wrong here is one more question.
   const recognised = normaliseStatus(parsed.status);
   if (!recognised) console.error("model_call_odd_status", model, statusShape(parsed.status));
-  const status = recognised || "probing";
+  let status = recognised || "probing";
+
+  // Overridden where the measurement and the model disagree. The turn that
+  // said "nothing lol" came back "probing", which spends one of four turns
+  // and tells the page the answer was usable. It was not.
+  const everything = answersOf(body);
+  const lastAnswer = everything[everything.length - 1];
+  if (isNonAnswer(lastAnswer) && status !== "off_topic") {
+    if (status !== "unclear") console.error("status_forced_unclear", statusShape(parsed.status));
+    status = "unclear";
+  }
+
+  // And a conversation that is mostly non-answers cannot be closed on having
+  // found something. "I would look silly" is a consequence, not a gap, and
+  // "reached" on it produced a confident closing built on nothing. The turn
+  // cap still ends the conversation; the page decides what to show, and the
+  // flag below is how it knows.
+  const thin = conversationIsThin(everything);
+  if (thin && (status === "reached" || status === "verified")) {
+    console.error("close_refused_thin_account", `${everything.length} answers`);
+    status = "probing";
+  }
 
   const text_or_null = (value, limit) =>
     typeof value === "string" && value.trim() ? value.trim().slice(0, limit) : null;
@@ -776,6 +845,11 @@ export default async function handler(req, res) {
     build: BUILD,
     question: question.slice(0, MAX_QUESTION_CHARS),
     status,
+    // The page shows the neutral closing rather than a conclusion when this
+    // is true. A two-line summary of an account with nothing in it is the
+    // tool sounding more substantial than its material, which is the one
+    // impression it cannot afford.
+    thin,
     reflection,
     boundary,
     closing_note: text_or_null(parsed.closing_note, MAX_NOTE_CHARS)

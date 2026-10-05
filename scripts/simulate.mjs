@@ -46,7 +46,8 @@ const ENV = {
   "provider-dies":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" },
   "budget-runs-out": { RATE_LIMIT_PER_IP: "6",   DAILY_CALL_CAP: "12"  },
   "hostile-input":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" },
-  "four-visitors":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" }
+  "four-visitors":   { RATE_LIMIT_PER_IP: "40",  DAILY_CALL_CAP: "300" },
+  "answers-with-nothing": { RATE_LIMIT_PER_IP: "40", DAILY_CALL_CAP: "300" }
 };
 
 // The parent runs nothing itself; it fans out and adds up.
@@ -572,7 +573,7 @@ async function hostileInput() {
   // An allowlist rather than a count, so a new field has to be added here
   // deliberately. This is the gate that keeps a score, a rating or a category
   // off the wire no matter what the model sends back.
-  const ALLOWED_REPLY_KEYS = ["ok", "build", "question", "status", "reflection", "boundary", "closing_note", "reason"];
+  const ALLOWED_REPLY_KEYS = ["ok", "build", "question", "status", "thin", "reflection", "boundary", "closing_note", "reason"];
   const extra = Object.keys(injected).filter((k) => !ALLOWED_REPLY_KEYS.includes(k));
   checks["the reply carries no field the page did not ask for"] = extra.length === 0;
   if (extra.length) notes.push(`unexpected reply field(s): ${extra.join(", ")}`);
@@ -758,6 +759,61 @@ function route(reply, st, caps) {
   st.unclearRun = 0;
   st.probing += 1;
   return "ask";
+}
+
+// His live 0.7.2 conversation, reproduced. The provider is told to answer
+// "probing", "probing", "reached" exactly as it did, so what is being tested
+// is whether the server overrides it rather than whether the model behaves.
+async function nothingLol() {
+  const name = "answers with nothing in them";
+  resetSpend();
+  const checks = {};
+  const notes = [];
+  const token = access.mintToken(access.grantForPin("333333"));
+  const answers = ["i used it to decide what i will speak during a meeting, basically a script for sports club introduction for next year mba batch during a joint call"];
+  const replies = ["nothing lol", "no idea", "i would look silly"];
+  const said = ["probing", "probing", "reached"];
+  const statuses = [];
+  const thinFlags = [];
+
+  // Seeded with the question he was actually asked, because a turn is an
+  // answer to a question and the handler refuses a transcript where the two
+  // do not line up.
+  const asked = ["What did you give it about the next year MBA batch that shaped what it wrote?"];
+  for (let i = 0; i < replies.length; i++) {
+    answers.push(replies[i]);
+    plan = [{ kind: "ok", reply: { status: said[i], question: "What did it have about that batch?" } }];
+    const r = await post(ask, { answers, questions: asked }, { token, ip: "4.4.4.1" });
+    if (r.ok !== true) { notes.push(`turn ${i + 1} refused: ${r.reason}`); break; }
+    statuses.push(r.status);
+    thinFlags.push(r.thin);
+    if (i < replies.length - 1) asked.push(r.question);
+  }
+
+  notes.push(`model said [${said}], server returned [${statuses}]`);
+  notes.push(`thin flag per turn: [${thinFlags}]`);
+
+  checks["a non-answer is forced to unclear whatever the model said"] =
+    statuses[0] === "unclear" && statuses[1] === "unclear";
+  checks["a real answer is left alone"] = statuses[2] !== "unclear";
+  checks["reached is refused on a conversation of non-answers"] = statuses[2] !== "reached";
+  checks["the thin flag reaches the page"] = thinFlags[2] === true;
+
+  // And the opposite case, so the measurement is not simply always true.
+  const soho = [
+    "I was using it to recommend me for a restaurant/ pub near soho",
+    "i cannot weigh, im new to the place. but i asked someone after and they said yeah its a cool place"
+  ];
+  plan = [{ kind: "ok", reply: { status: "reached", question: "",
+    reflection: "I asked someone after and they said it was a cool place." } }];
+  const good = await post(ask, { answers: soho, questions: ["What did you do once it recommended somewhere?"] },
+    { token, ip: "4.4.4.2" });
+  if (good.ok !== true) notes.push(`the real conversation was refused: ${good.reason}`);
+  checks["a real conversation is not called thin"] = good.thin === false;
+  checks["reached still closes a real conversation"] = good.status === "reached";
+  notes.push(`a real conversation: status=${good.status} thin=${good.thin}`);
+
+  record(name, checks, notes, bank());
 }
 
 async function fourVisitors() {
@@ -981,7 +1037,8 @@ const SIMS = {
   "provider-dies": providerDies,
   "budget-runs-out": budgetRunsOut,
   "hostile-input": hostileInput,
-  "four-visitors": fourVisitors
+  "four-visitors": fourVisitors,
+  "answers-with-nothing": nothingLol
 };
 
 await SIMS[CHILD]();
