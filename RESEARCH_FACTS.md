@@ -191,3 +191,22 @@ they found out, not like a journal abstract.
 Verbatim, on 5A, 5B and 5C. This is not defensive. It is the difference
 between a research artifact and a personality quiz, and anyone senior enough
 to matter will check.
+
+## Other people's work, and the role it plays
+
+None of this appears on the tool's screens. It shapes the architecture and it
+belongs in a related-work section of research.html, cited. The rule for this
+file is unchanged: a claim on screen comes from the dissertation or it does
+not go in.
+
+| Source | What it supports | Where it acts |
+|---|---|---|
+| NICHD Investigative Interview Protocol | Question types ranked by how much they contaminate an account: open invitations, then focused recall on details ALREADY mentioned, option-posing sparingly, suggestive never | The v0.4.0 question rules and scripts/_rules.mjs |
+| Lee et al. 2025, Microsoft Research / CMU, CHI, n=319 | Confidence in the AI predicted less critical thinking (b=-0.69); confidence in one's own ability predicted more (b=0.26) | Why the closing has a strengths side at all, not only gaps |
+| Bucinca, Malaya & Gajos 2021, "To Trust or to Think" | Cognitive forcing functions cut overreliance; the designs that cut it most were rated worst; the effect is stronger for people higher in Need for Cognition | Why "too complex" is weak evidence from a cold recipient, and the unbuilt commit-before-reveal step |
+| Dhuliawala et al., Chain-of-Verification, ACL Findings 2024 | Draft, generate verification questions, answer them in isolation from the draft, revise. Strongest when each question is answered without seeing the original answer | An option for the closing selector, not for the page: a factored second pass asking "does this quote show this card?" |
+| Abstention vs. Hallucination (arXiv 2405.02228); Attribution, Citation and Quotation survey (arXiv 2508.15396) | A citation forces a claimed source onto a statement; it does not force that source to say what is claimed. Abstention instructions reduce confident fabrication without improving citation correctness | Independent arrival at 4.5: a citation is a careful read wearing a reference. Justifies the abstention clause now in constrain-the-generation's action, and nothing else |
+
+The abstention clause is the only sentence any of this put on a screen, and
+it went into an action line that was already there, in the researcher's own
+words, sourced to 4.5.3. Everything else stayed in the architecture.
