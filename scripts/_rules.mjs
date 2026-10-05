@@ -82,189 +82,22 @@ export const ASIDE = /\u2014|\u2013|\s-\s|\(|\)|;/;
 import { PRESUPPOSES_ACTION as PRESUPPOSES_FROM_API } from "../api/_question_rules.js";
 export const PRESUPPOSES_ACTION = PRESUPPOSES_FROM_API;
 
-// ------------------------------------------------------------- introduced words
-//
-// The NICHD investigative interview protocol ranks question types by how much
-// they contaminate the account: open invitations first, then focused recall
-// which may only address details the person has ALREADY mentioned, then
-// option-posing sparingly, and suggestive utterances not at all.
-//
-// By that taxonomy this question is both option-posing and suggestive:
-//
-//   "What did that person actually know about the place - had they been
-//    there recently, or were they just going on reputation?"
-//
-// "Recently" and "reputation" are the tool's words, not his. Both are ways
-// of being inadequate, so the question hands over the answer it then
-// receives. The rule that catches it is mechanical: a question may not
-// introduce content words the person has not used.
-//
-// The allowlist is the scaffolding a question needs regardless of what was
-// said - interrogatives, auxiliaries, pronouns, and the small set of frame
-// words this tool asks in. Everything else has to come from them.
-const SCAFFOLD = new Set(`
-a an and the of to in on at for from with by about into over after before
-what which where how who whom whose why when
-did do does done was were is are am be been being have has had
-can could would will shall should may might must
-you your yours they them their it its this that these those there here
-i me my we us our one anyone anybody someone something anything nothing
-not no nor or if so then than as but also just only even still yet
-actually really specifically instead rather otherwise beyond outside within
-other another same different first next last own more most less least
-thing things part parts bit piece case point side way ways
-output outputs answer answers reply result results
-know knew known knowing tell told telling say said saying
-ask asked asking give gave given giving get got gets
-use used using go went going come came coming
-make made making take took taken taking
-happen happened happens find found finds
-look looked looking see saw seen read
-think thought thinking mean meant means
-let put kept keep need needed want wanted
-produce produced produces able possible
-time times long short once twice out
-name names named call called
-cost costs costing worth
-wrong right wrongly
-turn turned turns
-decide decided deciding decision decisions
-against like unlike such
-myself yourself himself herself itself themselves ourselves
-dont doesnt didnt cant couldnt wouldnt wasnt isnt werent arent
-havent hasnt hadnt wont shouldnt
-ai model tool system
-`.trim().split(/\s+/));
-
-const POSSESSIVE = /[’']s\b/g;
-
-export function contentWordsOf(text) {
-  return (String(text).toLowerCase().replace(POSSESSIVE, "")
-    .match(/[\p{L}][\p{L}'’-]*/gu) || [])
-    // "couldn't" is scaffolding spelled with punctuation in it, so the
-    // apostrophe comes out before the lookup rather than the list carrying
-    // every spelling of every contraction.
-    .map((w) => w.replace(/['’]/g, "").replace(/^[-]+|[-]+$/g, ""))
-    .filter((w) => w.length > 2 && !SCAFFOLD.has(w));
-}
-
-// A hyphenated coinage the tool built out of their words - "young-woman",
-// "not-too-crowded" - is their content, not an introduction, so each half is
-// checked separately rather than the whole as one unknown word.
-function* partsOf(word) {
-  yield word;
-  if (word.includes("-")) for (const part of word.split("-")) if (part.length > 2) yield part;
-}
-
-// Two is the allowance, not zero: a question often needs one word of its own
-// to point at what they described without quoting it back whole. Three is
-// where it stops being their account and starts being the tool's.
-export const MAX_INTRODUCED_WORDS = 2;
-
-// The same question as anchorWords, asked the other way round, so it uses the
-// same stemmer. Two stemmers would disagree about whose word a word is, and a
-// question could then be both anchorless and introducing nothing.
-export function introducedWords(question, answers = []) {
-  if (!answers.length) return [];
-  const theirs = new Set();
-  for (const answer of answers) for (const word of contentWordsOf(answer)) {
-    for (const part of partsOf(word)) for (const stem of stems(part)) theirs.add(stem);
-  }
-  const introduced = [];
-  for (const word of contentWordsOf(question)) {
-    const known = [...partsOf(word)].some((part) =>
-      [...stems(part)].some((stem) => theirs.has(stem)) || sharesPrefix(part, theirs));
-    if (!known && !introduced.includes(word)) introduced.push(word);
-  }
-  return introduced;
-}
-
-// ------------------------------------------------------------------ anchoring
-//
-// Carrying none of their words is not on its own the failure. "What were you
-// going there for?" carries no content word at all once the scaffolding comes
-// out, and it is a good question - it points at what they described through
-// "there" rather than by repeating a noun. The first version of this rule
-// flagged it, and flagged "what could it have known about the crowd on a
-// given night", which is the best question the tool has produced.
-//
-// The failure is narrower: the tool's own verification vocabulary, with
-// nothing of theirs attached. That is the question which would fit any
-// account AND announces itself as a verification checklist while doing it.
-const FRAME = /\b(check|checks|checked|checking|verify|verified|verifying|verification|against|compare|compared|comparing|source|sources|sourced|output|outputs|accurate|accuracy|validate|validated|evidence|reliable|reliability)\b/i;
-
-//
-// The rules above bound what a question may INTRODUCE. Nothing until now
-// required it to carry anything of theirs, so this passed every check:
-//
-//   "What did you check it against?"
-//
-// Nought introduced, under twenty words, one clause, no aside, no forced
-// choice. It is also a question that would fit any account anybody has ever
-// typed, which is the failure that costs this tool its reason to exist. The
-// whole argument for asking questions instead of answering them is that the
-// questions come from the account; a stock question is the moment a reader
-// decides a general-purpose assistant would have done this anyway.
-//
-// So a question has to be anchored: at least one content word in it must be
-// one they used. Not two - one is enough to make a question about their
-// decision rather than about verification in general, and more would force
-// the quoting-back that reads as parroting.
-//
-// The opening question is exempt. There is nothing to anchor to yet.
-export const MIN_ANCHOR_WORDS = 1;
-
-
-// Crude, deliberately. A stemmer that is clever enough to be wrong in ways
-// nobody can predict is worse here than one whose mistakes are obvious: this
-// decides whether a question counts as theirs, and being surprising about
-// that is the failure. Both directions, because the first version only
-// matched their longer word to a question's shorter one, so their "run" never
-// matched a question's "running" and a good question about the retail banking
-// rule sets was flagged as generic.
-function stems(word) {
-  const out = new Set([word]);
-  for (const suffix of ["s", "es", "ed", "ing", "d"]) {
-    if (word.endsWith(suffix) && word.length - suffix.length >= 3) out.add(word.slice(0, -suffix.length));
-    out.add(word + suffix);
-  }
-  if (word.endsWith("e")) out.add(word.slice(0, -1) + "ing");
-  if (word.endsWith("y")) out.add(word.slice(0, -1) + "ies");
-  return out;
-}
-
-// English morphology the suffix list does not reach: "shown" against their
-// "shows", "ran" against their "run". A shared prefix of five characters is
-// the fallback - long enough that "contention" and "contract" stay apart, and
-// crude enough to stay predictable.
-const PREFIX = 5;
-function sharesPrefix(word, theirs) {
-  if (word.length < PREFIX) return false;
-  const head = word.slice(0, PREFIX);
-  for (const t of theirs) if (t.length >= PREFIX && t.slice(0, PREFIX) === head) return true;
-  return false;
-}
-
-export function anchorWords(question, answers = []) {
-  if (!answers.length) return [];
-  const theirs = new Set();
-  for (const answer of answers) for (const word of contentWordsOf(answer)) {
-    for (const part of partsOf(word)) for (const stem of stems(part)) theirs.add(stem);
-  }
-  const anchored = [];
-  for (const word of contentWordsOf(question)) {
-    // A shared verification verb is not an anchor. "Check" appearing in their
-    // answer does not make "what did you check it against" a question about
-    // their decision - it is the frame word that made it generic in the first
-    // place, and twenty of ninety-six stock questions got through on exactly
-    // that before this line existed.
-    if (FRAME.test(word)) continue;
-    const hit = [...partsOf(word)].some((part) =>
-      [...stems(part)].some((stem) => theirs.has(stem)) || sharesPrefix(part, theirs));
-    if (hit && !anchored.includes(word)) anchored.push(word);
-  }
-  return anchored;
-}
+// The lexical apparatus - the scaffold list, the stemmer, introduced words and
+// anchoring - lives in api/_question_rules.js now, because the handler has to
+// run it and a rule that only runs in a test ships anyway. Six leading
+// questions proved that. Re-exported here so every existing caller and every
+// test keeps working against exactly the same code the handler uses.
+// Imported AND re-exported, not re-exported alone: `export { x } from "..."`
+// forwards the name without binding it in this module, so violations() below
+// could not see it. Both lines are needed.
+import {
+  MAX_INTRODUCED_WORDS, MIN_ANCHOR_WORDS, FRAME,
+  contentWordsOf, introducedWords, anchorWords
+} from "../api/_question_rules.js";
+export {
+  MAX_INTRODUCED_WORDS, MIN_ANCHOR_WORDS, FRAME,
+  contentWordsOf, introducedWords, anchorWords
+};
 
 export function sentenceCount(text) {
   return text.split(/[.!?]+(?:\s|$)/).filter((s) => s.trim()).length;

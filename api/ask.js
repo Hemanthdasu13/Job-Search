@@ -781,7 +781,7 @@ export default async function handler(req, res) {
   // attempt. Three presupposing questions have gone out live, each costing a
   // turn and steering the answer towards what the person lacked, while the
   // rule that catches them ran only in the test suite.
-  const fault = question ? hardFault(question) : null;
+  const fault = question ? hardFault(question, answersOf(body)) : null;
   if (fault) {
     console.error("question_regenerated", fault);
     try {
