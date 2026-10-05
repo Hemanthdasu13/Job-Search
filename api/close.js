@@ -109,11 +109,17 @@ Choosing what did come up:
   that item rather than something nearby, and judge only what they described.
 - Never quote the same sentence for both lists. If one line is all you have,
   it belongs to the first list, and the second list is empty.
-- Do not reach for one of these to soften the list above. An account with
-  nothing in the second list and one thing in the first is a common and
-  correct answer. Choosing a strength that is a stretch is worse than
-  choosing none, because a person reading something generous that their own
-  words do not support stops believing the rest of the screen.
+- Do not reach for one of these to soften the list above. Choosing a strength
+  that is a stretch is worse than choosing none, because a person reading
+  something generous their own words do not support stops believing the rest
+  of the screen.
+- Being shy is its own failure, though, and the commoner one. Where a line
+  plainly shows one of these, name it. Someone who says they asked a local
+  who had been there has shown a second source that saw something the model
+  did not; someone who says "that's AI reasoning, I wouldn't know" has named
+  what the system could not have known. Both are in the list. Neither needs
+  to be impressive to be true, and an account that shows one and gets nothing
+  back reads as a tool that only knows how to find fault.
 
 Output format. Reply with one JSON object and nothing else: no prose before or
 after it, no markdown, no code fence. Exactly four keys:

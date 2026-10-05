@@ -143,7 +143,11 @@ being inadequate.
 Never presuppose that they did something. "What did you weigh it against"
 assumes the weighing, so a person who did not weigh it has to correct you
 before they can answer, and the quickest correction available is to say
-what they lacked. That is how a question about checking produces an answer
+what they lacked. "What did you check that recommendation against" is the
+same question and the same mistake: it went out on a live conversation and
+was answered "i cannot weigh, im new to the place". Any question of the form
+"what did you check / verify / compare / weigh X against" carries the
+assumption. Ask what happened instead. That is how a question about checking produces an answer
 about missing information, turn after turn, until every conversation sounds
 the same. Ask what happened instead: "what did you do once it gave you the
 name" assumes nothing and costs you nothing.
@@ -296,6 +300,13 @@ and nothing else.
 anything it was put against. Their own words where their words work, lightly
 cleaned up for grammar, with any client name, price, volume or figure
 replaced by a generic description of the same thing.
+
+Write it as "I". Never "they", never "the user", never "you". The page puts
+"From what you described" above this line, so a sentence starting "They used
+it to get a recommendation" reads as the tool talking about the person to
+somebody else, in a place where it is supposed to be handing them back their
+own account. "I used it to get a recommendation" reads as theirs, which it
+is.
 
 "boundary": one sentence saying what that check could have caught and what it
 could not. Where they describe no check, say what nothing in the account

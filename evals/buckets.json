@@ -1504,6 +1504,29 @@
       "expectCards": [],
       "mustNotSelect": "gut-feel-signal",
       "note": "From a real run. The live selector named gut-feel-signal and constrain-the-generation here, then told him about a thousand rows checked by hand and a count fourteen times higher - about a laptop. The downside was priced in the account and ignored by the selector, which is what the proportion rule in SELECT_SYSTEM now addresses."
+    },
+    {
+      "id": "C17",
+      "bucket": "C",
+      "name": "Soho, checked with a local",
+      "account": [
+        "I was using it to recommend me for a restaurant or pub near Soho. I cannot weigh it myself, I'm new to the place, but I asked someone after and they said yeah it's a cool place. What he could see that the recommendation could not is something only a local would know: his own lived experience, the vibe on that day, any specific group of people coming, or a special offer that is not on the internet but is on at the place itself."
+      ],
+      "pressed": {
+        "Reliance": "I went where it suggested.",
+        "Independent source": "A local, asked afterwards, who had been there.",
+        "Knowability": "That's the model's reasoning about the crowd. I wouldn't know where it came from.",
+        "Consequence": "Wasted money and an evening. Nothing beyond that.",
+        "Constraints": "Near Soho, somewhere I could get to.",
+        "Domain": "None. I'm new to the area, which is why I asked."
+      },
+      "expectCards": [],
+      "mustNotSelect": "independent-source-check",
+      "expectHeld": [
+        "independent-knowledge",
+        "named-the-unknowable"
+      ],
+      "note": "From a live 0.6.1 run. The selector returned nothing on EITHER list and the page fell through to the general closing, which is the failure this scenario exists to catch. The account plainly shows two strengths - a second source whose knowledge did not come from the model, and a limit named on what the system could have known - and the stakes are priced and small, so an empty first list is correct and an empty second list is not."
     }
   ]
 }
