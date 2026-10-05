@@ -6,6 +6,31 @@ denies `vercel.app`, and that applies to curl and to a headless browser
 alike. On a desktop session there is no such proxy and everything below just
 works.
 
+## The shortest path, for someone who does not want to install anything
+
+Two scripts in here - `walk-live.mjs` and `replay.mjs` - import nothing but
+Node's own modules and `_rules.mjs` next to them. No `npm install`, no build,
+no API key. All they need is Node and a machine that can reach the site,
+which any normal laptop is.
+
+So the whole thing is:
+
+1. Install Node from nodejs.org if `node --version` says nothing. The macOS
+   installer is fine; nothing here needs a particular version beyond Node 18.
+2. Get this branch as a folder: on GitHub, switch to
+   `claude/ai-verification-tool-e50b54`, then Code -> Download ZIP, and
+   unzip it.
+3. Open Terminal, `cd` into the unzipped folder.
+4. Run the command below and paste what it prints.
+
+That produces a full conversation against production with every question
+checked against the form rules, which is the thing a cloud session cannot do.
+Nobody needs to be given access to anything.
+
+`npm install` is only needed for `verify-parse` and `simulate`, which bring in
+the Anthropic SDK, and `playwright-core` is only needed to drive a browser.
+Neither is needed to test the live site.
+
 ## The quickest useful thing
 
 ```bash
