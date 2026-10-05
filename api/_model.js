@@ -49,9 +49,9 @@ function getClient(key) {
 
 // The OpenAI-shaped path, returned in the same shape the Anthropic path
 // produces so the caller does not branch twice.
-async function callChat(key, model, system, messages, maxTokens) {
+async function callChat(key, model, system, messages, maxTokens, timeoutMs = 0) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs > 0 ? timeoutMs : REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch(chatCompletionsUrl(), {
       method: "POST",
@@ -115,10 +115,17 @@ function isFormatRefusal(error) {
   return /output_config|json_schema|schema|format/i.test(detail);
 }
 
+// timeoutMs: a shorter deadline than the client's, for a call that is not the
+// only thing the visitor is waiting on. The closing selector's second pass
+// runs after the first has already answered, inside one function invocation
+// with a platform ceiling: two calls at the full client timeout exceed it,
+// and being killed by the platform loses the first pass's valid result along
+// with the second's. So the second call gets whatever time is left, not the
+// whole allowance again.
 export async function callModel(key, model, system, messages, maxTokens = maxOutputTokens(),
-                                { cacheSystem = true, format = null } = {}) {
+                                { cacheSystem = true, format = null, timeoutMs = 0 } = {}) {
   if (endpointMode() === "chat") {
-    return callChat(key, model, system, messages, maxTokens);
+    return callChat(key, model, system, messages, maxTokens, timeoutMs);
   }
   // The system prompt is identical on every call of a conversation and is the
   // largest single thing sent, so it is marked cacheable. Within one
@@ -145,8 +152,9 @@ export async function callModel(key, model, system, messages, maxTokens = maxOut
   if (format && !formatRejected) output.format = { type: "json_schema", schema: format };
   if (Object.keys(output).length) body.output_config = output;
 
+  const options = timeoutMs > 0 ? { timeout: timeoutMs } : undefined;
   try {
-    return await getClient(key).messages.create(body);
+    return await getClient(key).messages.create(body, options);
   } catch (error) {
     if (!body.output_config?.format || !isFormatRefusal(error)) throw error;
     // Once, then never again in this container. Falling back to the prompt
@@ -156,7 +164,7 @@ export async function callModel(key, model, system, messages, maxTokens = maxOut
     console.error("output_format_unsupported", model, error?.status || "", String(error?.message || "").slice(0, 120));
     delete body.output_config.format;
     if (!Object.keys(body.output_config).length) delete body.output_config;
-    return getClient(key).messages.create(body);
+    return getClient(key).messages.create(body, options);
   }
 }
 

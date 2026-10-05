@@ -223,6 +223,59 @@ if (hardFault(SAFE_QUESTION, ["I used it to draft a supplier comparison."])) {
   console.log(`  ok  the safe fallback breaks no rule: "${SAFE_QUESTION}"`);
 }
 
+// Every fault has to carry a remedy, because the refusal on its own did not
+// work. Told five times in one evening that its question presupposed an
+// action, the model came back with the same shape each time - "What did you
+// tell" became "What constraints or limits did you give" - and twice
+// exhausted the retry, shipping a canned question to a visitor instead.
+//
+// A fault with no remedy is a regeneration paid for and steered by nothing,
+// so this pins one against every class the handler can refuse. Add a fault
+// without a remedy and this fails.
+console.log("\nevery fault names what to do instead:");
+const { remedyFor } = await import("../api/_question_rules.js");
+const FAULT_CLASSES = [
+  ["presupposed action", "What did you tell it about the batch that shaped the script?", []],
+  ["yes or no", "Did you check the figure before it went out?", []],
+  ["two in one", "What did it have in front of it and did you look at it?", []],
+  ["option-posing", "What sat outside that, such as the ticket mix or the event type?", []],
+  ["too long", "What did it have in front of it when it produced the number that went "
+    + "into the pack that the board then approved on the night in question here now?", []],
+  ["built from the tool's words", "What did the forecast assume about seasonality, "
+    + "amortisation, covenants, drawdown, recoverability and phasing?",
+    ["I used it to build a cash forecast from the bank data."]],
+  // Anchorless and announcing itself as a verification checklist, without
+  // presupposing anything - the presupposition rule runs first, so a fixture
+  // using "you check" would test that remedy twice and this one never.
+  ["anchorless verification vocabulary", "What could it have been checked against?",
+    ["I used it to build a cash forecast from the bank data."]]
+];
+for (const [name, q, answers] of FAULT_CLASSES) {
+  const f = hardFault(q, answers);
+  if (!f) { fail(`${name}: no fault raised, so the remedy is untested: ${q}`); continue; }
+  const r = remedyFor(f);
+  if (!r) fail(`${name}: fault with no remedy: ${f}`);
+  else console.log(`  ok  ${name} -> ${r.slice(0, 56)}`);
+}
+// The repeat fault comes from the handler rather than hardFault, so it is
+// pinned by its exact wording.
+for (const f of ["asks the last question again in different words", "the same question again"]) {
+  if (!remedyFor(f)) fail(`no remedy for: ${f}`);
+  else console.log(`  ok  ${f.slice(0, 40)} -> has a remedy`);
+}
+
+// The question the widened threshold exists for. It names the one thing the
+// account did not cover, which is the job; the handler used to regenerate it
+// and then ship a canned question in its place.
+const namesTheGap = "What did the forecast assume about timing or payments compared with what the actuals showed?";
+const forecast = ["I used it to build an eighteen month cash flow forecast from three years of "
+  + "monthly bank actuals and the approved budget."];
+if (hardFault(namesTheGap, forecast)) {
+  fail(`the handler would still throw away the question that names the gap: ${hardFault(namesTheGap, forecast)}`);
+} else {
+  console.log(`  ok  a question may name the thing they did not cover`);
+}
+
 console.log("");
 console.log("Enforced here: length, asides, presupposed action, introduced words,");
 console.log("the anchor rule (verification vocabulary with no word of theirs in it),");

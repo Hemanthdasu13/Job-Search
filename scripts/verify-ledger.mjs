@@ -23,7 +23,8 @@ import { readFileSync } from "node:fs";
 
 const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
 const { STRENGTH_IDS } = await import("../api/_strengths.js");
-const { PRACTICE_IDS } = await import("../api/_practices.js");
+const { PRACTICE_IDS, validateSelection, isVerbatim } = await import("../api/_practices.js");
+const { validateHeld } = await import("../api/_strengths.js");
 
 let failed = 0;
 const check = (name, ok, detail = "") => {
@@ -121,6 +122,200 @@ check("the page and the server agree on which strengths settle it",
 for (const id of ["named-the-unknowable", "chased-the-doubt", "said-what-to-exclude", "judgement-stayed-theirs"]) {
   check(`${id} does not on its own settle it`, !STRENGTHS_THAT_SETTLE_IT.includes(id));
 }
+
+// ------------------------------------------------------------------ the reply
+//
+// The fault these exist for. Across four live conversations the selector
+// chose nine items and the server discarded every one as "not in the
+// library", so every closing fell back to the general text. This suite passed
+// throughout, because it checked the libraries, the limits and the page and
+// never once checked what happens to a reply.
+//
+// Two separate failures were hiding in that one log line: an id the model
+// invented, and a real id filed under the wrong list. The first is now
+// impossible, because the provider enforces an enum; the second is now
+// corrected rather than thrown away.
+const { readReply, routeByLibrary, SELECT_FORMAT, HELD_FORMAT, SELECT_SYSTEM } = await import("../api/close.js");
+const { PRACTICES } = await import("../api/_practices.js");
+
+const quote = "I reconciled its totals back to the bank statements";
+const theirs = [quote + " and our treasurer went through the formulas with me."];
+
+{
+  const r = readReply({
+    gaps: [{ id: "constructed-check", quote }],
+    held: [{ id: "source-outside-the-model", quote: "our treasurer went through the formulas" }]
+  });
+  check("the shape the schema asks for is read",
+    r.selected[0] === "constructed-check" && r.evidence["constructed-check"] === quote
+      && r.held[0] === "source-outside-the-model");
+}
+
+{
+  // The provider may refuse the schema, in which case the prompt asks for
+  // JSON and the older shape can come back. Both have to work, or a format
+  // refusal empties every ledger silently.
+  const r = readReply({
+    selected: ["constructed-check"], evidence: { "constructed-check": quote },
+    held: ["source-outside-the-model"], held_evidence: { "source-outside-the-model": quote }
+  });
+  check("the shape without a schema is still read",
+    r.selected[0] === "constructed-check" && r.held[0] === "source-outside-the-model"
+      && r.evidence["constructed-check"] === quote);
+}
+
+{
+  // A strength filed as a gap. This is the predictable mistake, because the
+  // prompt says the two lists are the same kind of thing read the other way.
+  const { reply, moved } = routeByLibrary(readReply({
+    gaps: [{ id: "source-outside-the-model", quote }], held: []
+  }));
+  check("a strength filed as a gap is moved, not dropped",
+    moved === 1 && reply.held[0] === "source-outside-the-model"
+      && reply.held_evidence["source-outside-the-model"] === quote
+      && reply.selected.length === 0);
+}
+
+{
+  const { reply, moved } = routeByLibrary(readReply({
+    gaps: [], held: [{ id: "constructed-check", quote }]
+  }));
+  check("a gap filed as a strength is moved, not dropped",
+    moved === 1 && reply.selected[0] === "constructed-check"
+      && reply.evidence["constructed-check"] === quote
+      && reply.held.length === 0);
+}
+
+{
+  // An invented id stays where it was put, so the validator still rejects it.
+  // The router corrects filing; it does not launder.
+  const { reply, moved } = routeByLibrary(readReply({
+    gaps: [{ id: "not-a-real-card", quote }], held: []
+  }));
+  const { kept, rejected } = validateSelection(reply, theirs);
+  check("an invented id is still rejected",
+    moved === 0 && kept.length === 0 && rejected[0].why === "not in the library");
+  check("the rejection names the id, so invention and misfiling can be told apart",
+    rejected[0].id === "not-a-real-card");
+}
+
+{
+  // A moved id is not a free pass: the quote still has to be theirs.
+  const { reply } = routeByLibrary(readReply({
+    gaps: [{ id: "source-outside-the-model", quote: "words nobody typed" }], held: []
+  }));
+  const held = validateHeld(reply, theirs, isVerbatim);
+  check("a moved id still has to be quoted verbatim",
+    held.kept.length === 0 && held.rejected[0].why === "quote is not the person's own words");
+}
+
+{
+  // One id twice, with a fabricated quote first and a real one second. The
+  // map this flattens into holds one quote per id, so last-wins would let the
+  // real quote carry the fabricated choice through.
+  const r = readReply({
+    gaps: [
+      { id: "constructed-check", quote: "I built a reconciliation and found six errors" },
+      { id: "constructed-check", quote: quote }
+    ],
+    held: []
+  });
+  const { kept, rejected } = validateSelection(r, theirs);
+  check("a repeated id keeps the first quote, not the convenient one",
+    kept.length === 0 && rejected.some((x) => x.why === "quote is not the person's own words"),
+    JSON.stringify(rejected));
+}
+
+// The enum is the thing that makes an invented id impossible, so it has to
+// hold every id and nothing else.
+const gapEnum = SELECT_FORMAT.properties.gaps.items.properties.id.enum;
+const heldEnum = SELECT_FORMAT.properties.held.items.properties.id.enum;
+check("the gap enum is exactly the gap library",
+  gapEnum.length === PRACTICE_IDS.length && PRACTICE_IDS.every((id) => gapEnum.includes(id)),
+  `${gapEnum.length} vs ${PRACTICE_IDS.length}`);
+check("the strength enum is exactly the strength library",
+  heldEnum.length === STRENGTH_IDS.length && STRENGTH_IDS.every((id) => heldEnum.includes(id)));
+check("the second pass is constrained to the strength library",
+  HELD_FORMAT.properties.held.items.properties.id.enum.length === STRENGTH_IDS.length
+    && !HELD_FORMAT.properties.gaps);
+check("every enum id has a trigger written for it",
+  gapEnum.every((id) => PRACTICES[id] && PRACTICES[id].trigger));
+
+// The prompt has to ask for the shape the schema enforces. A schema asking
+// for "gaps" behind a prompt asking for "selected" works only until the
+// provider refuses the schema, and then empties every ledger at once.
+check("the prompt asks for the key the schema enforces",
+  SELECT_SYSTEM.includes('"gaps"') && !SELECT_SYSTEM.includes('"selected": ['),
+  "prompt and schema must name the same keys");
+
+// The closing's own clock has to fit inside the ceiling the platform gives
+// the function, with room for the second pass. One live closing was cut off
+// four milliseconds past the client's 20-second deadline and lost its whole
+// ledger; the fix is only a fix while these four numbers stay in order.
+const closeNum = (name) => {
+  const m = new RegExp(`const ${name} = (\\d+)`).exec(closeSrc);
+  return m ? Number(m[1]) : null;
+};
+const ceiling = Number(/"api\/close\.js":\s*{\s*"maxDuration":\s*(\d+)/
+  .exec(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"))?.[1]);
+const budget = closeNum("BUDGET_MS"), first = closeNum("FIRST_PASS_MS"),
+      second = closeNum("MIN_SECOND_PASS_MS");
+check("the closing's budget leaves the platform headroom",
+  Number.isFinite(ceiling) && budget !== null && budget < ceiling * 1000,
+  `budget=${budget}ms ceiling=${ceiling}s`);
+// Not "both passes always fit". A first pass slow enough to crowd out the
+// second is the right outcome - the second only runs when both lists came
+// back empty, and a slow answer that found something beats a fast rescue of
+// nothing. What must hold is that a second pass which does start cannot be
+// killed by the platform mid-call, because being killed loses the first
+// pass's valid answer along with it: nothing has been written to the
+// response yet.
+check("a second pass that starts cannot be killed mid-call",
+  first !== null && second !== null && first + second <= ceiling * 1000,
+  `first=${first} + second=${second} vs ceiling=${ceiling * 1000}ms`);
+check("the second pass ends inside the budget whenever it starts",
+  second < budget, `a second pass needs ${second}ms and the budget is ${budget}ms`);
+
+// ------------------------------------------------- when the log is written
+//
+// The contribution has to be sent after the selection resolves, not before.
+//
+// It was sent one line above the selectPractices() call, so the shown field -
+// added for the single purpose of recording which cards a closing rendered -
+// read {gaps:[],held:[]} on every conversation it was ever attached to. Four
+// runs logged it. I read those four as a selector that had chosen nothing,
+// and wrote that down as the open fault; it had chosen nine things and the
+// server had discarded all nine for a different reason entirely. A field that
+// cannot be anything but empty is worse than no field, because it is read.
+const closeFn = page.slice(page.indexOf("function closeGapSurfaced"),
+                           page.indexOf("function closeVerified"));
+const atSelect = closeFn.indexOf("selectPractices()");
+// Every contribute() ahead of the selection call, by where it starts. Counted
+// rather than pattern-matched on its argument: the call this is here to catch
+// passed a nested ternary, and a regex written to recognise that one argument
+// would not recognise the next one written.
+const early = [...closeFn.slice(0, atSelect).matchAll(/\bcontribute\s*\(/g)]
+  .map((m) => closeFn.slice(m.index, closeFn.indexOf(";", m.index)));
+check("the gap closing does not log before the selection comes back",
+  // Exactly one, and its argument the bare literal: the only ending that may
+  // be logged before the selection is the one on the path that never selects,
+  // because the page falls straight to the fixed text when the interactive
+  // part is away and there is no ledger to wait for. A ternary here is the
+  // bug itself - it was `contribute(unavailable ? "unavailable" : ...)`, which
+  // mentions the word while logging every other ending too early.
+  early.length === 1 && /^contribute\(\s*"unavailable"\s*\)$/.test(early[0].trim()),
+  early.length ? `runs before selectPractices(): ${early.map((c) => c.trim()).join(" | ")}`
+               : "nothing contributes on the unavailable path");
+check("the gap closing logs once the selection has resolved",
+  /selectPractices\(\)[\s\S]*contribute\(ending\)/.test(closeFn));
+check("a failed selection still contributes the conversation",
+  (closeFn.match(/contribute\(ending\)/g) || []).length === 2,
+  "both arms of the then() must send it");
+check("the ledger records which closing was on the screen",
+  /ledger:\s*!!state\.ledger/.test(page) && /nothing:\s*!!state\.nothing/.test(page));
+check("the server keeps those two flags",
+  closeSrc !== null && readFileSync(new URL("../api/contribute.js", import.meta.url), "utf8")
+    .includes("body?.shown?.ledger === true"));
 
 console.log("");
 if (failed) { console.log(`${failed} check(s) failed.`); process.exit(1); }

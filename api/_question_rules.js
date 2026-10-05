@@ -374,6 +374,56 @@ export function wordCount(text) {
 // the handler steps in at twenty-five. Two good live questions were
 // twenty-two words and regenerating them would have made the tool worse and
 // slower at once.
+// How much looser the handler is than the test, on introduced words.
+//
+// It was two, so the handler regenerated at five and fell back to a canned
+// question at five twice in one conversation. Both of the questions it threw
+// away were about the thing the account had not covered - "timing",
+// "payments" - and naming that is the job. The person had not used the word
+// because not having thought about it is the gap.
+//
+// So the floor sits where a question is built mostly out of the tool's
+// vocabulary rather than where it introduces the noun it has to introduce.
+// The documented contamination case - "had they been there recently, or were
+// they just going on reputation" - is caught twice over by the closed-question
+// and option-posing rules, so this one widening does not let it back in.
+// The test still holds the line at three, because that is the standard to
+// write to; this is the point at which a regeneration is worth paying for.
+const RUNTIME_INTRODUCED_SLACK = 4;
+
+// What to do instead, per fault.
+//
+// The regeneration note used to name only the fault, and the model answered
+// the same shape again: told that "What did you tell" presupposes an action,
+// it came back with "What constraints or limits did you give". Five times in
+// one evening, twice exhausting the retry and shipping a canned question. A
+// fault is a refusal; a remedy is an instruction, and the second attempt
+// costs the same call either way.
+//
+// Matched on the opening of the fault string, which is why those strings are
+// written as stable prefixes.
+const REMEDIES = [
+  [/^presupposes an action/,
+   "Ask it with the tool as the subject - what it had in front of it, what it "
+   + "could have known, what it did - not what they gave it, told it or checked."],
+  [/^answerable yes or no/, "Open it: start with what, who or how."],
+  [/^two questions in one/, "Ask one of the two and drop the other."],
+  [/^supplies the answer/, "Cut the examples. Ask the question without naming any candidate answer."],
+  [/^\d+ words/, "Ask the same thing in under twenty words, in one clause."],
+  [/^is built from/,
+   "Those words are yours, not theirs. Build the question out of the words "
+   + "they used, and introduce at most one of your own."],
+  [/^asks about/,
+   "Drop the verification vocabulary and ask about the thing they described, "
+   + "using one of their own words."],
+  [/again/, "Ask about different ground - something in their account you have not asked about yet."]
+];
+
+export function remedyFor(fault) {
+  const hit = REMEDIES.find(([pattern]) => pattern.test(String(fault || "")));
+  return hit ? hit[1] : "";
+}
+
 export function hardFault(question, answers = []) {
   const q = String(question || "");
   if (PRESUPPOSES_ACTION.test(q)) {
@@ -388,7 +438,7 @@ export function hardFault(question, answers = []) {
 
   if (answers.length) {
     const introduced = introducedWords(q, answers);
-    if (introduced.length > MAX_INTRODUCED_WORDS + 2) {
+    if (introduced.length > MAX_INTRODUCED_WORDS + RUNTIME_INTRODUCED_SLACK) {
       return `is built from ${introduced.length} words they never used: ${introduced.slice(0, 5).join(", ")}`;
     }
     // The differentiator, enforced. A question carrying the tool's own

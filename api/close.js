@@ -23,9 +23,9 @@
 
 import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
-import { callModel, describeFailure, describeReply, extractJson, textOf } from "./_model.js";
-import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection, isVerbatim, normaliseForMatch } from "./_practices.js";
-import { MAX_STRENGTHS, STRENGTH_IDS, triggerList as heldTriggerList, validateHeld, heldOnlySystem } from "./_strengths.js";
+import { callModel, describeFailure, describeReply, extractJson, jsonSchema, textOf } from "./_model.js";
+import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection, isPracticeId, isVerbatim, normaliseForMatch } from "./_practices.js";
+import { MAX_STRENGTHS, STRENGTH_IDS, triggerList as heldTriggerList, validateHeld, heldOnlySystem, isStrengthId } from "./_strengths.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -41,6 +41,30 @@ const MAX_ANSWERS = 12;
 const MAX_ANSWER_CHARS = 2000;
 const MAX_TOTAL_CHARS = 20000;
 const MAX_EVIDENCE_CHARS = 300;
+
+// How long this handler may take in total, and the least amount of time worth
+// starting the second pass with.
+//
+// vercel.json gives this function thirty seconds. One live closing spent
+// 20004ms on the first call and timed out; had it instead returned slowly,
+// the second pass would have started with ten seconds of ceiling left and
+// been killed by the platform mid-call - which loses the first pass's valid
+// answer too, because nothing has been written to the response yet. Three
+// seconds of headroom under the ceiling, and a second pass only when there is
+// real time for one.
+const BUDGET_MS = 27000;
+const MIN_SECOND_PASS_MS = 5000;
+
+// And how long the first call may take.
+//
+// The client's own deadline is 20 seconds, set for the questioner, where the
+// visitor is watching a spinner and a slow question is worse than none. Here
+// the visitor is already reading a complete closing screen: the ledger
+// replaces it when it arrives and nothing on the page is waiting. One live
+// closing spent 20004ms and was cut off four milliseconds past the deadline,
+// losing the whole ledger to save a visitor a wait they were not having.
+// So this call gets most of the function's ceiling instead.
+const FIRST_PASS_MS = 24000;
 
 // The evidence is the visitor's own sentence, shown back to them. A hard
 // character slice cuts it mid-word, and a mangled version of your own words
@@ -130,11 +154,108 @@ Choosing what did come up:
   back reads as a tool that only knows how to find fault.
 
 Output format. Reply with one JSON object and nothing else: no prose before or
-after it, no markdown, no code fence. Exactly four keys:
-{"selected": ["id"], "evidence": {"id": "their exact words"}, "held": ["id"], "held_evidence": {"id": "their exact words"}}
-Every id in "selected" must have an entry in "evidence", and every id in
-"held" an entry in "held_evidence". To choose nothing for either, give an
-empty array and an empty object.`;
+after it, no markdown, no code fence. Exactly two keys, each a list of
+objects, each object an id from the matching list above and the quote:
+{"gaps": [{"id": "an id from the first list", "quote": "their exact words"}],
+ "held": [{"id": "an id from the second list", "quote": "their exact words"}]}
+Every id must be copied exactly from the lists above. Do not write an id of
+your own, and do not put an id from one list into the other. To choose
+nothing for either, give an empty list.`;
+
+// The ids, enforced by the provider rather than asked for in prose.
+//
+// This is the fix for the fault that emptied the ledger. Across four live
+// conversations the selector chose nine items and the server threw away
+// every one of them as "not in the library": three, three, two, one. The
+// screen fell back to the general closing each time and the log said nothing
+// about why, because only the reason was logged and not the id. The
+// questioner has answered under an enforced schema since 0.4.0; the selector
+// never did, so the one call whose entire output is a list of ids from a
+// fixed list was the one call free to invent them.
+//
+// A list of objects rather than a list of ids plus a map, because an enum
+// cannot be put on the keys of a map. The shape change is why readReply
+// below accepts both.
+const quotedPick = (ids) => ({
+  type: "array",
+  items: jsonSchema(
+    { id: { type: "string", enum: [...ids] }, quote: { type: "string" } },
+    ["id", "quote"]
+  )
+});
+export const SELECT_FORMAT = jsonSchema(
+  { gaps: quotedPick(PRACTICE_IDS), held: quotedPick(STRENGTH_IDS) }, ["gaps", "held"]);
+export const HELD_FORMAT = jsonSchema({ held: quotedPick(STRENGTH_IDS) }, ["held"]);
+
+// Either shape, in the one the validators already take.
+//
+// The schema asks for {gaps:[{id,quote}]}. A provider that rejects the schema
+// falls back to the prompt asking for JSON, and an older reply shape may
+// still arrive, so both are read. Nothing here judges an id; that is the
+// validators' job and theirs alone.
+export function readReply(raw) {
+  const out = { selected: [], evidence: {}, held: [], held_evidence: {} };
+  if (!raw || typeof raw !== "object") return out;
+
+  const take = (list, ids, evidence) => {
+    if (!Array.isArray(list)) return;
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const id = typeof item.id === "string" ? item.id : null;
+      if (!id) continue;
+      ids.push(id);
+      const quote = item.quote ?? item.evidence;
+      // First quote wins. A list can carry one id twice with two different
+      // quotes, where the map this flattens into cannot, and last-wins means
+      // a fabricated quote paired with a real one under the same id passes on
+      // the real one. The prompt asks for the list ordered by what matters
+      // most, so the first is the choice the model actually made; the second
+      // is rejected as a duplicate either way.
+      if (typeof quote === "string" && !(id in evidence)) evidence[id] = quote;
+    }
+  };
+  take(raw.gaps, out.selected, out.evidence);
+  take(raw.held, out.held, out.held_evidence);
+
+  // The older shape: parallel arrays of ids and maps of quotes.
+  if (Array.isArray(raw.selected)) {
+    for (const id of raw.selected) if (typeof id === "string") out.selected.push(id);
+    if (raw.evidence && typeof raw.evidence === "object") Object.assign(out.evidence, raw.evidence);
+  }
+  if (Array.isArray(raw.held) && raw.held.some((h) => typeof h === "string")) {
+    for (const id of raw.held) if (typeof id === "string") out.held.push(id);
+    if (raw.held_evidence && typeof raw.held_evidence === "object") {
+      Object.assign(out.held_evidence, raw.held_evidence);
+    }
+  }
+  return out;
+}
+
+// A real id filed under the wrong list is moved, not thrown away.
+//
+// The two lists are deliberately "the same kind of thing read the other way",
+// so the selector crossing them is the predictable mistake, and both
+// validators report a crossed id as "not in the library" - identical in the
+// log to an invented one. Discarding it loses a judgement the model got
+// right: it found the thing and put it on the wrong side. The destination
+// library decides which side that is, so nothing unearned reaches the screen.
+export function routeByLibrary(reply) {
+  const out = { selected: [], evidence: {}, held: [], held_evidence: {} };
+  let moved = 0;
+  const place = (id, quote, home) => {
+    const isGap = isPracticeId(id);
+    const isHeld = isStrengthId(id);
+    const target = isGap ? "selected" : isHeld ? "held" : home;
+    if (target !== home && (isGap || isHeld)) moved += 1;
+    out[target].push(id);
+    if (typeof quote === "string") {
+      out[target === "selected" ? "evidence" : "held_evidence"][id] = quote;
+    }
+  };
+  for (const id of reply.selected) place(id, reply.evidence[id], "selected");
+  for (const id of reply.held) place(id, reply.held_evidence[id], "held");
+  return { reply: out, moved };
+}
 
 const BUILD = `${VERSION}@${(process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}`;
 
@@ -245,9 +366,15 @@ function stubbedSelection(answers) {
   if (joined.includes("#none")) return { selected: [], evidence: {} };
   if (joined.includes("#bogus")) {
     return {
-      selected: ["not-a-real-card"], evidence: { "not-a-real-card": "words nobody typed here" },
-      held: ["not-a-real-strength"], held_evidence: { "not-a-real-strength": "nor these" }
+      gaps: [{ id: "not-a-real-card", quote: "words nobody typed here" }],
+      held: [{ id: "not-a-real-strength", quote: "nor these" }]
     };
+  }
+  // A real id on the wrong side, so a stubbed walk exercises the router that
+  // rescued the crossed ids four live conversations threw away.
+  if (joined.includes("#crossed")) {
+    const span = answers.slice().sort((a, b) => b.length - a.length)[0];
+    return { gaps: [{ id: "source-outside-the-model", quote: span }], held: [] };
   }
   // Quote the longest thing they said, which is at least certain to be theirs.
   const span = answers.slice().sort((a, b) => b.length - a.length)[0];
@@ -255,12 +382,16 @@ function stubbedSelection(answers) {
   // single stubbed walk exercises both the rendering and the gate that keeps
   // an unwritten card off the screen.
   return {
-    selected: ["constructed-check", "reliance-not-trust"],
-    evidence: { "constructed-check": span, "reliance-not-trust": span },
+    gaps: [
+      { id: "constructed-check", quote: span },
+      { id: "reliance-not-trust", quote: span }
+    ],
     // The second-longest, so a stubbed walk shows two different sentences and
     // the dedupe rule is exercised by #bogus rather than by every walk.
-    held: ["named-the-unknowable"],
-    held_evidence: { "named-the-unknowable": answers.slice().sort((a, b) => b.length - a.length)[1] || span }
+    held: [{
+      id: "named-the-unknowable",
+      quote: answers.slice().sort((a, b) => b.length - a.length)[1] || span
+    }]
   };
 }
 
@@ -281,9 +412,9 @@ export default async function handler(req, res) {
   if (!access.ok) return fall(res, access.reason);
 
   if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {
-    const stubbed = stubbedSelection(answers);
-    const { kept, rejected } = validateSelection(stubbed, answers);
-    const held = dropSharedEvidence(validateHeld(stubbed, answers, isVerbatim), kept);
+    const routed = routeByLibrary(readReply(stubbedSelection(answers))).reply;
+    const { kept, rejected } = validateSelection(routed, answers);
+    const held = dropSharedEvidence(validateHeld(routed, answers, isVerbatim), kept);
     return answer(res, BUILD + "+stub", kept, rejected, held.kept, held.rejected);
   }
 
@@ -300,14 +431,15 @@ export default async function handler(req, res) {
   const claim = await claimModelCall(req);
   if (!claim.allowed) return fall(res, claim.reason);
 
+  const transcript = [{ role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }];
+
   let response;
   const started = Date.now();
   try {
     // No caching: this prompt is sent once per conversation, and a cache
     // write costs more than the read it would never get.
-    response = await callModel(key, model, SELECT_SYSTEM, [
-      { role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }
-    ], undefined, { cacheSystem: false });
+    response = await callModel(key, model, SELECT_SYSTEM, transcript,
+      undefined, { cacheSystem: false, format: SELECT_FORMAT, timeoutMs: FIRST_PASS_MS });
   } catch (error) {
     const reason = describeFailure(error, model, Date.now() - started);
     console.error("close_call_failed", reason, model, Date.now() - started + "ms");
@@ -320,16 +452,18 @@ export default async function handler(req, res) {
 
   const text = textOf(response);
   const parsed = extractJson(text);
-  if (!parsed || !Array.isArray(parsed.selected)) {
+  if (!parsed || (!Array.isArray(parsed.gaps) && !Array.isArray(parsed.selected))) {
     // Shape only, same rule as the questioner: the selector's reply quotes
     // the visitor's own sentences back as evidence, so the words stay out of
     // the log. An empty closing is survivable; an undiagnosable one is not.
-    console.error("close_call_unparseable", model, describeReply(response, text, ["selected", "id", "evidence"]));
+    console.error("close_call_unparseable", model, describeReply(response, text, ["gaps", "selected", "id", "quote"]));
     return fall(res, "unparseable_reply");
   }
 
-  const { kept, rejected } = validateSelection(parsed, answers);
-  const held = dropSharedEvidence(validateHeld(parsed, answers, isVerbatim), kept);
+  const { reply, moved } = routeByLibrary(readReply(parsed));
+  if (moved) console.error("close_ids_rerouted", moved + " from the wrong list");
+  const { kept, rejected } = validateSelection(reply, answers);
+  const held = dropSharedEvidence(validateHeld(reply, answers, isVerbatim), kept);
 
   // An empty result is a legitimate answer, not a failure: it is what a
   // well-run piece of work should produce. But an empty result caused by the
@@ -338,13 +472,13 @@ export default async function handler(req, res) {
   // Empty on both lists is the worst screen the tool can produce, and the
   // measured cause is the model under-reading the second list rather than the
   // account being empty. So it gets one more look, at the strengths alone.
-  if (!kept.length && !held.kept.length) {
+  const leftOnTheClock = BUDGET_MS - (Date.now() - started);
+  if (!kept.length && !held.kept.length && leftOnTheClock >= MIN_SECOND_PASS_MS) {
     try {
-      const again = await callModel(key, model, heldOnlySystem(), [
-        { role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }
-      ], undefined, { cacheSystem: false });
-      const reparsed = extractJson(textOf(again));
-      const second = validateHeld(reparsed || {}, answers, isVerbatim);
+      const again = await callModel(key, model, heldOnlySystem(), transcript,
+        undefined, { cacheSystem: false, format: HELD_FORMAT, timeoutMs: leftOnTheClock });
+      const reparsed = routeByLibrary(readReply(extractJson(textOf(again)))).reply;
+      const second = validateHeld(reparsed, answers, isVerbatim);
       console.error("close_held_second_pass", second.kept.length ? "found " + second.kept.length : "still none");
       if (second.kept.length) { held.kept = second.kept; held.rejected = held.rejected.concat(second.rejected); }
     } catch (error) {
@@ -354,9 +488,19 @@ export default async function handler(req, res) {
     }
   }
 
+  if (!kept.length && !held.kept.length && leftOnTheClock < MIN_SECOND_PASS_MS) {
+    console.error("close_held_second_pass_skipped", leftOnTheClock + "ms left");
+  }
+
+  // The id as well as the reason. Four live conversations logged nine items
+  // rejected as "not in the library" and there was no way to tell an invented
+  // id from a real one filed under the wrong list - which is the difference
+  // between a prompt problem and a routing problem, and they have opposite
+  // fixes. These ids are the researcher's own vocabulary, not the visitor's
+  // words, so logging them keeps the privacy rule intact.
   if (rejected.length || held.rejected.length) {
     console.error("close_selection_rejected", model,
-      JSON.stringify(rejected.concat(held.rejected).map((r) => r.why)));
+      JSON.stringify(rejected.concat(held.rejected).map((r) => `${r.id}: ${r.why}`)));
   }
 
   return answer(res, BUILD, kept, rejected, held.kept, held.rejected);

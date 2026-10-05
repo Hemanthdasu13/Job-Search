@@ -44,7 +44,7 @@ import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, jsonSchema, safeParse, textOf } from "./_model.js";
 import { coverageNote } from "./_axes.js";
-import { hardFault, repeatsPrevious, safeQuestion } from "./_question_rules.js";
+import { hardFault, remedyFor, repeatsPrevious, safeQuestion } from "./_question_rules.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -798,9 +798,14 @@ export default async function handler(req, res) {
   if (fault) {
     console.error("question_regenerated", fault);
     try {
+      // The remedy, not just the refusal. Named the fault alone, the model
+      // produced the same shape again on five of five live turns, twice
+      // exhausting this retry and shipping a canned question to a visitor.
+      const remedy = remedyFor(fault);
       const retold = withNote(sent,
         `[Note, not part of the message above. The question you just produced `
-        + `${fault}. Ask a different one that does not. Do not mention this note.]`);
+        + `${fault}. Ask a different one that does not.`
+        + `${remedy ? " " + remedy : ""} Do not mention this note.]`);
       const second = await callModel(key, model, SYSTEM, retold, undefined, { format: REPLY_SCHEMA });
       const reparsed = extractJson(textOf(second));
       const replacement = questionOf(reparsed);

@@ -57,7 +57,11 @@ function clean(body) {
     // without being able to tell whether the strengths side renders at all.
     shown: {
       gaps: Array.isArray(body?.shown?.gaps) ? body.shown.gaps.slice(0, 3).map(String) : [],
-      held: Array.isArray(body?.shown?.held) ? body.shown.held.slice(0, 2).map(String) : []
+      held: Array.isArray(body?.shown?.held) ? body.shown.held.slice(0, 2).map(String) : [],
+      // Which closing was on the screen. Two empty lists are ambiguous
+      // without it: the selector found nothing, or the ledger never painted.
+      ledger: body?.shown?.ledger === true,
+      nothing: body?.shown?.nothing === true
     }
   };
 }

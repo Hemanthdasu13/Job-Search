@@ -136,9 +136,9 @@ const server = createServer(async (req, res) => {
     : step.kind === "raw"
       ? step.text
       : isHeldOnly
-        ? JSON.stringify(step.heldOnly || { held: [], held_evidence: {} })
+        ? JSON.stringify(step.heldOnly || { held: [] })
         : isSelector
-        ? JSON.stringify(step.selection || { selected: [], evidence: {} })
+        ? JSON.stringify(step.selection || { gaps: [], held: [] })
         : JSON.stringify({ ...QUESTION, ...(step.reply || {}) });
 
   callLog.push({ isSelector, inputChars, outputChars: text.length, kind: step.kind,
@@ -605,13 +605,18 @@ async function hostileInput() {
   // (c) The selector inventing ids and quoting words nobody typed. This is the
   // one that would put a fabricated quotation on screen.
   plan = [{ kind: "ok", selection: {
-    selected: ["not-a-real-card", "constructed-check", "constructed-check", "reliance-not-trust", "gut-feel-signal"],
-    evidence: {
-      "not-a-real-card": "words nobody typed",
-      "constructed-check": "I built a reconciliation and found six errors",   // never typed
-      "reliance-not-trust": "I read it through and nothing looked wrong",     // typed, long enough
-      "gut-feel-signal": "I used AI"                                         // typed, but 9 chars
-    }
+    gaps: [
+      { id: "not-a-real-card", quote: "words nobody typed" },
+      { id: "constructed-check", quote: "I built a reconciliation and found six errors" }, // never typed
+      { id: "constructed-check", quote: "I read it through and nothing looked wrong" },    // duplicate
+      { id: "reliance-not-trust", quote: "I read it through and nothing looked wrong" },   // typed, long enough
+      { id: "gut-feel-signal", quote: "I used AI" },                                       // typed, 9 chars
+      // A real strength filed as a gap. Four live conversations had nine
+      // items thrown away as "not in the library" and this is one of the two
+      // things that log line could have meant.
+      { id: "source-outside-the-model", quote: "I used AI for a supplier comparison" }
+    ],
+    held: []
   } }];
   callLog = [];
   const sel = await post(close, {
@@ -620,6 +625,11 @@ async function hostileInput() {
   const keptIds = sel.selected.map((s) => s.id);
   const rejected = (sel.rejected || []).map((r) => `${r.id}:${r.why}`);
   checks["invented id rejected"] = !keptIds.includes("not-a-real-card");
+  // The crossed id is not discarded with the invented one: it is a judgement
+  // the model got right and filed on the wrong side.
+  checks["a strength filed as a gap reaches the other side of the ledger"] =
+    (sel.held || []).some((h) => h.id === "source-outside-the-model")
+    && !keptIds.includes("source-outside-the-model");
   checks["quote nobody typed rejected"] = !keptIds.includes("constructed-check");
   // "I used AI" is genuinely in what they typed, so this tests the twelve
   // character floor rather than the verbatim rule - a span that short is not
@@ -643,9 +653,9 @@ async function hostileInput() {
   // about a pub.
   const heldAnswers = ["I asked someone who had been there, and they said it was a cool place."];
   plan = [
-    { kind: "ok", selection: { selected: [], evidence: {}, held: [], held_evidence: {} } },
-    { kind: "ok", heldOnly: { held: ["independent-knowledge"],
-      held_evidence: { "independent-knowledge": "I asked someone who had been there" } } }
+    { kind: "ok", selection: { gaps: [], held: [] } },
+    { kind: "ok", heldOnly: { held: [{ id: "independent-knowledge",
+      quote: "I asked someone who had been there" }] } }
   ];
   callLog = [];
   const second = await post(close, { answers: heldAnswers }, { token, ip: "3.3.3.5" });
@@ -658,6 +668,9 @@ async function hostileInput() {
 
   // And it must not fire when the first pass already found something, or every
   // closing costs two calls instead of one.
+  // Deliberately the shape from before the schema. A provider that refuses
+  // output_config falls back to the prompt asking for JSON, and if that path
+  // stops being read every ledger empties at once with nothing in the log.
   plan = [{ kind: "ok", selection: {
     selected: ["reliance-not-trust"],
     evidence: { "reliance-not-trust": "I asked someone who had been there" },
@@ -880,7 +893,7 @@ async function fourVisitors() {
     // thing separating someone who left a gap from someone who did not.
     let cards = null;
     if (where === "cards") {
-      plan = [{ kind: "ok", selection: { selected: ["constructed-check"], evidence: { "constructed-check": answers[0] } } }];
+      plan = [{ kind: "ok", selection: { gaps: [{ id: "constructed-check", quote: answers[0] }], held: [] } }];
       cards = await post(close, { answers }, { token, ip });
       selectorCalls += 1;
     }
