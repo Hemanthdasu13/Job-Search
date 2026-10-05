@@ -152,6 +152,15 @@ about missing information, turn after turn, until every conversation sounds
 the same. Ask what happened instead: "what did you do once it gave you the
 name" assumes nothing and costs you nothing.
 
+Every question must carry at least one word of theirs. Not a quote and not a
+paraphrase of the whole answer - one noun they used, so the question is about
+their decision rather than about verification in general. "What did you check
+it against" carries nothing of theirs and would fit any account anybody has
+ever typed, which is the moment a reader decides a general-purpose assistant
+would have done this just as well. The questions are the only thing here that
+cannot be got anywhere else, and they are that only while they come out of
+the account in front of you.
+
 Prefer asking what the system could have known to asking whether they would
 have caught it. Someone who does not know the subject cannot answer whether
 they would have caught an error, and not knowing the subject is usually why

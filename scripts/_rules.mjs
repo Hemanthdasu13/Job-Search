@@ -159,24 +159,109 @@ function* partsOf(word) {
 // where it stops being their account and starts being the tool's.
 export const MAX_INTRODUCED_WORDS = 2;
 
+// The same question as anchorWords, asked the other way round, so it uses the
+// same stemmer. Two stemmers would disagree about whose word a word is, and a
+// question could then be both anchorless and introducing nothing.
 export function introducedWords(question, answers = []) {
   if (!answers.length) return [];
   const theirs = new Set();
   for (const answer of answers) for (const word of contentWordsOf(answer)) {
-    for (const part of partsOf(word)) theirs.add(part);
-    // Their own stemming, roughly: "recommend" covers "recommendation", so a
-    // question is not flagged for inflecting a word they used.
-    if (word.length > 5) theirs.add(word.slice(0, -1));
-    if (word.length > 6) theirs.add(word.slice(0, -2));
+    for (const part of partsOf(word)) for (const stem of stems(part)) theirs.add(stem);
   }
   const introduced = [];
   for (const word of contentWordsOf(question)) {
     const known = [...partsOf(word)].some((part) =>
-      theirs.has(part) || (part.length > 5 && (theirs.has(part.slice(0, -1)) || theirs.has(part.slice(0, -2))))
-      || [...theirs].some((t) => t.length > 4 && part.startsWith(t.slice(0, Math.max(4, t.length - 2)))));
+      [...stems(part)].some((stem) => theirs.has(stem)) || sharesPrefix(part, theirs));
     if (!known && !introduced.includes(word)) introduced.push(word);
   }
   return introduced;
+}
+
+// ------------------------------------------------------------------ anchoring
+//
+// Carrying none of their words is not on its own the failure. "What were you
+// going there for?" carries no content word at all once the scaffolding comes
+// out, and it is a good question - it points at what they described through
+// "there" rather than by repeating a noun. The first version of this rule
+// flagged it, and flagged "what could it have known about the crowd on a
+// given night", which is the best question the tool has produced.
+//
+// The failure is narrower: the tool's own verification vocabulary, with
+// nothing of theirs attached. That is the question which would fit any
+// account AND announces itself as a verification checklist while doing it.
+const FRAME = /\b(check|checks|checked|checking|verify|verified|verifying|verification|against|compare|compared|comparing|source|sources|sourced|output|outputs|accurate|accuracy|validate|validated|evidence|reliable|reliability)\b/i;
+
+//
+// The rules above bound what a question may INTRODUCE. Nothing until now
+// required it to carry anything of theirs, so this passed every check:
+//
+//   "What did you check it against?"
+//
+// Nought introduced, under twenty words, one clause, no aside, no forced
+// choice. It is also a question that would fit any account anybody has ever
+// typed, which is the failure that costs this tool its reason to exist. The
+// whole argument for asking questions instead of answering them is that the
+// questions come from the account; a stock question is the moment a reader
+// decides a general-purpose assistant would have done this anyway.
+//
+// So a question has to be anchored: at least one content word in it must be
+// one they used. Not two - one is enough to make a question about their
+// decision rather than about verification in general, and more would force
+// the quoting-back that reads as parroting.
+//
+// The opening question is exempt. There is nothing to anchor to yet.
+export const MIN_ANCHOR_WORDS = 1;
+
+
+// Crude, deliberately. A stemmer that is clever enough to be wrong in ways
+// nobody can predict is worse here than one whose mistakes are obvious: this
+// decides whether a question counts as theirs, and being surprising about
+// that is the failure. Both directions, because the first version only
+// matched their longer word to a question's shorter one, so their "run" never
+// matched a question's "running" and a good question about the retail banking
+// rule sets was flagged as generic.
+function stems(word) {
+  const out = new Set([word]);
+  for (const suffix of ["s", "es", "ed", "ing", "d"]) {
+    if (word.endsWith(suffix) && word.length - suffix.length >= 3) out.add(word.slice(0, -suffix.length));
+    out.add(word + suffix);
+  }
+  if (word.endsWith("e")) out.add(word.slice(0, -1) + "ing");
+  if (word.endsWith("y")) out.add(word.slice(0, -1) + "ies");
+  return out;
+}
+
+// English morphology the suffix list does not reach: "shown" against their
+// "shows", "ran" against their "run". A shared prefix of five characters is
+// the fallback - long enough that "contention" and "contract" stay apart, and
+// crude enough to stay predictable.
+const PREFIX = 5;
+function sharesPrefix(word, theirs) {
+  if (word.length < PREFIX) return false;
+  const head = word.slice(0, PREFIX);
+  for (const t of theirs) if (t.length >= PREFIX && t.slice(0, PREFIX) === head) return true;
+  return false;
+}
+
+export function anchorWords(question, answers = []) {
+  if (!answers.length) return [];
+  const theirs = new Set();
+  for (const answer of answers) for (const word of contentWordsOf(answer)) {
+    for (const part of partsOf(word)) for (const stem of stems(part)) theirs.add(stem);
+  }
+  const anchored = [];
+  for (const word of contentWordsOf(question)) {
+    // A shared verification verb is not an anchor. "Check" appearing in their
+    // answer does not make "what did you check it against" a question about
+    // their decision - it is the frame word that made it generic in the first
+    // place, and twenty of ninety-six stock questions got through on exactly
+    // that before this line existed.
+    if (FRAME.test(word)) continue;
+    const hit = [...partsOf(word)].some((part) =>
+      [...stems(part)].some((stem) => theirs.has(stem)) || sharesPrefix(part, theirs));
+    if (hit && !anchored.includes(word)) anchored.push(word);
+  }
+  return anchored;
 }
 
 export function sentenceCount(text) {
@@ -204,6 +289,16 @@ export function violations(question, secrets = [], seenOrOptions = []) {
   const introduced = introducedWords(question, answers);
   if (introduced.length > MAX_INTRODUCED_WORDS) {
     bad.push(`introduces ${introduced.length} words they never used: ${introduced.join(", ")}`);
+  }
+  // Only once there is an account to be anchored to. The opening question has
+  // nothing of theirs to carry yet.
+  if (answers.length) {
+    const anchored = anchorWords(question, answers);
+    const frame = question.match(FRAME);
+    if (anchored.length < MIN_ANCHOR_WORDS && frame) {
+      bad.push(`generic: asks about "${frame[0]}" and carries no word of theirs, `
+        + "so it would fit any account");
+    }
   }
   const marks = (question.match(/\?/g) || []).length;
   if (marks !== 1) bad.push(`${marks} question marks, must be exactly 1`);

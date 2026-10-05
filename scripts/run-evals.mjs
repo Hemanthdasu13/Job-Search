@@ -45,8 +45,18 @@
 // is. 'nearMiss' names a card that genuinely co-occurs with the target, where
 // a pick is worth seeing and is not held against the run.
 //
-// T is not in the default run: it is seventeen more calls, and B and C are
-// the suite that guards against shipping a false positive.
+// Bucket S is sixteen accounts, one per sector in the sample, INVENTED. They
+// are not what any participant said - nothing in this repository records that
+// - they are what a practitioner in that job plausibly types, written to make
+// a generic question impossible to get away with. Three of them exist to
+// break an assumption rather than to find a gap: the stadium one where the
+// system knew MORE than the person who signed off, the AI-software one where
+// the test set and the labels came from the same family as the thing under
+// test, and the private equity one where the model's silence was wrong and a
+// threshold rule meant it did not matter.
+//
+// Neither T nor S is in the default run: seventeen and sixteen more calls,
+// where B and C are the suite that guards against shipping a false positive.
 
 import { readFile } from "node:fs/promises";
 import { price, usd } from "./_prices.mjs";
@@ -70,7 +80,7 @@ const { validateSelection } = await import("../api/_practices.js");
 const { SELECT_SYSTEM } = await import("../api/close.js");
 const { callModel, extractJson, textOf } = await import("../api/_model.js");
 
-let scenarios = set.scenarios.filter((s) => s.bucket !== "A" && s.bucket !== "T");
+let scenarios = set.scenarios.filter((s) => s.bucket !== "A" && s.bucket !== "T" && s.bucket !== "S");
 if (BUCKET) scenarios = set.scenarios.filter((s) => s.bucket === BUCKET);
 if (ONLY.length) scenarios = set.scenarios.filter((s) => ONLY.includes(s.id));
 

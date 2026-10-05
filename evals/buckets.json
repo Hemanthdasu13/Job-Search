@@ -1527,6 +1527,352 @@
         "named-the-unknowable"
       ],
       "note": "From a live 0.6.1 run. The selector returned nothing on EITHER list and the page fell through to the general closing, which is the failure this scenario exists to catch. The account plainly shows two strengths - a second source whose knowledge did not come from the model, and a limit named on what the system could have known - and the stakes are priced and small, so an empty first list is correct and an empty second list is not."
+    },
+    {
+      "id": "S1",
+      "bucket": "S",
+      "sector": "telecoms",
+      "name": "Backhaul priority from a throughput export",
+      "account": [
+        "I had to decide which cell sites get the backhaul upgrade first and I gave it twelve months of throughput and contention data out of the planning tool. It ranked the sites and I took the top fifteen into the capex paper. What it could not see is that three of those sites are on a ring we are decommissioning next year anyway, which is in the network strategy and not in the export."
+      ],
+      "pressed": {
+        "reliance": "The capex paper went to the investment board on that ranking.",
+        "information": "Throughput and contention out of the planning tool. Nothing about the decommissioning programme.",
+        "constraints": "Twelve months, these regions, exclude the trial sites.",
+        "domain": "Transmission planning is mine. I would have spotted the ring if I had looked.",
+        "consequence": "Spending on sites we are turning off. Roughly a year of wasted capex on three of them.",
+        "advantage": "It did in a morning what the team does in a fortnight."
+      },
+      "expectCards": [
+        "constrain-the-generation",
+        "reliance-not-trust"
+      ],
+      "note": "The export was the limit, not the model. Distinctive vocabulary the question has to pick up: backhaul, contention, ring, decommissioning."
+    },
+    {
+      "id": "S2",
+      "bucket": "S",
+      "sector": "energy transmission",
+      "name": "Outage window against circuit ratings",
+      "account": [
+        "We were planning a maintenance outage and I used it to check which circuits could carry the redirected load. I gave it the seasonal ratings table and the network model export. It came back saying the window was fine on an N-1 basis. I did re-run the load flow myself in the proper tool afterwards and it agreed to within a couple of per cent, and the control room engineer signed the switching schedule."
+      ],
+      "pressed": {
+        "reliance": "It shaped the window we proposed, and the load flow confirmed it.",
+        "information": "Seasonal ratings and the network model export, then the load flow in our own tool.",
+        "constraints": "Summer ratings only, this boundary, N-1 not N-2.",
+        "domain": "System operation is my background and the control room engineer reviewed the schedule.",
+        "consequence": "Getting a rating wrong risks a trip on a loaded circuit. That is not survivable, which is why the load flow was never optional.",
+        "advantage": "It narrowed twenty candidate windows to three before the proper analysis started."
+      },
+      "expectCards": [],
+      "note": "Clean. A constructed independent check in the right tool, reviewed by someone qualified, with the stakes named. The bait is the card most likely to be misfired on a long AI conversation.",
+      "mustNotSelect": "constructed-check"
+    },
+    {
+      "id": "S3",
+      "bucket": "S",
+      "sector": "sports events",
+      "name": "Stewarding ratios for a concourse",
+      "account": [
+        "I used it to work out stewarding numbers for the north concourse on a sell-out, from the ingress profile and the previous two seasons' incident logs. It produced a ratio per turnstile bank and I staffed to it. The thing is it had the full incident history and the safety officer who signed it off has only worked this ground since the summer, so it knew more about that concourse than he did."
+      ],
+      "pressed": {
+        "reliance": "We staffed the concourse to those numbers on the day.",
+        "information": "Ingress profile and two seasons of incident logs, which is more than anyone currently on the team has read.",
+        "constraints": "Sell-out only, this concourse, exclude the away allocation.",
+        "domain": "Crowd safety is mine, but the sign-off came from someone newer to the ground than the data was.",
+        "consequence": "Understaffing a concourse at egress is the one that ends up in a report. Overstaffing costs a few hundred pounds.",
+        "advantage": "It read two seasons of logs. Nobody was going to do that by hand."
+      },
+      "expectCards": [
+        "domain-goes-silent",
+        "examiner-not-originator"
+      ],
+      "note": "The asymmetry runs the other way: the system knew MORE than the reviewer. Written to catch a questioner that assumes the model is always the one missing context."
+    },
+    {
+      "id": "S4",
+      "bucket": "S",
+      "sector": "enterprise technology",
+      "name": "Licence entitlement before a true-up",
+      "account": [
+        "Ahead of the vendor true-up I used it to reconcile our deployment data against the entitlement schedule, because the schedule is forty pages of amendments. It gave me a position showing we were compliant with headroom. I did not open the amendments myself; I gave it the PDFs and took the summary. We went into the true-up telling them we were fine."
+      ],
+      "pressed": {
+        "reliance": "It is the position we opened the negotiation with.",
+        "information": "The deployment export and the entitlement PDFs. I read the summary, not the amendments.",
+        "constraints": "I asked for a compliance position by product.",
+        "domain": "I know the estate. Licence metrics on the older amendments I do not.",
+        "consequence": "Walking into a true-up wrong is a seven-figure conversation and we lose the ability to argue.",
+        "advantage": "Four days of reading I did not do."
+      },
+      "expectCards": [
+        "independent-source-check",
+        "domain-goes-silent",
+        "reliance-not-trust"
+      ],
+      "note": "Gave it the documents and read only the summary - a shape that looks like grounding and is not. Vocabulary: true-up, entitlement, amendments, headroom."
+    },
+    {
+      "id": "S5",
+      "bucket": "S",
+      "sector": "investment banking",
+      "name": "The comparable set in a fairness opinion",
+      "account": [
+        "I used it to assemble the comparable company set for a fairness opinion. I gave it the screening criteria we always use and it returned eleven names with multiples. I pulled every multiple myself off the terminal and three were stale, which I fixed. What I did not question was the eleven names, and the set is the part that moves the answer more than any individual multiple does."
+      ],
+      "pressed": {
+        "reliance": "The range in the opinion comes off that set.",
+        "information": "The terminal for every multiple, checked one by one. The names themselves came from the model.",
+        "constraints": "Our standard screen: sector, size band, listed, exclude recent transactions.",
+        "domain": "I have run a dozen of these. The committee reviewed the range.",
+        "consequence": "A fairness opinion is signed. If the set is wrong the number is wrong and it is on our letterhead.",
+        "advantage": "It saved the two days of screening, and I spent them on the multiples instead."
+      },
+      "expectCards": [
+        "constrain-the-generation",
+        "constructed-check"
+      ],
+      "note": "He verified the cells and not the selection - the commonest shape in finance, and the one where checking the wrong layer feels like diligence. Expected held: source-outside-the-model, because the terminal check is real."
+    },
+    {
+      "id": "S6",
+      "bucket": "S",
+      "sector": "fintech",
+      "name": "Chargeback reason codes",
+      "account": [
+        "Our chargeback rate moved and I used it on six months of reason-code data to tell me what changed. It said the increase was concentrated in one code and one acquirer. I checked that against the acquirer's own reporting and it held. Then it offered a cause - a change in how the 3DS exemption was being applied - and that part I could not test from the data I had, so I flagged it as a hypothesis in the paper rather than a finding."
+      ],
+      "pressed": {
+        "reliance": "The paper went to the risk committee with the concentration as fact and the cause as a hypothesis.",
+        "information": "Our own reason-code data and the acquirer's reporting, which I reconciled.",
+        "constraints": "Six months, this acquirer, exclude the test traffic.",
+        "domain": "Payments risk is mine. The 3DS exemption logic sits with engineering and I said so.",
+        "consequence": "Chasing the wrong cause costs a quarter. Missing a real exemption fault costs us the interchange.",
+        "advantage": "It found the concentration in an hour. The cause it could not have known and I did not pretend otherwise."
+      },
+      "expectCards": [],
+      "note": "Clean, and unusually so: he separated what he could test from what he could not and labelled it. Expected held: named-the-unknowable, source-outside-the-model.",
+      "mustNotSelect": "domain-goes-silent"
+    },
+    {
+      "id": "S7",
+      "bucket": "S",
+      "sector": "enterprise AI software",
+      "name": "Writing the eval for our own model",
+      "account": [
+        "This is slightly recursive. I used AI to write the evaluation set for a classifier we ship. It produced two hundred labelled test cases and the classifier scored ninety-one per cent on them. Both the cases and the labels came from the same family of model the thing under test came from, so I am not sure what the ninety-one per cent is evidence of."
+      ],
+      "pressed": {
+        "reliance": "That number went in the release notes as the accuracy figure.",
+        "information": "Nothing outside the model. The cases and the labels are both generated.",
+        "constraints": "The taxonomy, the class balance, and the edge cases I could think of.",
+        "domain": "Evaluation design is my job, which is exactly why it bothers me.",
+        "consequence": "Shipping a number that measures agreement rather than accuracy. Customers quote it back at us.",
+        "advantage": "Two hundred cases in a morning, where hand-labelling is a fortnight."
+      },
+      "expectCards": [
+        "manufactured-divergence",
+        "independent-source-check"
+      ],
+      "note": "The genuinely original one. Generated the test set and the labels from the same family as the system under test, and he already half sees it. Expected held: named-the-unknowable."
+    },
+    {
+      "id": "S8",
+      "bucket": "S",
+      "sector": "global payments",
+      "name": "Settlement cut-offs and correspondent routing",
+      "account": [
+        "I used it to redesign the routing table for a currency corridor, working from the correspondent cut-off times and our own volume profile. It produced a routing that improved same-day settlement on paper. I tested it against last quarter's actual payments by replaying them through the new logic, and about four per cent would have missed the cut-off, which the paper exercise had not shown. So I changed the table."
+      ],
+      "pressed": {
+        "reliance": "The routing is live now, after the replay and the change.",
+        "information": "Correspondent cut-offs, our volume profile, then a replay of real payments through the new logic.",
+        "constraints": "This corridor, these correspondents, exclude the high-value rail.",
+        "domain": "Settlement operations is mine, and treasury signed the final table.",
+        "consequence": "A missed cut-off is a late payment and a client call. At volume that is a regulatory conversation.",
+        "advantage": "The replay harness is the reusable part. We use it on every routing change now."
+      },
+      "expectCards": [],
+      "note": "Clean and the strongest of the clean cases: he built a replay that could fail, it did fail, and he changed the answer. Expected held: check-that-could-fail, path-can-be-walked.",
+      "mustNotSelect": "constructed-check"
+    },
+    {
+      "id": "S9",
+      "bucket": "S",
+      "sector": "construction",
+      "name": "A delay claim and the programme",
+      "account": [
+        "I used it on the site diaries and the baseline programme to build the narrative for a variation claim, about eight hundred pages of diaries. It produced a sequence of delay events tied to dates. It reads well and the dates are right where I have checked them. Whether the critical path analysis behind it is defensible against the other side's expert I genuinely do not know, and we have no planner in-house any more."
+      ],
+      "pressed": {
+        "reliance": "It is the claim narrative we have submitted.",
+        "information": "The site diaries and the baseline programme. I spot-checked dates and they were right.",
+        "constraints": "These events, this window, exclude the weather days we already conceded.",
+        "domain": "Commercial management is mine. Critical path analysis is a planner's job and we do not have one.",
+        "consequence": "A claim that falls over in adjudication costs the claim and the costs of the adjudication.",
+        "advantage": "Eight hundred pages read in an afternoon."
+      },
+      "expectCards": [
+        "domain-goes-silent",
+        "constructed-check"
+      ],
+      "note": "Dates verified, method unverifiable, and nobody in the building can judge it. The dates-right-method-unknown shape. Vocabulary: diaries, baseline, critical path, adjudication."
+    },
+    {
+      "id": "S10",
+      "bucket": "S",
+      "sector": "strategy consultancy",
+      "name": "Market sizing in a client deck",
+      "account": [
+        "I sized a new market for a client deck. I gave it the segment definitions and asked for a build-up rather than a single number, which it did - population, penetration, spend. I added the parts up and they reconciled to the total. The source for the penetration rate is the model itself; I never opened a single industry report, and that rate is doing most of the work in the number."
+      ],
+      "pressed": {
+        "reliance": "It is the market size on slide four, and the whole recommendation is sized off it.",
+        "information": "The model's own knowledge. I checked the arithmetic, not the inputs.",
+        "constraints": "Four countries, three segments, exclude public sector.",
+        "domain": "I know the sector well enough that the number looked right to me.",
+        "consequence": "A client invests against that number. If it is overstated they over-build.",
+        "advantage": "Two days of desk research compressed into a morning."
+      },
+      "expectCards": [
+        "independent-source-check",
+        "borrowed-rule"
+      ],
+      "note": "The arithmetic-checked, source-unchecked case, with the plausibility read doing the rest. Expected held: said-what-to-exclude - the brief really was constrained."
+    },
+    {
+      "id": "S11",
+      "bucket": "S",
+      "sector": "food ingredients",
+      "name": "An emulsifier substitution and the label",
+      "account": [
+        "We had to substitute an emulsifier at short notice and I used it to work out the labelling consequences across the range, from the spec sheets. It told me which SKUs needed a declaration change and which did not. I checked the ones it flagged against the regulation myself. The ones it said were fine I did not check, because there was nothing to look at - no flag, no change."
+      ],
+      "pressed": {
+        "reliance": "The artwork change went to print on that list.",
+        "information": "The spec sheets, and the regulation for every SKU it flagged.",
+        "constraints": "This range, the EU market, the replacement supplier's spec.",
+        "domain": "Regulatory labelling is my area.",
+        "consequence": "An undeclared allergen is a recall and potentially someone in hospital. The other way is a pointless artwork change.",
+        "advantage": "It went through sixty spec sheets in minutes."
+      },
+      "expectCards": [
+        "silence-is-not-safety",
+        "two-failure-modes"
+      ],
+      "note": "He checked everything it flagged and nothing it did not. The purest silence-is-not-safety in the set, in a domain where the downside is a recall."
+    },
+    {
+      "id": "S12",
+      "bucket": "S",
+      "sector": "retail banking",
+      "name": "Affordability rules rewritten",
+      "account": [
+        "I used it to redraft our affordability assessment rules into something the new decision engine could consume, from the existing policy document. It produced the rule set and I had two colleagues review it line by line against the policy. Where it had interpreted something we disagreed about, we took it to the policy owner. What nobody did was run the old and new rules over the same applications and compare the decisions."
+      ],
+      "pressed": {
+        "reliance": "The rules are in the engine and deciding applications.",
+        "information": "The policy document, reviewed line by line by two people, with the policy owner on the disputes.",
+        "constraints": "This product, these income types, no change to the stress rate.",
+        "domain": "Credit policy is mine and the reviewers know it too.",
+        "consequence": "Declining people who should pass is invisible and we never learn. Accepting people who should fail shows up in arrears in eighteen months.",
+        "advantage": "A fortnight of translation work done in two days."
+      },
+      "expectCards": [
+        "constructed-check",
+        "reproduction-gap"
+      ],
+      "note": "Heavily reviewed by people who know the policy, and nobody ran the two rule sets over the same applications. Review is not a test. Expected held: independent-knowledge, two human reviewers plus the policy owner."
+    },
+    {
+      "id": "S13",
+      "bucket": "S",
+      "sector": "public sector consultancy",
+      "name": "A benefit-cost ratio for a business case",
+      "account": [
+        "I used it to build the economic case for a Green Book business case, from the appraisal guidance and our option costs. It produced a benefit-cost ratio of 2.4. I checked the discount rate and the optimism bias uplift against the guidance and they were right. The monetised benefits themselves come from its reading of the guidance's own values, and I have no way to tell whether it picked the right value for this intervention type."
+      ],
+      "pressed": {
+        "reliance": "The 2.4 is the headline of the economic case and the scheme is being appraised on it.",
+        "information": "The guidance itself for the rate and the uplift. The benefit values are its reading of the guidance.",
+        "constraints": "Sixty-year appraisal, this option set, exclude wider economic impacts.",
+        "domain": "Business case structure is mine. Which monetised value applies to which intervention is an economist's call and we have none.",
+        "consequence": "A BCR that will not survive scrutiny loses the scheme and the credibility for the next one.",
+        "advantage": "The economic case took a week instead of three."
+      },
+      "expectCards": [
+        "domain-goes-silent",
+        "constructed-check"
+      ],
+      "note": "Checked the parameters he could read off and not the value selection that drives the result. Vocabulary: Green Book, optimism bias, BCR, monetised benefits."
+    },
+    {
+      "id": "S14",
+      "bucket": "S",
+      "sector": "private equity",
+      "name": "Screening an add-on",
+      "account": [
+        "I screened a bolt-on acquisition with it, from the data room's financials and our investment criteria. It flagged no issues on quality of earnings. I did not treat that as diligence - we appointed a QoE provider anyway because it is in our process for anything over a threshold, and they found a revenue recognition issue the model had not mentioned. The model's silence had no information in it, and the process did not depend on it."
+      ],
+      "pressed": {
+        "reliance": "It shaped which targets got to IC. The deal diligence did not rest on it.",
+        "information": "The data room financials, then a full QoE by a third party because the threshold requires it.",
+        "constraints": "Our criteria, this sector, exclude anything pre-revenue.",
+        "domain": "I have done a lot of these and the QoE provider does the part I cannot.",
+        "consequence": "Buying a revenue recognition problem is a write-down. Passing on a good asset costs us a fee.",
+        "advantage": "It triaged forty targets to six. The diligence standard never moved."
+      },
+      "expectCards": [],
+      "note": "Clean, and the bait is the sharpest in the set: the model WAS silent and the silence WAS wrong, and he had a trigger that did not care. Expected held: effort-matched-to-stakes, source-outside-the-model.",
+      "mustNotSelect": "silence-is-not-safety"
+    },
+    {
+      "id": "S15",
+      "bucket": "S",
+      "sector": "manufacturing",
+      "name": "Scrap rate root cause",
+      "account": [
+        "Scrap on one line went from two per cent to five and I used it on the process data to find out why. It pointed at a humidity correlation in the summer months. I was pleased with that because humidity is what I had been telling people for a year. I did not test it - no trial, no controlled run. We spent forty thousand on dehumidification and the scrap rate did not move."
+      ],
+      "pressed": {
+        "reliance": "We spent capital on it.",
+        "information": "Our own process and SPC data. Nothing outside it.",
+        "constraints": "This line, twelve months, exclude the tooling change window.",
+        "domain": "Process engineering is mine, which is why I believed it so quickly.",
+        "consequence": "Forty thousand and a quarter lost, and the real cause still running.",
+        "advantage": "It correlated eight variables in an afternoon."
+      },
+      "expectCards": [
+        "borrowed-rule",
+        "constructed-check",
+        "two-failure-modes"
+      ],
+      "note": "The output agreed with what he had been saying for a year and that agreement is what ended the enquiry. A realised loss, so closing_note should fire."
+    },
+    {
+      "id": "S16",
+      "bucket": "S",
+      "sector": "public healthcare",
+      "name": "Waiting list validation",
+      "account": [
+        "I used it to work through the waiting list for validation, from the PAS extract, to find the patients who should have come off. It produced a list of around nine hundred. The team rang through a sample of a hundred and ninety-one of those were right to remove. We removed all nine hundred on the strength of the sample."
+      ],
+      "pressed": {
+        "reliance": "Nine hundred patients came off the reported waiting list.",
+        "information": "The PAS extract, and a hundred phone calls against it.",
+        "constraints": "This specialty, these pathway types, exclude the planned reviews.",
+        "domain": "Access and waiting list management is my area.",
+        "consequence": "Removing someone who should still be waiting means they wait longer and it is a patient safety incident. Leaving someone on overstates the list.",
+        "advantage": "Validation that would have taken the team months."
+      },
+      "expectCards": [
+        "two-failure-modes",
+        "reliance-not-trust"
+      ],
+      "note": "A sample of a hundred generalised to nine hundred, with the error direction that harms patients never costed against the one that embarrasses the trust. Expected held: check-that-could-fail - the phone calls were a real test, on a tenth of it."
     }
   ]
 }

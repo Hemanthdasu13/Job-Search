@@ -58,9 +58,16 @@ const MUST_FLAG = [
 ];
 
 // The same conversation, inside the rules.
+//
+// The first two of these read fine and failed when the anchor rule arrived:
+// "What did you do once it gave you the name of the place?" carries nothing
+// he had written at turn one - "place" is his word from turn TWO - and "What
+// had that someone seen of it themselves?" has no content word at all once
+// the scaffolding is removed. Both would have fitted any account. Rewritten
+// to carry one of his: "recommend" and "place".
 const MUST_PASS = [
-  { turn: 1, q: "What did you do once it gave you the name of the place?" },
-  { turn: 2, q: "What had that someone seen of it themselves?" },
+  { turn: 1, q: "What did you do once it recommended somewhere?" },
+  { turn: 2, q: "What had that someone seen of the place themselves?" },
   { turn: 3, q: "What were you going there for?" },
   { turn: 4, q: "What would going to the wrong one have cost you?" },
   { turn: 5, q: "What could it have known about the crowd on a given night?" },
@@ -125,6 +132,7 @@ if (introducedWords(inflected, theirs).length) {
 
 console.log("");
 console.log("Enforced here: length, asides, presupposed action, introduced words,");
+console.log("the anchor rule (verification vocabulary with no word of theirs in it),");
 console.log("two-questions-in-one, yes/no openings, either/or, research words,");
 console.log("advice, assertions, repeated questions, confidential detail.");
 console.log("Asked for in the prompt but NOT enforced: one clause per question, and");
