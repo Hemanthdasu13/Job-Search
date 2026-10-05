@@ -94,6 +94,12 @@ const server = createServer(async (req, res) => {
   for await (const c of req) raw += c;
   const body = JSON.parse(raw);
   const isSelector = raw.includes("Your only job is to choose");
+  // The second pass asks only about the strengths. Both prompts open the same
+  // way AND both contain "positively shows", which is how the first version of
+  // this line answered the full selector in the short selector's shape and
+  // broke three checks above. The reliable difference is that only the full
+  // prompt carries the gap list.
+  const isHeldOnly = isSelector && !raw.includes("items that did not come up");
 
   // A sticky step stays at the head of the plan: it models a provider stuck
   // in one behaviour rather than unlucky once, which is the only way to tell
@@ -128,7 +134,9 @@ const server = createServer(async (req, res) => {
     ? "I'd rather not answer in JSON. Here is some prose about your research instead."
     : step.kind === "raw"
       ? step.text
-      : isSelector
+      : isHeldOnly
+        ? JSON.stringify(step.heldOnly || { held: [], held_evidence: {} })
+        : isSelector
         ? JSON.stringify(step.selection || { selected: [], evidence: {} })
         : JSON.stringify({ ...QUESTION, ...(step.reply || {}) });
 
@@ -620,6 +628,44 @@ async function hostileInput() {
   checks["ceiling of three respected"] = keptIds.length <= 3;
   notes.push(`selector sent 5 ids, kept ${keptIds.length}: ${keptIds.join(", ") || "none"}`);
   notes.push(`  rejected: ${rejected.join(" | ")}`);
+
+  // (c2) Empty on both lists gets one more look, at the strengths alone.
+  //
+  // Measured rather than assumed: Opus and Sonnet were handed the same prompt
+  // and the same account - a Soho recommendation checked with a local - and
+  // both returned an empty gap list, correctly. Sonnet returned no strengths;
+  // Opus returned two, on quotes sitting in the man's own words. So the gap is
+  // calibration, not instruction, and another paragraph telling it not to be
+  // shy was already there and did not work. This is the mechanism instead, and
+  // it costs a call only on the outcome that otherwise produces the generic
+  // closing - which is how a pension-model story came to answer a question
+  // about a pub.
+  const heldAnswers = ["I asked someone who had been there, and they said it was a cool place."];
+  plan = [
+    { kind: "ok", selection: { selected: [], evidence: {}, held: [], held_evidence: {} } },
+    { kind: "ok", heldOnly: { held: ["independent-knowledge"],
+      held_evidence: { "independent-knowledge": "I asked someone who had been there" } } }
+  ];
+  callLog = [];
+  const second = await post(close, { answers: heldAnswers }, { token, ip: "3.3.3.5" });
+  const secondCalls = callLog.filter((c) => c.isSelector).length;
+  checks["an empty-empty closing asks again about the strengths"] = secondCalls === 2;
+  checks["what the second pass finds reaches the page"] =
+    (second.held || []).some((h) => h.id === "independent-knowledge");
+  notes.push(`empty-empty closing: ${secondCalls} selector call(s), held now ` +
+    `[${(second.held || []).map((h) => h.id).join(", ") || "none"}]`);
+
+  // And it must not fire when the first pass already found something, or every
+  // closing costs two calls instead of one.
+  plan = [{ kind: "ok", selection: {
+    selected: ["reliance-not-trust"],
+    evidence: { "reliance-not-trust": "I asked someone who had been there" },
+    held: [], held_evidence: {}
+  } }];
+  callLog = [];
+  await post(close, { answers: heldAnswers }, { token, ip: "3.3.3.6" });
+  checks["a closing that found a gap does not pay for a second pass"] =
+    callLog.filter((c) => c.isSelector).length === 1;
 
   // (d) Oversized and malformed payloads, refused before the provider.
   const before = callLog.length;

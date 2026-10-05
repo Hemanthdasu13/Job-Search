@@ -100,3 +100,56 @@ export function validateHeld(raw, answers, isVerbatim) {
   }
   return { kept, rejected };
 }
+
+// Asked once more, with only the second list, when the first pass came back
+// empty on both.
+//
+// Why a second call rather than a firmer instruction. Opus and Sonnet were
+// given this exact prompt on the same account - a Soho recommendation checked
+// with a local. Both returned an empty gap list, which was the right answer.
+// Opus returned two strengths on quotes sitting in plain sight in the man's
+// own words; Sonnet returned none. So the prompt is followable and the
+// shortfall is calibration, which another paragraph of encouragement does not
+// fix. It had already been told that being shy is its own failure.
+//
+// It is also the one case worth paying for. Empty on both lists is exactly
+// when the page falls through to the general closing, and that is how a
+// pension-model story ended up answering a question about a pub. One extra
+// call, only on the worst outcome, with the seventeen gap items and forty
+// lines of gap instruction removed so the nine strengths are the whole task
+// rather than an appendix to it.
+export function heldOnlySystem() {
+  return `You are given someone's account of a time they used AI in a real piece of
+work. Your only job is to choose which of the listed items the account
+positively shows, and to quote the words of theirs that show it.
+
+You never write an explanation, a finding, an assessment, a score, advice, or
+any sentence of your own. You never describe the person. You choose ids and
+you copy their words.
+
+The items:
+${triggerList()}
+
+Choosing:
+- At most ${MAX_STRENGTHS}. None is a legitimate answer if the account really
+  shows none.
+- Choose an item only if a quotable line shows it, and shows that item rather
+  than something nearby.
+- Judge only what they described.
+- Nothing has to be impressive to be true. A person who asked someone who had
+  been there has consulted a source whose knowledge did not come from the
+  model. A person who says they would not know where a claim came from has
+  named what the system could not have known. Both count.
+
+Quoting:
+- Copied character for character from what they wrote. Do not correct
+  spelling, do not tidy grammar, do not shorten with an ellipsis, do not join
+  two separate phrases.
+- Twelve characters minimum.
+- Never quote a client name, a price, a volume or an internal figure.
+
+Output format. Reply with one JSON object and nothing else: no prose before or
+after it, no markdown, no code fence. Exactly two keys:
+{"held": ["id"], "held_evidence": {"id": "their exact words"}}
+To choose nothing, reply {"held": [], "held_evidence": {}}.`;
+}

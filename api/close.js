@@ -25,7 +25,7 @@ import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, textOf } from "./_model.js";
 import { PRACTICE_IDS, MAX_SELECTED, triggerList, validateSelection, isVerbatim, normaliseForMatch } from "./_practices.js";
-import { MAX_STRENGTHS, STRENGTH_IDS, triggerList as heldTriggerList, validateHeld } from "./_strengths.js";
+import { MAX_STRENGTHS, STRENGTH_IDS, triggerList as heldTriggerList, validateHeld, heldOnlySystem } from "./_strengths.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -305,6 +305,25 @@ export default async function handler(req, res) {
   // well-run piece of work should produce. But an empty result caused by the
   // model inventing ids or quotes is a different thing, and the page's owner
   // needs to be able to tell them apart.
+  // Empty on both lists is the worst screen the tool can produce, and the
+  // measured cause is the model under-reading the second list rather than the
+  // account being empty. So it gets one more look, at the strengths alone.
+  if (!kept.length && !held.kept.length) {
+    try {
+      const again = await callModel(key, model, heldOnlySystem(), [
+        { role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }
+      ], undefined, { cacheSystem: false });
+      const reparsed = extractJson(textOf(again));
+      const second = validateHeld(reparsed || {}, answers, isVerbatim);
+      console.error("close_held_second_pass", second.kept.length ? "found " + second.kept.length : "still none");
+      if (second.kept.length) { held.kept = second.kept; held.rejected = held.rejected.concat(second.rejected); }
+    } catch (error) {
+      // The first pass already answered. A failed second look costs the
+      // visitor nothing and must not turn a closing screen into an error.
+      console.error("close_held_second_pass_failed", describeFailure(error, model, 0));
+    }
+  }
+
   if (rejected.length || held.rejected.length) {
     console.error("close_selection_rejected", model,
       JSON.stringify(rejected.concat(held.rejected).map((r) => r.why)));
