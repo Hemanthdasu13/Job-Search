@@ -50,7 +50,15 @@ function clean(body) {
     answers,
     questions,
     reflection: typeof body?.reflection === "string" ? body.reflection.slice(0, 400) : null,
-    boundary: typeof body?.boundary === "string" ? body.boundary.slice(0, 400) : null
+    boundary: typeof body?.boundary === "string" ? body.boundary.slice(0, 400) : null,
+    // Which cards the closing named, so the log says what the person saw.
+    // Ids only - the research text is on the page and the evidence is their
+    // own sentence, which is already in `answers`. Four live runs have gone by
+    // without being able to tell whether the strengths side renders at all.
+    shown: {
+      gaps: Array.isArray(body?.shown?.gaps) ? body.shown.gaps.slice(0, 3).map(String) : [],
+      held: Array.isArray(body?.shown?.held) ? body.shown.held.slice(0, 2).map(String) : []
+    }
   };
 }
 

@@ -69,6 +69,82 @@ export const BOLTED_ON_CLOSED = new RegExp(`\\b(?:and|or)\\s+(?:${AUX})\\s+(?:yo
 export const SUGGESTS_ANSWER =
   /\b(?:such as|for example|for instance|e\.g\.|like)\b[^?]{0,60}?\bor\b/i;
 
+// Where to fall back to when the model cannot produce a usable question and
+// there is no time to keep asking. Deliberately dull: it presupposes nothing,
+// carries no verification vocabulary so the anchor rule leaves it alone, and
+// moves the conversation on instead of ending it.
+//
+// It exists because the alternatives are worse. Shipping the faulty question
+// is what happened seven times. Shipping nothing showed a live visitor the
+// string "(not shown)" where a question belonged.
+// Asking the same thing again in different words.
+//
+// The axis classifier cannot see this. Three of these four returned nothing
+// from it, and they are plainly one question asked four times:
+//
+//   "What would have shown you if one of those unflagged SKUs actually
+//    needed a declaration change?"
+//   "What would have happened to the print run if one of those unflagged
+//    SKUs actually needed a declaration change?"
+//   "If one of those unflagged SKUs went to print without the needed
+//    declaration change, what would that have meant downstream?"
+//   "If one of those unflagged SKUs had actually needed a declaration
+//    change, what would that have meant once it reached shelves?"
+//
+// What is obvious about them is the vocabulary, not the topic. So the measure
+// is overlap: how much of the shorter question's content is already in the
+// one before it. Measured against the shorter one, because a long question
+// that restates a short one is still a restatement.
+// Half, not two thirds. These two are one question with the synonyms swapped
+// - caught for surfaced, revenue recognition for earnings, before reaching IC
+// for below the IC threshold - and they overlap by exactly a half:
+//
+//   "For targets it screened out before reaching IC, what would have caught a
+//    similar revenue recognition issue there?"
+//   "For targets that screened out below the IC threshold, what would have
+//    surfaced a similar earnings issue there?"
+//
+// Lexical overlap cannot see a synonym, so the threshold has to sit where a
+// half-reworded repeat still trips it. The shared-word floor below is what
+// stops that being too eager.
+export const REPEAT_OVERLAP = 0.5;
+
+export function overlapWithPrevious(question, previous) {
+  const a = new Set(contentWordsOf(question));
+  const b = new Set(contentWordsOf(previous));
+  if (!a.size || !b.size) return 0;
+  let shared = 0;
+  for (const word of a) if (b.has(word)) shared += 1;
+  return shared / Math.min(a.size, b.size);
+}
+
+// A ratio on its own is not enough, and the case that showed it is worth
+// keeping: these two share "ratio" and "night" and are two thirds overlapped
+// by the measure above, and they are not the same question at all -
+//
+//   "What would have happened on the concourse if that ratio had been wrong
+//    on the night?"
+//   "What did the ratio per turnstile bank take into account about that
+//    night's crowd, beyond the ingress profile and past incident logs?"
+//
+// The first has only three content words, so sharing the subject is most of
+// it. Sharing the subject is what a follow-up DOES. So a repeat needs both:
+// a high proportion, and at least three words in common - which the stadium
+// pair fails and every one of the four allergen questions passes.
+export const REPEAT_SHARED_WORDS = 3;
+
+export function repeatsPrevious(question, previous) {
+  if (!question || !previous) return false;
+  const a = new Set(contentWordsOf(question));
+  const b = new Set(contentWordsOf(previous));
+  let shared = 0;
+  for (const word of a) if (b.has(word)) shared += 1;
+  if (shared < REPEAT_SHARED_WORDS) return false;
+  return overlapWithPrevious(question, previous) >= REPEAT_OVERLAP;
+}
+
+export const SAFE_QUESTION = "What happened next, once it gave you that?";
+
 export const MAX_QUESTION_WORDS = 20;
 
 // ------------------------------------------------------------- introduced words

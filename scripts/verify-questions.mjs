@@ -170,6 +170,59 @@ for (const q of [
   else console.log(`  ok  ${q.slice(0, 64)}`);
 }
 
+// Asking the same thing again. One live conversation asked four versions of
+// one question and another asked three, both of which read as not listening -
+// which is worse than a leading question, because the person has already
+// answered. Pinned as real sequences: every consecutive pair, with the verdict
+// each one has to get.
+console.log("\nasking it again in different words:");
+const { repeatsPrevious } = await import("../api/_question_rules.js");
+const SEQUENCES = [
+  ["allergen", "repeat", [
+    "What would have shown you if one of those unflagged SKUs actually needed a declaration change?",
+    "What would have happened to the print run if one of those unflagged SKUs actually needed a declaration change?",
+    "If one of those unflagged SKUs went to print without the needed declaration change, what would that have meant downstream?",
+    "If one of those unflagged SKUs had actually needed a declaration change, what would that have meant once it reached shelves?"
+  ]],
+  ["private equity", "repeat", [
+    "For targets it screened out before reaching IC, what would have caught a similar revenue recognition issue there?",
+    "For targets that screened out below the IC threshold, what would have surfaced a similar earnings issue there?"
+  ]],
+  // Two that share only their subject. A follow-up reuses the noun; that is
+  // what a follow-up is, and calling it a repeat would regenerate good
+  // questions and spend a call doing it.
+  ["stadium", "fine", [
+    "What would have happened on the concourse if that ratio had been wrong on the night?",
+    "What did the ratio per turnstile bank take into account about that night's crowd, beyond the ingress profile and past incident logs?",
+    "What about that specific night, such as the ticket mix or event type, sat outside what the ingress profile and incident logs covered?"
+  ]],
+  ["restaurant", "fine", [
+    "What did you do once it recommended somewhere?",
+    "What had that someone seen of the place themselves?",
+    "What were you going there for?",
+    "What could it have known about the crowd on a given night?"
+  ]]
+];
+for (const [name, verdict, qs] of SEQUENCES) {
+  for (let i = 1; i < qs.length; i++) {
+    const got = repeatsPrevious(qs[i], qs[i - 1]);
+    const want = verdict === "repeat";
+    if (got !== want) {
+      fail(`${name} Q${i}->Q${i + 1} should be ${verdict}\n        ${qs[i]}`);
+    }
+  }
+  console.log(`  ok  ${name}: every consecutive pair reads as ${verdict}`);
+}
+
+// The fallback has to survive its own rules, or a faulty question gets
+// replaced by another faulty question.
+const { SAFE_QUESTION } = await import("../api/_question_rules.js");
+if (hardFault(SAFE_QUESTION, ["I used it to draft a supplier comparison."])) {
+  fail(`the safe fallback breaks a rule: ${hardFault(SAFE_QUESTION, ["x"])}`);
+} else {
+  console.log(`  ok  the safe fallback breaks no rule: "${SAFE_QUESTION}"`);
+}
+
 console.log("");
 console.log("Enforced here: length, asides, presupposed action, introduced words,");
 console.log("the anchor rule (verification vocabulary with no word of theirs in it),");

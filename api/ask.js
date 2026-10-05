@@ -44,7 +44,7 @@ import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, jsonSchema, safeParse, textOf } from "./_model.js";
 import { coverageNote } from "./_axes.js";
-import { hardFault } from "./_question_rules.js";
+import { hardFault, repeatsPrevious, SAFE_QUESTION } from "./_question_rules.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -781,7 +781,20 @@ export default async function handler(req, res) {
   // attempt. Three presupposing questions have gone out live, each costing a
   // turn and steering the answer towards what the person lacked, while the
   // rule that catches them ran only in the test suite.
-  const fault = question ? hardFault(question, answersOf(body)) : null;
+  // Same ground twice in a row, caught by the classifier the ground note
+  // already uses. A live conversation asked, in order: what would have
+  // happened to the print run, what would that have meant downstream, and
+  // what would that have meant once it reached shelves. Three rephrasings of
+  // one question he had already answered in his opening account. The prompt
+  // says never two in a row on the same ground; it says a lot of things.
+  const asked = Array.isArray(body?.questions) ? body.questions.filter((q) => typeof q === "string") : [];
+  const previous = asked[asked.length - 1];
+  // Overlap, not the axis classifier: three of the four allergen questions
+  // returned nothing from classify() and were plainly one question asked four
+  // times. What is obvious about them is the vocabulary.
+  const repeats = question && previous && repeatsPrevious(question, previous);
+
+  const fault = question ? (hardFault(question, answersOf(body)) || (repeats ? "asks the last question again in different words" : null)) : null;
   if (fault) {
     console.error("question_regenerated", fault);
     try {
@@ -791,11 +804,20 @@ export default async function handler(req, res) {
       const second = await callModel(key, model, SYSTEM, retold, undefined, { format: REPLY_SCHEMA });
       const reparsed = extractJson(textOf(second));
       const replacement = questionOf(reparsed);
-      if (replacement && !hardFault(replacement)) {
+      const stillBad = replacement
+        ? (hardFault(replacement, answersOf(body))
+           || (repeatsPrevious(replacement, previous) ? "the same question again" : null))
+        : "nothing back";
+      if (!stillBad) {
         question = replacement;
         parsed = reparsed;
       } else {
-        console.error("question_regeneration_no_better", replacement ? hardFault(replacement) : "nothing back");
+        // Falling back to the original is how seven faulty questions reached
+        // visitors: the check fired, the retry failed, and the bad question
+        // went out anyway. A dull question that breaks no rule is better than
+        // a pointed one that steers the answer.
+        console.error("question_regeneration_no_better", stillBad);
+        question = SAFE_QUESTION;
       }
     } catch (error) {
       console.error("question_regeneration_failed", describeFailure(error, model, 0));
@@ -843,6 +865,13 @@ export default async function handler(req, res) {
   if ((status === "reached" || status === "verified") && answered < 3) {
     console.error("close_refused_too_early", `${answered} answer(s)`);
     status = "probing";
+    // "reached" does not need a question, so there may not be one - and the
+    // placeholder a few lines above is never meant to be read. One live
+    // visitor was shown the string "(not shown)" where a question belonged.
+    if (!question || question === "(not shown)") {
+      console.error("close_refused_no_question", "using the safe fallback");
+      question = SAFE_QUESTION;
+    }
   }
 
   const thin = conversationIsThin(everything);
