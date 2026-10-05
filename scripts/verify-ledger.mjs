@@ -102,6 +102,26 @@ for (const name of ["MAX_ANSWER_CHARS", "MAX_TOTAL_CHARS", "MAX_ANSWERS"]) {
     a !== null && c !== null && c >= a, `ask=${a} close=${c}`);
 }
 
+// The two lists that decide whether the screen may say nothing needs fixing
+// have to agree. One lives in api/_strengths.js, the other in the page; a page
+// that congratulates work the server did not call settled is the fault this
+// pair exists to prevent.
+const { STRENGTHS_THAT_SETTLE_IT } = await import("../api/_strengths.js");
+const settleBlock = page.slice(page.indexOf("var SETTLES_IT = ["), page.indexOf("function strengthReady"));
+const inPageSettle = [...settleBlock.matchAll(/"([a-z-]+)"/g)].map((m) => m[1]);
+check("the page and the server agree on which strengths settle it",
+  STRENGTHS_THAT_SETTLE_IT.length === inPageSettle.length
+    && STRENGTHS_THAT_SETTLE_IT.every((id) => inPageSettle.includes(id)),
+  `server [${STRENGTHS_THAT_SETTLE_IT}] page [${inPageSettle}]`);
+
+// And an admission must never settle it. A live run put "naming what it could
+// not know" on screen and then said the work was checked about as hard as
+// being wrong would have cost, under a conclusion line calling the headline
+// figure unverified.
+for (const id of ["named-the-unknowable", "chased-the-doubt", "said-what-to-exclude", "judgement-stayed-theirs"]) {
+  check(`${id} does not on its own settle it`, !STRENGTHS_THAT_SETTLE_IT.includes(id));
+}
+
 console.log("");
 if (failed) { console.log(`${failed} check(s) failed.`); process.exit(1); }
 console.log(`Ledger holds: ${PRACTICE_IDS.length} gaps, ${STRENGTH_IDS.length} strengths,`);

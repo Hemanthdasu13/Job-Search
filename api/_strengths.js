@@ -62,6 +62,33 @@ export const STRENGTHS = {
 
 export const STRENGTH_IDS = Object.freeze(Object.keys(STRENGTHS));
 
+// Which of these license the closing to say nothing needs fixing.
+//
+// A live run put "naming what it could not know" on the screen and then told
+// the man his work was checked about as hard as being wrong would have cost.
+// He had just said he has no economist and no way to tell whether the value
+// the whole benefit-cost ratio rests on is the right one. The second line of
+// his own conclusion said the ratio was unverified. The screen congratulated
+// him anyway.
+//
+// Naming a limit is worth saying back to someone. It is not a check, and
+// neither is chasing a doubt that is still open. So "nothing needs fixing"
+// requires at least one strength that is something DONE: a source consulted,
+// a check that could have failed, a person who knew independently, a path
+// someone else could walk, or effort deliberately matched to what being
+// wrong would have cost.
+export const STRENGTHS_THAT_SETTLE_IT = Object.freeze([
+  "source-outside-the-model",
+  "check-that-could-fail",
+  "independent-knowledge",
+  "path-can-be-walked",
+  "effort-matched-to-stakes"
+]);
+
+export function settlesIt(ids) {
+  return (ids || []).some((id) => STRENGTHS_THAT_SETTLE_IT.includes(id));
+}
+
 // Two, not three. The gaps side shows up to three because a gap is work to
 // do; a strength is work already done, and a third one starts to read as
 // flattery. Deliberately lower than MAX_SELECTED so the two sides can never

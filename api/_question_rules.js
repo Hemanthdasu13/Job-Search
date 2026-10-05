@@ -143,7 +143,27 @@ export function repeatsPrevious(question, previous) {
   return overlapWithPrevious(question, previous) >= REPEAT_OVERLAP;
 }
 
-export const SAFE_QUESTION = "What happened next, once it gave you that?";
+export const SAFE_QUESTIONS = [
+  "What happened next, once it gave you that?",
+  "Who else saw it before it was used?",
+  "What did it have in front of it when it produced that?"
+];
+
+// Kept for callers that want one without knowing the conversation.
+export const SAFE_QUESTION = SAFE_QUESTIONS[0];
+
+// The first of these nobody has been asked yet. A live conversation got the
+// fallback as its first question AND its third, word for word, because there
+// was only one of them - so the safety net became the visible product and the
+// tester marked both as questions that could have been asked about any
+// account at all. Which they could.
+//
+// Three is not a fix for that, it is a floor under it. The fallback firing at
+// all is the thing to watch, which is why it logs.
+export function safeQuestion(asked = []) {
+  const already = new Set((asked || []).map((q) => String(q).trim().toLowerCase()));
+  return SAFE_QUESTIONS.find((q) => !already.has(q.toLowerCase())) || SAFE_QUESTIONS[0];
+}
 
 export const MAX_QUESTION_WORDS = 20;
 

@@ -804,13 +804,15 @@ async function nothingLol() {
   const soho = [
     "I was using it to recommend me for a restaurant/ pub near soho",
     "i cannot weigh, im new to the place. but i asked someone after and they said yeah its a cool place",
-    "Something only a local would know, his own lived experience and the vibe on that day."
+    "Something only a local would know, his own lived experience and the vibe on that day.",
+    "He had been there the week before, which is why I asked him rather than anyone else."
   ];
   plan = [{ kind: "ok", reply: { status: "reached", question: "",
     reflection: "I asked someone after and they said it was a cool place." } }];
   const good = await post(ask, { answers: soho, questions: [
     "What did you do once it recommended somewhere?",
-    "What had that someone seen of the place themselves?"
+    "What had that someone seen of the place themselves?",
+    "What were you going there for?"
   ] }, { token, ip: "4.4.4.2" });
   if (good.ok !== true) notes.push(`the real conversation was refused: ${good.reason}`);
   checks["a real conversation is not called thin"] = good.thin === false;
@@ -934,6 +936,12 @@ async function fourVisitors() {
       reply: { status: "verified",
                reflection: "The totals were rebuilt from the invoices actually paid, and a colleague in procurement reviewed the comparison against the contracts." } },
     { says: "The contracts and the paid invoices, both of which I opened myself rather than taking its word for.",
+      reply: { status: "verified",
+               reflection: "The totals were rebuilt from the invoices actually paid, and a colleague in procurement reviewed the comparison against the contracts." } },
+    // Four answers, not three. The minimum went up after a live run closed at
+    // the old floor on a business case whose headline figure rested on a value
+    // the person had just said he could not check.
+    { says: "If the reconciliation had not matched I would have gone back to the invoices before anything went out.",
       reply: { status: "verified",
                reflection: "The totals were rebuilt from the invoices actually paid, and a colleague in procurement reviewed the comparison against the contracts." } }
   ]);

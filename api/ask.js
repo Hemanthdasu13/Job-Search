@@ -44,7 +44,7 @@ import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, jsonSchema, safeParse, textOf } from "./_model.js";
 import { coverageNote } from "./_axes.js";
-import { hardFault, repeatsPrevious, SAFE_QUESTION } from "./_question_rules.js";
+import { hardFault, repeatsPrevious, safeQuestion } from "./_question_rules.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -817,7 +817,7 @@ export default async function handler(req, res) {
         // went out anyway. A dull question that breaks no rule is better than
         // a pointed one that steers the answer.
         console.error("question_regeneration_no_better", stillBad);
-        question = SAFE_QUESTION;
+        question = safeQuestion(asked);
       }
     } catch (error) {
       console.error("question_regeneration_failed", describeFailure(error, model, 0));
@@ -858,11 +858,13 @@ export default async function handler(req, res) {
   // "reached" on it produced a confident closing built on nothing. The turn
   // cap still ends the conversation; the page decides what to show, and the
   // flag below is how it knows.
-  // Enforced, because the prompt asking has not been enough for anything else
-  // this week. Two answers in means one question asked and answered; closing
-  // before that is closing before the tool has done the thing it exists to do.
+  // Three answered questions, not two. At two, a live run closed on a Green
+  // Book business case whose headline ratio rested on a value the person had
+  // just said he had no way to check - legally, at the minimum, and far too
+  // early for the one thing that mattered. Four answers is the opening
+  // account plus three.
   const answered = everything.length;
-  if ((status === "reached" || status === "verified") && answered < 3) {
+  if ((status === "reached" || status === "verified") && answered < 4) {
     console.error("close_refused_too_early", `${answered} answer(s)`);
     status = "probing";
     // "reached" does not need a question, so there may not be one - and the
@@ -870,7 +872,7 @@ export default async function handler(req, res) {
     // visitor was shown the string "(not shown)" where a question belonged.
     if (!question || question === "(not shown)") {
       console.error("close_refused_no_question", "using the safe fallback");
-      question = SAFE_QUESTION;
+      question = safeQuestion(asked);
     }
   }
 

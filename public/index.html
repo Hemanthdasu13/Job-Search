@@ -813,7 +813,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.8.2</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.9.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -1434,6 +1434,17 @@ h1::before,h2::before{
     }
   };
 
+  // Mirrors STRENGTHS_THAT_SETTLE_IT in api/_strengths.js. A test asserts the
+  // two lists match, because a page that congratulates work the server did not
+  // call settled is the fault this exists to prevent.
+  var SETTLES_IT = [
+    "source-outside-the-model",
+    "check-that-could-fail",
+    "independent-knowledge",
+    "path-can-be-walked",
+    "effort-matched-to-stakes"
+  ];
+
   function strengthReady(id) {
     var s = STRENGTHS[id];
     return Boolean(s && s.principle && s.why);
@@ -1538,8 +1549,15 @@ h1::before,h2::before{
 
     $("s5a-held-block").hidden = !anyHeld;
     $("s5a-exposed-block").hidden = !anyGap;
-    // Strengths and no gap is the outcome the screen could not reach before.
-    $("s5a-nothing").hidden = !(anyHeld && !anyGap);
+    // Strengths and no gap is not enough on its own. One live run named
+    // "naming what it could not know" - the person saying they cannot verify
+    // the figure the decision rests on - and the screen then said the work was
+    // checked about as hard as being wrong would have cost, directly under a
+    // conclusion line calling the figure unverified. Saying nothing needs
+    // fixing requires a strength that is something done, not something
+    // admitted.
+    var settled = (state.held || []).some(function (h) { return SETTLES_IT.indexOf(h.id) !== -1; });
+    $("s5a-nothing").hidden = !(anyHeld && !anyGap && settled);
     return true;
   }
 
