@@ -76,22 +76,11 @@ export const ASIDE = /\u2014|\u2013|\s-\s|\(|\)|;/;
 // correct it is to say what they lacked - which is how a question about
 // checking turns into an answer about missing information. Ask what happened
 // instead: "what did you do once it gave you the name" presupposes nothing.
-// Six verbs was a list of the ones that had already failed, not a rule. "What
-// did you give it about the next year MBA batch that shaped what it wrote?"
-// went out live and was answered "nothing lol" - the same fault as "what did
-// you weigh it against" answered "i cannot weigh", with a verb nobody had
-// thought to add.
-//
-// "Do" and "happen" are deliberately absent: "what did you do once it gave
-// you the name" is the reframe this rule exists to push a question towards,
-// and a rule that forbade its own remedy would leave nothing to ask.
-const PRESUPPOSED = [
-  "weigh", "check", "verify", "compare", "validate", "test", "cross-check",
-  "crosscheck", "give", "tell", "provide", "send", "share", "show", "review",
-  "flag", "confirm", "challenge", "question", "double-check"
-].join("|");
-export const PRESUPPOSES_ACTION = new RegExp(
-  `\\bwhat (?:did|do) (?:you|they)\\s+(?:${PRESUPPOSED})\\b`, "i");
+// The presupposition list lives in api/_question_rules.js, because the handler
+// has to enforce it and a rule that only runs in a test ships anyway - which
+// is exactly what happened three times. Imported rather than restated.
+import { PRESUPPOSES_ACTION as PRESUPPOSES_FROM_API } from "../api/_question_rules.js";
+export const PRESUPPOSES_ACTION = PRESUPPOSES_FROM_API;
 
 // ------------------------------------------------------------- introduced words
 //

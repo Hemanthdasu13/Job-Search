@@ -130,6 +130,46 @@ if (introducedWords(inflected, theirs).length) {
   fail(`inflection counted as introduced: ${introducedWords(inflected, theirs).join(", ")}`);
 } else console.log("  ok  an inflection of their own word is not an introduction");
 
+// Every leading question that actually reached a visitor, against the rule as
+// api/ask.js runs it. Each one widened the pattern: the bare form, then a
+// conjoined subject ("you or the safety officer"), then an interposed clause
+// ("what, outside that model family, did you check"), then a question
+// supplying its own answer ("such as the ticket mix or event type") - which
+// was handed straight back. This block exists because verify-questions passed
+// while every one of them shipped: it tested scripts/_rules.mjs, and nothing
+// tested the function the handler calls.
+console.log("\nevery leading question that shipped, against the handler's own check:");
+const { hardFault } = await import("../api/_question_rules.js");
+for (const q of [
+  "What did you weigh that recommendation against before deciding where to actually go?",
+  "What did you give it about the next year MBA batch that shaped what it wrote?",
+  "What did you tell it about the new MBA batch that shaped the script?",
+  "What did you or the safety officer check the ratio against before you staffed to it?",
+  "What, outside that model family, did you check the two hundred labels against?",
+  "What about that specific night, such as the ticket mix or event type, sat outside what the ingress profile and incident logs covered?"
+]) {
+  const f = hardFault(q);
+  if (!f) fail(`the handler would still ship: ${q}`);
+  else console.log(`  ok  ${f.slice(0, 64)}`);
+}
+
+// And the good ones must survive, including two from the same live run. A
+// check that regenerated these would spend a call to make a question worse.
+console.log("\ngood questions the check must leave alone:");
+for (const q of [
+  "What did you do once it recommended somewhere?",
+  "What did you do when the review came back?",
+  "What could it have known about the crowd on a given night?",
+  "What would have happened on the concourse if that ratio had been wrong on the night?",
+  "What did the ratio per turnstile bank take into account about that night's crowd, beyond the ingress profile and past incident logs?",
+  "What had that someone seen of the place themselves?",
+  "What did it have, the rate card or the invoices?"
+]) {
+  const f = hardFault(q);
+  if (f) fail(`would regenerate a good question: ${q}\n        ${f}`);
+  else console.log(`  ok  ${q.slice(0, 64)}`);
+}
+
 console.log("");
 console.log("Enforced here: length, asides, presupposed action, introduced words,");
 console.log("the anchor rule (verification vocabulary with no word of theirs in it),");

@@ -44,6 +44,7 @@ import { claimModelCall, bumpCounter } from "./_limits.js";
 import { modelApiKey } from "./_provider.js";
 import { callModel, describeFailure, describeReply, extractJson, jsonSchema, safeParse, textOf } from "./_model.js";
 import { coverageNote } from "./_axes.js";
+import { hardFault } from "./_question_rules.js";
 import { verifyToken, tokenFrom, spendKeyCall } from "./_access.js";
 import { VERSION } from "./_version.js";
 
@@ -290,7 +291,13 @@ nothing that relates to the task, or a change of subject away from it.
 Return a question anyway; it will not be the one shown.
 
 Set status to "reached" the moment they articulate a specific unchecked
-gap themselves, as early as the first turn if it happens that fast. Saying
+gap themselves - but never before your second question has been answered.
+Somebody who writes a careful, self-aware opening account has not been asked
+anything yet, and closing on it hands them a summary of the paragraph they
+just typed. Two accounts written exactly that way got no questions at all and
+the page concluded anyway, which is the one outcome that makes this
+indistinguishable from pasting the account into any assistant. Their account
+naming the gap is a reason to ask about it, not a reason to stop. Saying
 they would not have known is the gap. So is naming the thing they did not
 check, or saying that what they would fall back on is another run of the
 same tool. They do not have to draw the conclusion, sound troubled by it,
@@ -770,6 +777,31 @@ export default async function handler(req, res) {
       }
     }
   }
+  // A question carrying a fault that reliably ruins the turn gets one more
+  // attempt. Three presupposing questions have gone out live, each costing a
+  // turn and steering the answer towards what the person lacked, while the
+  // rule that catches them ran only in the test suite.
+  const fault = question ? hardFault(question) : null;
+  if (fault) {
+    console.error("question_regenerated", fault);
+    try {
+      const retold = withNote(sent,
+        `[Note, not part of the message above. The question you just produced `
+        + `${fault}. Ask a different one that does not. Do not mention this note.]`);
+      const second = await callModel(key, model, SYSTEM, retold, undefined, { format: REPLY_SCHEMA });
+      const reparsed = extractJson(textOf(second));
+      const replacement = questionOf(reparsed);
+      if (replacement && !hardFault(replacement)) {
+        question = replacement;
+        parsed = reparsed;
+      } else {
+        console.error("question_regeneration_no_better", replacement ? hardFault(replacement) : "nothing back");
+      }
+    } catch (error) {
+      console.error("question_regeneration_failed", describeFailure(error, model, 0));
+    }
+  }
+
   if (!question && !closes(parsed)) return fail(res, parsed ? "no_question" : "unparseable_reply");
   // Never shown. The closing screens render the reflection and the note.
   if (!question) question = "(not shown)";
@@ -804,6 +836,15 @@ export default async function handler(req, res) {
   // "reached" on it produced a confident closing built on nothing. The turn
   // cap still ends the conversation; the page decides what to show, and the
   // flag below is how it knows.
+  // Enforced, because the prompt asking has not been enough for anything else
+  // this week. Two answers in means one question asked and answered; closing
+  // before that is closing before the tool has done the thing it exists to do.
+  const answered = everything.length;
+  if ((status === "reached" || status === "verified") && answered < 3) {
+    console.error("close_refused_too_early", `${answered} answer(s)`);
+    status = "probing";
+  }
+
   const thin = conversationIsThin(everything);
   if (thin && (status === "reached" || status === "verified")) {
     console.error("close_refused_thin_account", `${everything.length} answers`);

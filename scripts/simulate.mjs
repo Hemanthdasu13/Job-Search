@@ -800,14 +800,18 @@ async function nothingLol() {
   checks["the thin flag reaches the page"] = thinFlags[2] === true;
 
   // And the opposite case, so the measurement is not simply always true.
+  // Three answers, because the handler no longer lets anything close on two.
   const soho = [
     "I was using it to recommend me for a restaurant/ pub near soho",
-    "i cannot weigh, im new to the place. but i asked someone after and they said yeah its a cool place"
+    "i cannot weigh, im new to the place. but i asked someone after and they said yeah its a cool place",
+    "Something only a local would know, his own lived experience and the vibe on that day."
   ];
   plan = [{ kind: "ok", reply: { status: "reached", question: "",
     reflection: "I asked someone after and they said it was a cool place." } }];
-  const good = await post(ask, { answers: soho, questions: ["What did you do once it recommended somewhere?"] },
-    { token, ip: "4.4.4.2" });
+  const good = await post(ask, { answers: soho, questions: [
+    "What did you do once it recommended somewhere?",
+    "What had that someone seen of the place themselves?"
+  ] }, { token, ip: "4.4.4.2" });
   if (good.ok !== true) notes.push(`the real conversation was refused: ${good.reason}`);
   checks["a real conversation is not called thin"] = good.thin === false;
   checks["reached still closes a real conversation"] = good.status === "reached";
@@ -919,13 +923,22 @@ async function fourVisitors() {
   /* 3. Understands it, knows what it cannot do, and built something to catch
         it. A third of the scenario set is work like this, and the failure
         that matters is inventing a gap in it. The selector is never asked. */
+  // Three answers, not two. The handler now refuses to close before the second
+  // question has been answered, whatever the model says - two live runs closed
+  // on the opening paragraph alone and handed the person a summary of what they
+  // had just typed. This walk used to assert that old behaviour.
   const competent = await walk("has a constructed check", "4.4.3.1", [
     { says: "We used AI to draft a supplier comparison, and I rebuilt the totals from the invoices we actually paid before it went anywhere.",
       reply: { status: "probing" } },
     { says: "The reconciliation came first. A colleague in procurement reviewed the comparison against the contracts as well.",
       reply: { status: "verified",
+               reflection: "The totals were rebuilt from the invoices actually paid, and a colleague in procurement reviewed the comparison against the contracts." } },
+    { says: "The contracts and the paid invoices, both of which I opened myself rather than taking its word for.",
+      reply: { status: "verified",
                reflection: "The totals were rebuilt from the invoices actually paid, and a colleague in procurement reviewed the comparison against the contracts." } }
   ]);
+  checks["closing is refused until a second question has been answered"] =
+    competent.statuses ? competent.statuses[1] !== "verified" : true;
   checks["work with a real check closes as verified"] = competent.where === "verified";
   checks["no cards are invented for work done properly"] = competent.cards === null;
   checks["their own restatement survives the guard"] =
