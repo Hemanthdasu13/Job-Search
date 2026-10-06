@@ -24,7 +24,8 @@ import { readFileSync } from "node:fs";
 const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
 const { STRENGTH_IDS } = await import("../api/_strengths.js");
 const { PRACTICE_IDS, validateSelection, isVerbatim } = await import("../api/_practices.js");
-const { validateHeld } = await import("../api/_strengths.js");
+const { validateHeld, heldOnlySystem } = await import("../api/_strengths.js");
+const { isNonAnswer: isNonAnswerOf } = await import("../api/ask.js");
 
 let failed = 0;
 const check = (name, ok, detail = "") => {
@@ -275,6 +276,68 @@ check("a second pass that starts cannot be killed mid-call",
   `first=${first} + second=${second} vs ceiling=${ceiling * 1000}ms`);
 check("the second pass ends inside the budget whenever it starts",
   second < budget, `a second pass needs ${second}ms and the budget is ${budget}ms`);
+
+// ---------------------------------------------- the answer and its question
+//
+// The fault: the selector was sent the answers alone. Asked what the plan had
+// assumed about her fitness that she had not told it, a visitor answered with
+// a list of what she had withheld, and the selector read the list as scope she
+// had set - putting "scope was part of the instruction" on the screen of
+// someone who had specified nothing. The questioner, which had the questions,
+// got it right in the same conversation.
+const { transcriptOf } = await import("../api/close.js");
+const HER = [
+  "Workout plan",
+  "Helped with decision fatigue. Saved some time",
+  "The kind of machines available, my actual fitness levels, my work out plan prior to AI making one"
+];
+const HER_QUESTIONS = [
+  "What did you use the plan for, and what happened once you started following it?",
+  "What did the plan assume about your fitness or schedule that you didn't actually tell it?"
+];
+{
+  const t = transcriptOf(HER, HER_QUESTIONS);
+  check("each answer is paired with the question it answers",
+    t.includes("Asked: What did the plan assume about your fitness")
+      && t.indexOf("Asked: What did the plan assume") < t.indexOf("The kind of machines available"),
+    t);
+  check("the opening account is marked as unprompted",
+    /\[1\] What they described, before being asked anything:\nWorkout plan/.test(t), t);
+  check("a conversation with no questions still builds a transcript",
+    transcriptOf(HER, []).includes("Workout plan"));
+  check("more answers than questions does not misalign them",
+    !transcriptOf(HER, ["only one question?"]).includes("Asked: undefined"));
+}
+{
+  // A question can never become the evidence, because the verbatim check runs
+  // against the answers alone. Structural, not a matter of the model obeying
+  // the instruction that says so.
+  const { reply } = routeByLibrary(readReply({
+    gaps: [{ id: "constrain-the-generation", quote: HER_QUESTIONS[1] }], held: []
+  }));
+  const { kept, rejected } = validateSelection(reply, HER);
+  check("a question quoted as their own words is rejected",
+    kept.length === 0 && rejected[0].why === "quote is not the person's own words");
+}
+check("both prompts are told to read an answer against its question",
+  SELECT_SYSTEM.includes("Read every answer as the answer to the question above it")
+    && heldOnlySystem().includes("Read every answer as the answer to the question above it"));
+check("the page sends the questions with the answers",
+  /answers: state\.answers, questions: state\.questions/.test(page));
+
+// No substance floor, and the reason is pinned: the restaurant conversation is
+// sixty-seven words and must close, the thin one was fifty-two, and a floor
+// between them is fitted to a single case. api/ask.js carries the argument.
+const { conversationIsThin } = await import("../api/ask.js");
+const SOHO = [
+  "I was using it to recommend me for a restaurant/ pub near soho",
+  "i cannot weigh, im new to the place. but i asked someone after and they said yeah its a cool place",
+  "Something only a local would know, his own lived experience and the vibe on that day.",
+  "He had been there the week before, which is why I asked him rather than anyone else."
+];
+check("the restaurant conversation is never called thin", !conversationIsThin(SOHO));
+check("a conversation of refusals still is",
+  conversationIsThin(["I used it for a script.", "nothing lol", "no idea", "i would look silly"]));
 
 // ------------------------------------------------- when the log is written
 //

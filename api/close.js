@@ -82,8 +82,22 @@ function clipEvidence(text) {
 }
 
 export const SELECT_SYSTEM = `You are given someone's account of a time they used AI in a real piece of
-work. Your only job is to choose which of the listed items did not come up
-in what they said, and to quote the words of theirs that show it.
+work, as it was collected: what they typed first, then each question they were
+asked and what they answered. Your only job is to choose which of the listed
+items did not come up in what they said, and to quote the words of theirs that
+show it.
+
+Read every answer as the answer to the question above it. The same words mean
+opposite things depending on what was asked, and this is the commonest way to
+get it wrong. Asked what a plan had assumed about her fitness that she had not
+told it, someone answered "the kind of machines available, my actual fitness
+levels, my prior workout plan". That is a list of what she did NOT give it. On
+its own it reads as a list of what she DID give it, and reading it that way
+puts the opposite of the truth on her screen.
+
+So when an answer names things, check what the question asked for. A list
+offered in answer to what was missing, not given, not told, not checked or not
+known is evidence for the first list below, never the second.
 
 You never write an explanation, a finding, an assessment, a score, advice, or
 any sentence of your own. You never describe the person. You choose ids and
@@ -126,6 +140,9 @@ Choosing:
 - If the account is too thin to show anything, choose nothing.
 
 Quoting:
+- Quote only from an "Answered" line, or from what they described first. The
+  questions are not theirs; a question quoted back as their own words is the
+  tool putting words in their mouth.
 - Each quote must be a span copied character for character from what they
   wrote. Do not correct spelling, do not tidy grammar, do not shorten with an
   ellipsis, do not join two separate phrases.
@@ -356,6 +373,52 @@ function readAnswers(body) {
   return total(kept) <= MAX_TOTAL_CHARS ? kept : [...head, ...tail].map((a) => a.slice(0, MAX_TOTAL_CHARS / 3));
 }
 
+// The questions, so an answer can be read as the answer to something.
+//
+// The selector used to be sent the answers alone. A visitor was asked what
+// the plan had assumed about her fitness that she had not told it, and
+// answered "The kind of machines available, my actual fitness levels, my work
+// out plan prior to AI making one" - a list of what she had WITHHELD. On its
+// own that line reads as a list of what she had SPECIFIED, and the selector
+// read it that way: it put "scope was part of the instruction" on her screen,
+// which is the exact inverse of what happened, and left the matching gap
+// unchosen.
+//
+// The questioner, which had the questions, got it right in the same
+// conversation: its summary said "without giving it my actual fitness level".
+// Same words, two readings, and the only difference was the question.
+//
+// Optional, because a conversation from an older page will not send them and
+// a closing is better than no closing.
+const MAX_QUESTION_CHARS = 400;
+
+function readQuestions(body) {
+  const questions = body?.questions;
+  if (!Array.isArray(questions)) return [];
+  return questions
+    .filter((q) => typeof q === "string" && q.trim())
+    .slice(0, MAX_ANSWERS)
+    .map((q) => q.trim().slice(0, MAX_QUESTION_CHARS));
+}
+
+// The conversation as it happened. The first answer is the account they typed
+// unprompted; after that each answer belongs to the question above it.
+//
+// Labelled so the quoting rule can be stated against the labels: a span may
+// only be copied from an "Answered" line. Nothing stops that structurally
+// either - the verbatim check runs against the answers alone - but the model
+// should not be asked to obey a rule it cannot see the shape of.
+export function transcriptOf(answers, questions = []) {
+  const lines = answers.map((answer, i) => {
+    if (i === 0) return `[1] What they described, before being asked anything:\n${answer}`;
+    const question = questions[i - 1];
+    return question
+      ? `[${i + 1}] Asked: ${question}\nAnswered: ${answer}`
+      : `[${i + 1}] Answered: ${answer}`;
+  });
+  return lines.join("\n\n");
+}
+
 // Deterministic stand-in for the model, so the closing screen, the card
 // rendering and the fallback can all be walked without spending a call.
 // #none forces the empty selection; #bogus forces a reply the validator has
@@ -431,7 +494,7 @@ export default async function handler(req, res) {
   const claim = await claimModelCall(req);
   if (!claim.allowed) return fall(res, claim.reason);
 
-  const transcript = [{ role: "user", content: answers.map((a, i) => `[${i + 1}] ${a}`).join("\n\n") }];
+  const transcript = [{ role: "user", content: transcriptOf(answers, readQuestions(body)) }];
 
   let response;
   const started = Date.now();

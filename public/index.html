@@ -813,7 +813,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.10.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.11.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -1355,7 +1355,12 @@ h1::before,h2::before{
     return fetch("/api/close" + (STUB ? "?stub=1" : ""), {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, accessHeaders()),
-      body: JSON.stringify({ answers: state.answers })
+      // The questions go with them. An answer read without its question can
+      // mean the opposite of what it says: a list given in reply to "what did
+      // it assume that you did not tell it" is a list of what was withheld,
+      // and alone it reads as a list of what was supplied. One live closing
+      // congratulated someone for scoping a request she had never scoped.
+      body: JSON.stringify({ answers: state.answers, questions: state.questions })
     }).then(function (res) { return res.json(); })
       .then(function (data) {
         if (data && data.build) { state.build = data.build; }

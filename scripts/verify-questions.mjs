@@ -264,10 +264,51 @@ for (const f of ["asks the last question again in different words", "the same qu
   else console.log(`  ok  ${f.slice(0, 40)} -> has a remedy`);
 }
 
+// Option-posing with no marker in front of it, which is the fault that ends a
+// conversation with the tool's own suggestion read back to it.
+//
+// Live: "What did the plan assume about your fitness or schedule that you
+// didn't actually tell it?" -> "my actual fitness levels". She picked one of
+// the two she had been handed. Neither word was hers.
+console.log("\neither/or without a marker, judged by whose words the options are:");
+const { unaskedAlternatives } = await import("../api/_question_rules.js");
+const HER_WORDS = ["Workout plan", "Helped with decision fatigue. Saved some time"];
+const THEIR_WORDS = ["I compared the bids. It had the rate card and the invoices in front of it, and the volume forecast."];
+const ALTERNATIVE_CASES = [
+  ["the live fault", "What did the plan assume about your fitness or schedule that you didn't actually tell it?",
+   HER_WORDS, "fitness or schedule"],
+  // Both nouns are theirs, so this is a clarification about their own account.
+  // The older comment in _question_rules.js names it as a question that must
+  // survive, and it still does.
+  ["both options theirs", "What did it have, the rate card or the invoices?", THEIR_WORDS, null],
+  ["one option theirs", "What did the plan assume about your workout or schedule?", HER_WORDS, null],
+  // "Or" that joins no alternatives. Mechanically these have a content word on
+  // each side and offer nothing to choose between.
+  ["sooner or later", "What happened sooner or later once it gave you that?", HER_WORDS, null],
+  ["more or less", "What did it get more or less right about the plan?", HER_WORDS, null]
+];
+for (const [name, q, answers, expected] of ALTERNATIVE_CASES) {
+  const got = unaskedAlternatives(q, answers);
+  if (got !== expected) {
+    fail(`${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(got)}`);
+  } else {
+    console.log(`  ok  ${name} -> ${got === null ? "left alone" : `"${got}"`}`);
+  }
+}
+// And the handler must act on it, with a remedy.
+const offered = hardFault(ALTERNATIVE_CASES[0][1], HER_WORDS);
+if (!offered || !/offers two answers/.test(offered)) fail(`the handler would still ship: ${offered}`);
+else if (!remedyFor(offered)) fail("the alternatives fault has no remedy");
+else console.log("  ok  the handler refuses it and knows what to ask instead");
+
 // The question the widened threshold exists for. It names the one thing the
 // account did not cover, which is the job; the handler used to regenerate it
 // and then ship a canned question in its place.
-const namesTheGap = "What did the forecast assume about timing or payments compared with what the actuals showed?";
+// Without an either/or in it. The version first written here offered "timing
+// or payments", neither of which she had said, and the rule below now refuses
+// it - correctly: the open form asks the same thing without handing over two
+// dimensions to pick from.
+const namesTheGap = "What did the forecast assume about payment timing, seasonality and drawdown that the bank actuals could not have shown?";
 const forecast = ["I used it to build an eighteen month cash flow forecast from three years of "
   + "monthly bank actuals and the approved budget."];
 if (hardFault(namesTheGap, forecast)) {

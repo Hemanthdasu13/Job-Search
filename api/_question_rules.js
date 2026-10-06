@@ -69,6 +69,55 @@ export const BOLTED_ON_CLOSED = new RegExp(`\\b(?:and|or)\\s+(?:${AUX})\\s+(?:yo
 export const SUGGESTS_ANSWER =
   /\b(?:such as|for example|for instance|e\.g\.|like)\b[^?]{0,60}?\bor\b/i;
 
+// Option-posing without a marker, caught by whose words the options are.
+//
+// "What did the plan assume about your fitness or schedule that you didn't
+// actually tell it?" went out live and came back "my actual fitness levels".
+// She picked one of the two the question handed her. The rule above missed it
+// because there is no "such as" in front of the "or", and that rule's comment
+// says so: a question naming two nouns is sometimes the clearest way to ask,
+// and the marker was how the two cases were told apart.
+//
+// The marker is the wrong test. What makes "the rate card or the invoices" a
+// fair question and "your fitness or schedule" an unfair one is not the
+// phrasing, it is where the nouns came from. Alternatives drawn from their own
+// account ask them to choose between two things they raised; alternatives the
+// tool brought are the tool proposing two ways of having been inadequate and
+// waiting to be told which. That is the suggestive end of the NICHD scale.
+//
+// So: an either/or is a fault only when NEITHER side carries a word of theirs.
+// One side anchored is a genuine clarification about their own account.
+// English where "or" joins no alternatives at all. "Sooner or later" has a
+// content word on each side by any mechanical test and offers nothing to
+// choose between.
+const NOT_ALTERNATIVES = new Set([
+  "sooner later", "more less", "better worse", "worse better", "now never",
+  "all nothing", "sooner rather", "two three", "three four", "one two"
+]);
+
+// Up to two words either side of an "or", which is as far as an alternative
+// reaches before the clause moves on.
+const ALTERNATIVES = /([\w'’-]+(?:\s+[\w'’-]+)?)\s+or\s+([\w'’-]+(?:\s+[\w'’-]+)?)/gi;
+
+export function unaskedAlternatives(question, answers = []) {
+  if (!answers.length) return null;
+  for (const match of String(question || "").matchAll(ALTERNATIVES)) {
+    const left = contentWordsOf(match[1]);
+    const right = contentWordsOf(match[2]);
+    // Both sides have to name something.
+    if (!left.length || !right.length) continue;
+    // The pair as bare content words, which is both the idiom lookup and the
+    // message: reported as the words themselves rather than as the span they
+    // sat in, so the fault names the two things being offered and nothing else.
+    const pair = `${left[left.length - 1]} ${right[0]}`;
+    if (NOT_ALTERNATIVES.has(pair)) continue;
+    if (introducedWords(pair, answers).length === 2) {
+      return pair.replace(" ", " or ");
+    }
+  }
+  return null;
+}
+
 // Where to fall back to when the model cannot produce a usable question and
 // there is no time to keep asking. Deliberately dull: it presupposes nothing,
 // carries no verification vocabulary so the anchor rule leaves it alone, and
@@ -409,6 +458,9 @@ const REMEDIES = [
   [/^answerable yes or no/, "Open it: start with what, who or how."],
   [/^two questions in one/, "Ask one of the two and drop the other."],
   [/^supplies the answer/, "Cut the examples. Ask the question without naming any candidate answer."],
+  [/^offers two answers/,
+   "Drop both alternatives. Ask the open question and let them name the thing "
+   + "themselves, or ask about something they already mentioned."],
   [/^\d+ words/, "Ask the same thing in under twenty words, in one clause."],
   [/^is built from/,
    "Those words are yours, not theirs. Build the question out of the words "
@@ -440,6 +492,10 @@ export function hardFault(question, answers = []) {
     const introduced = introducedWords(q, answers);
     if (introduced.length > MAX_INTRODUCED_WORDS + RUNTIME_INTRODUCED_SLACK) {
       return `is built from ${introduced.length} words they never used: ${introduced.slice(0, 5).join(", ")}`;
+    }
+    const offered = unaskedAlternatives(q, answers);
+    if (offered) {
+      return `offers two answers of its own to choose between: "${offered}"`;
     }
     // The differentiator, enforced. A question carrying the tool's own
     // verification vocabulary and nothing of theirs would fit any account

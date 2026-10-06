@@ -147,8 +147,15 @@ export function validateHeld(raw, answers, isVerbatim) {
 // rather than an appendix to it.
 export function heldOnlySystem() {
   return `You are given someone's account of a time they used AI in a real piece of
-work. Your only job is to choose which of the listed items the account
-positively shows, and to quote the words of theirs that show it.
+work, as it was collected: what they typed first, then each question they were
+asked and what they answered. Your only job is to choose which of the listed
+items the account positively shows, and to quote the words of theirs that show
+it.
+
+Read every answer as the answer to the question above it. A list of things
+offered in answer to what was missing, not given or not told is not evidence
+that any of it was done. This pass can only award what the account shows was
+done, so an answer about an absence shows nothing here and belongs to no item.
 
 You never write an explanation, a finding, an assessment, a score, advice, or
 any sentence of your own. You never describe the person. You choose ids and
@@ -169,6 +176,8 @@ Choosing:
   named what the system could not have known. Both count.
 
 Quoting:
+- Only from an "Answered" line, or from what they described first. Never from a
+  question: the questions are not their words.
 - Copied character for character from what they wrote. Do not correct
   spelling, do not tidy grammar, do not shorten with an ellipsis, do not join
   two separate phrases.

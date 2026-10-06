@@ -557,9 +557,45 @@ export function isNonAnswer(text) {
   return NON_ANSWERS.has(bare);
 }
 
-// Whether the conversation has anything to conclude from. The opening account
-// is excluded: it is the one turn that is always substantial, and counting it
-// would mean a good opening excused three non-answers after it.
+// Why there is no word floor here, having tried one.
+//
+// A conversation ran "Workout plan" / "Helped with decision fatigue. Saved
+// some time" / "The kind of machines available, my actual fitness levels, my
+// work out plan prior to AI making one" / "Wouldn't have optimised for my own
+// goals". Fifty-two words, four answers, not one of them a refusal, and it
+// closed as "reached" after three questions. A floor on the whole
+// conversation's length looked like the fix.
+//
+// The restaurant conversation is sixty-seven words:
+//
+//   "I was using it to recommend me for a restaurant/ pub near soho"
+//   "i cannot weigh, im new to the place. but i asked someone after and they
+//    said yeah its a cool place"
+//   "Something only a local would know, his own lived experience and the vibe
+//    on that day."
+//   "He had been there the week before, which is why I asked him rather than
+//    anyone else."
+//
+// That one has to close. It is the account this tool's whole proportionality
+// argument rests on, and it names a real check: a person who had been there
+// the week before. Fifteen words separate it from the thin one, so any floor
+// that passes it sits two words under the only thin case anybody has seen -
+// which is a fit to one data point, not a rule.
+//
+// The difference between them is not length. The restaurant answers name
+// things that happened; the workout answers name how it felt and what was
+// missing. That is the same distinction the list below exists because length
+// cannot make, one level up, and guessing at it by counting words would make
+// the tool refuse to conclude on exactly the short, honest account it is
+// proudest of handling.
+//
+// What was actually wrong with the workout closing was that it congratulated
+// her for scoping a request she had never scoped - a selector reading an
+// answer without its question. That is fixed where it happened.
+
+// The opening account is excluded: it is the one turn that is always
+// substantial, and counting it would mean a good opening excused three
+// non-answers after it.
 export function conversationIsThin(answers) {
   const replies = (answers || []).slice(1);
   if (!replies.length) return false;
@@ -883,7 +919,8 @@ export default async function handler(req, res) {
 
   const thin = conversationIsThin(everything);
   if (thin && (status === "reached" || status === "verified")) {
-    console.error("close_refused_thin_account", `${everything.length} answers`);
+    console.error("close_refused_thin_account",
+      `${everything.length} answers, half of it non-answers`);
     status = "probing";
   }
 
