@@ -201,6 +201,44 @@ console.log(`longest sentence on a screen: ${Math.max(0, ...visibleStrings()
   .filter((v) => !RESEARCH_PROSE.test(v.where))
   .flatMap((v) => sentencesOf(v.text).map(countWords)))} words, limit ${MAX_SENTENCE_WORDS}`);
 
+// ------------------------------------------------------------------- register
+//
+// Contractions, in the copy a visitor reads.
+//
+// This is the thing the owner could feel and could not name: "I basically
+// want it non-English professor type lengthy sentences, something very simple
+// and conversational. Now, how do I tell you, I do not know."
+//
+// The answer turned out to be mechanical. The page had seventeen uncontracted
+// auxiliary negations in its visible copy - "Attention does not catch
+// errors", "That is the judgement", "the inputs were not" - and nobody says
+// any of those out loud. Sentence length was only half of it; the other half
+// is that formal English spells out what speech contracts.
+//
+// Only the auxiliary forms, and deliberately not "is not" standing alone as a
+// claim: "silence is not safety" is the finding, and contracting it would
+// soften the one line that has to land.
+//
+// Not applied to the research prose, same as the length rule: his voice there
+// is his to set.
+const SPELLED_OUT = /\b(do not|does not|did not|can not|cannot|was not|were not|would not|could not|should not|have not|has not|had not|will not|is not able|that is|it is) \b/gi;
+
+for (const { where, text } of visibleStrings()) {
+  if (RESEARCH_PROSE.test(where)) continue;
+  for (const m of String(text).matchAll(SPELLED_OUT)) {
+    // "that is" and "it is" only where they open a sentence or a clause, which
+    // is where they read as a lecture rather than as emphasis.
+    const before = String(text).slice(Math.max(0, m.index - 2), m.index);
+    if (/^(that is|it is)$/i.test(m[1]) && !/^$|[.?!]\s?$/.test(before)) continue;
+    failures.push({
+      where,
+      hit: `"${m[1]}" spelled out`,
+      fix: "contract it: nobody says that out loud",
+      text: String(text).slice(Math.max(0, m.index - 40), m.index + 40)
+    });
+  }
+}
+
 for (const f of failures) {
   console.error(`FAIL ${f.where}: "${f.hit}" - ${f.fix}\n       ${f.text}`);
 }

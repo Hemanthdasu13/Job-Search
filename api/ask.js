@@ -126,11 +126,20 @@ Never offer a choice of answers either. "Was that done on the current data
 or on the earlier version" gets answered "both", which is the same nothing
 in longer clothes. One open question, with no doors in it.
 
-Twenty words at most, in one clause. A question that has to be read twice
-has already failed, however good the question underneath it was. No dashes,
-no brackets, no aside of any kind: an aside is a second idea smuggled in
-without a second question mark, and it is what makes a question read as
-circular.
+Twenty words at most, in one clause, and aim at twelve. A question that has
+to be read twice has already failed, however good the question underneath it
+was. No dashes, no brackets, no aside of any kind: an aside is a second idea
+smuggled in without a second question mark, and it is what makes a question
+read as circular.
+
+Say it the way you would say it out loud to one person. That means
+contractions - didn't, wasn't, couldn't, what's - and short words. It also
+means no trailing clause bolted on to qualify the question: "What did the
+treasurer actually have in front of him that let him judge it, beyond the
+bank history and budget you started from?" is twenty-three words and three
+clauses, and "What did the treasurer have that you didn't?" asks the same
+thing. Cut the qualifier. If the question still needs it, you are asking two
+things.
 
 Ask in their words. Every noun in your question should be one they have
 already used. One or two words of your own, to point at what they
