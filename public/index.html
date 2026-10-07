@@ -195,7 +195,8 @@ main{
      is a lot of scrolling for something meant to be taken in at a glance. */
   #s5a,#s5b,#s5c{ max-width:58rem; }
   #s5a>*,#s5b>*,#s5c>*,
-  #s5a-general>*,#s5a-ledger>div>h2,#s5a-ledger>div>.lede,#s5a-ledger>div>.takeaway{
+  #s5a-general>*,#s5a-ledger>div>h2,#s5a-ledger>div>.lede,#s5a-ledger>div>.takeaway,
+  #s5a-ledger>div>.takeaway-head,#s5a-ledger>div>#s5a-stake-block{
     max-width:38rem;
     margin-inline:auto;
   }
@@ -283,12 +284,42 @@ a{
 .ledger summary{ cursor:pointer; color:var(--muted); }
 .ledger details>*{ margin:0.6rem 0 0; }
 
-/* The one line a reader repeats to somebody else. */
+/* What being wrong would have cost, quoted back. Set quietly and close above
+   the gap, because its whole job is to be read in the same breath as it: a
+   gap in a five year contract and a gap in a gym plan are the same card until
+   the stake is on the screen next to them. */
+.stake-label{
+  margin:1.75rem 0 0.4rem;
+  font-size:0.8rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+#s5a-stake-block .ledger-said{ margin:0; }
+
+/* The heading the takeaway never had. The box was the only thing on the
+   screen with no name over it, so the one line a reader is meant to act on
+   read as a stray pull quote. The owner read the screen and missed it
+   entirely, which settles the question of whether a reader would. */
+.takeaway-head{
+  margin:2.25rem 0 0;
+  font-size:0.8rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+/* The one line a reader repeats to somebody else, and the only thing on the
+   screen that asks them to do anything. Filled rather than outlined: a
+   one-pixel border is the same visual weight as the rules between sections,
+   so the box did not read as a box. */
 .takeaway{
-  margin:1.25rem 0 0;
-  padding:0.9rem 1rem;
-  border:1px solid var(--rule);
-  font-weight:500;
+  margin:0.5rem 0 0;
+  padding:1rem 1.1rem;
+  border:1px solid var(--ink);
+  background:rgba(0,0,0,0.045);
+  font-weight:600;
+  font-size:1.05rem;
 }
 
 /* The two-line conclusion, at the top of the closing screen. The second line
@@ -820,7 +851,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.15.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.16.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -937,7 +968,23 @@ h1::before,h2::before{
     <div id="s5a-exposed-block" hidden>
       <h2 id="s5a-exposed-head">What is exposed</h2>
       <p class="lede">Not something you got wrong. Something that didn't come up in what you described.</p>
+
+      <!-- What being wrong would have cost, in their own words, when they
+           said it. This is the severity the screen had nowhere to put: a gap
+           in a five year supplier lock-in rendered exactly like a gap in a
+           workout plan, because nothing on the page carried the stake.
+           Quoted rather than rated. A three-tier label on somebody's work is
+           a grade however it is worded, and this tool does not grade anyone;
+           their own sentence about the five year lock-in does the same job
+           and cannot be argued with. Hidden when they never named a cost. -->
+      <div id="s5a-stake-block" hidden>
+        <p class="stake-label">What you said was at stake</p>
+        <p class="ledger-said" id="s5a-stake"></p>
+      </div>
+
       <ol class="ledger exposed" id="s5a-practices"></ol>
+
+      <h3 class="takeaway-head">What to do</h3>
       <p class="takeaway" id="s5a-takeaway"></p>
     </div>
 
@@ -1254,6 +1301,7 @@ h1::before,h2::before{
     held: [],           // what the account positively showed. Max two.
     thin: false,        // the server's read: mostly non-answers, nothing to conclude from.
     shownGaps: [],      // the gap ids the closing actually rendered, for the log.
+    stake: "",          // what they said being wrong would have cost.
     ledger: false,      // whether the ledger replaced the general closing.
     nothing: false,     // whether it said nothing here needs fixing.
                         // The server drops one that addresses the reader or
@@ -1380,10 +1428,11 @@ h1::before,h2::before{
         if (data && data.ok === false) { state.lastFailure = data.reason || "close_failed"; }
         return {
           selected: (data && Array.isArray(data.selected)) ? data.selected : [],
-          held: (data && Array.isArray(data.held)) ? data.held : []
+          held: (data && Array.isArray(data.held)) ? data.held : [],
+          stake: (data && typeof data.stake === "string") ? data.stake : ""
         };
       })
-      .catch(function () { return { selected: [], held: [] }; });
+      .catch(function () { return { selected: [], held: [], stake: "" }; });
   }
 
   /* --------------------------------------------------------------------
@@ -1559,12 +1608,24 @@ h1::before,h2::before{
     return true;
   }
 
+  // What being wrong would have cost, in their own words. Sits above the gap
+  // so the two are read together: without it, every gap on this screen looks
+  // the same size.
+  function paintStake(stake) {
+    var block = $("s5a-stake-block");
+    var text = (typeof stake === "string") ? stake.trim() : "";
+    block.hidden = !text;
+    if (text) { $("s5a-stake").textContent = "\u201c" + text + "\u201d"; }
+    state.stake = text;
+  }
+
   // Assembles the ledger and says whether there is anything in it. Returns
   // false only when neither side has anything the page can render, which is
   // when the general closing stays up.
   function paintLedger(selection) {
     var anyHeld = paintHeld(selection && selection.held);
     var anyGap = paintExposed(selection && selection.selected);
+    paintStake(anyGap ? (selection && selection.stake) : "");
     if (!anyHeld && !anyGap) { return false; }
 
     $("s5a-held-block").hidden = !anyHeld;
@@ -2125,7 +2186,10 @@ h1::before,h2::before{
             // selection had not come back yet", and those need different
             // fixes.
             ledger: !!state.ledger,
-            nothing: !!state.nothing
+            nothing: !!state.nothing,
+            // Whether the stake rendered. A gap shown with no stake beside it
+            // is the screen that cannot tell a contract from a gym plan.
+            stake: !!state.stake
           }
         })
       }).catch(function () {});

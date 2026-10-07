@@ -170,14 +170,30 @@ Choosing what did come up:
   to be impressive to be true, and an account that shows one and gets nothing
   back reads as a tool that only knows how to find fault.
 
+What being wrong would have cost:
+- If they say what the downside was, copy the span where they say it. Their
+  words, same rules as every other quote, and nothing if they never said.
+- It is the sentence that makes the rest of the screen mean something. A gap
+  in a five year supplier contract and a gap in a gym plan are the same card
+  on the page until the cost is sitting next to them, and they are the only
+  one who can say which this is.
+- The cost to them, not your reading of it. If they said a wrong figure would
+  have gone to a funder deciding a renewal, that is the span. If they said the
+  worst case is a slightly worse laptop, that is also the span, and it is just
+  as useful: it is what tells the reader the screen is not lecturing them.
+- Not a near miss. A line about the decision being important in general is not
+  a line about what being wrong would have cost.
+
 Output format. Reply with one JSON object and nothing else: no prose before or
-after it, no markdown, no code fence. Exactly two keys, each a list of
-objects, each object an id from the matching list above and the quote:
+after it, no markdown, no code fence. Three keys: two lists of objects, each
+object an id from the matching list above and the quote, and one string:
 {"gaps": [{"id": "an id from the first list", "quote": "their exact words"}],
- "held": [{"id": "an id from the second list", "quote": "their exact words"}]}
+ "held": [{"id": "an id from the second list", "quote": "their exact words"}],
+ "stake": "their exact words about what being wrong would have cost"}
 Every id must be copied exactly from the lists above. Do not write an id of
 your own, and do not put an id from one list into the other. To choose
-nothing for either, give an empty list.`;
+nothing for either, give an empty list, and give "stake" as an empty string
+if they never said what it would have cost.`;
 
 // The ids, enforced by the provider rather than asked for in prose.
 //
@@ -201,7 +217,8 @@ const quotedPick = (ids) => ({
   )
 });
 export const SELECT_FORMAT = jsonSchema(
-  { gaps: quotedPick(PRACTICE_IDS), held: quotedPick(STRENGTH_IDS) }, ["gaps", "held"]);
+  { gaps: quotedPick(PRACTICE_IDS), held: quotedPick(STRENGTH_IDS),
+    stake: { type: "string" } }, ["gaps", "held", "stake"]);
 export const HELD_FORMAT = jsonSchema({ held: quotedPick(STRENGTH_IDS) }, ["held"]);
 
 // Either shape, in the one the validators already take.
@@ -211,7 +228,7 @@ export const HELD_FORMAT = jsonSchema({ held: quotedPick(STRENGTH_IDS) }, ["held
 // still arrive, so both are read. Nothing here judges an id; that is the
 // validators' job and theirs alone.
 export function readReply(raw) {
-  const out = { selected: [], evidence: {}, held: [], held_evidence: {} };
+  const out = { selected: [], evidence: {}, held: [], held_evidence: {}, stake: "" };
   if (!raw || typeof raw !== "object") return out;
 
   const take = (list, ids, evidence) => {
@@ -233,6 +250,7 @@ export function readReply(raw) {
   };
   take(raw.gaps, out.selected, out.evidence);
   take(raw.held, out.held, out.held_evidence);
+  if (typeof raw.stake === "string") out.stake = raw.stake;
 
   // The older shape: parallel arrays of ids and maps of quotes.
   if (Array.isArray(raw.selected)) {
@@ -257,7 +275,8 @@ export function readReply(raw) {
 // right: it found the thing and put it on the wrong side. The destination
 // library decides which side that is, so nothing unearned reaches the screen.
 export function routeByLibrary(reply) {
-  const out = { selected: [], evidence: {}, held: [], held_evidence: {} };
+  const out = { selected: [], evidence: {}, held: [], held_evidence: {},
+                stake: reply.stake || "" };
   let moved = 0;
   const place = (id, quote, home) => {
     const isGap = isPracticeId(id);
@@ -288,15 +307,30 @@ const fall = (res, reason) => {
 // exercises the clipping, the field names and the ordering that production
 // uses. A stub answering in its own shape is a stub that lets a rendering
 // bug through, which is the one thing it exists to prevent.
-const answer = (res, build, kept, rejected, held = [], heldRejected = []) =>
+const answer = (res, build, kept, rejected, held = [], heldRejected = [], stake = "") =>
   res.status(200).json({
     ok: true,
     build,
     selected: kept.map(({ id, evidence }) => ({ id, evidence: clipEvidence(evidence) })),
     held: held.map(({ id, evidence }) => ({ id, evidence: clipEvidence(evidence) })),
+    stake: stake ? clipEvidence(stake) : "",
     rejected: rejected.concat(heldRejected).map(({ id, why }) => ({ id, why })),
     library: PRACTICE_IDS.length + STRENGTH_IDS.length
   });
+
+// Verbatim or nothing, same rule as every other span on this screen. This one
+// is set in quotation marks directly under "What you said was at stake", so a
+// tidied-up version would be the tool telling someone what they said their own
+// risk was, on the line whose only authority is that they said it.
+export function readStake(raw, answers, verbatim) {
+  const span = typeof raw?.stake === "string" ? raw.stake.trim() : "";
+  if (!span) return "";
+  if (!verbatim(span, answers)) {
+    console.error("close_stake_rejected", "not the person's own words");
+    return "";
+  }
+  return span;
+}
 
 // The same sentence cannot be the evidence for both sides of the ledger.
 //
@@ -305,8 +339,19 @@ const answer = (res, build, kept, rejected, held = [], heldRejected = []) =>
 // found one quotable line and used it twice, which is exactly the suspicion
 // the screen is trying not to confirm. A strength loses, not a gap: the gap
 // is the thing there is something to do about.
-function dropSharedEvidence(held, kept) {
+function dropSharedEvidence(held, kept, stake = "") {
   const spent = new Set(kept.map((k) => normaliseForMatch(k.evidence)));
+  // The stake joins the same rule. A stubbed walk put "picking the wrong
+  // supplier locks us into five years of higher cost" on the screen twice,
+  // once under "what you said was at stake" and again as the quote under a
+  // strength, and the repetition is the whole screen's credibility: it reads
+  // as a machine that found one quotable line and used it everywhere.
+  //
+  // A strength loses, as it already does against a gap. Where the only line
+  // that would evidence a strength is the line about what being wrong would
+  // have cost, the strength was a stretch anyway, and the stake is the thing
+  // that tells a contract from a gym plan.
+  if (stake) spent.add(normaliseForMatch(stake));
   const out = { kept: [], rejected: held.rejected.slice() };
   for (const item of held.kept) {
     if (spent.has(normaliseForMatch(item.evidence))) {
@@ -441,6 +486,10 @@ function stubbedSelection(answers) {
   }
   // Quote the longest thing they said, which is at least certain to be theirs.
   const span = answers.slice().sort((a, b) => b.length - a.length)[0];
+  // The last answer as the stake: the conversation usually arrives at what
+  // being wrong would have cost near the end, and a stubbed walk has to render
+  // that block or nobody sees it until it is live.
+  const stake = answers.length > 1 ? answers[answers.length - 1] : "";
   // One card whose research has been written and one whose has not, so a
   // single stubbed walk exercises both the rendering and the gate that keeps
   // an unwritten card off the screen.
@@ -454,7 +503,8 @@ function stubbedSelection(answers) {
     held: [{
       id: "named-the-unknowable",
       quote: answers.slice().sort((a, b) => b.length - a.length)[1] || span
-    }]
+    }],
+    stake
   };
 }
 
@@ -477,8 +527,9 @@ export default async function handler(req, res) {
   if (new URL(req.url, "http://localhost").searchParams.get("stub") === "1") {
     const routed = routeByLibrary(readReply(stubbedSelection(answers))).reply;
     const { kept, rejected } = validateSelection(routed, answers);
-    const held = dropSharedEvidence(validateHeld(routed, answers, isVerbatim), kept);
-    return answer(res, BUILD + "+stub", kept, rejected, held.kept, held.rejected);
+    const stubStake = readStake(routed, answers, isVerbatim);
+    const held = dropSharedEvidence(validateHeld(routed, answers, isVerbatim), kept, stubStake);
+    return answer(res, BUILD + "+stub", kept, rejected, held.kept, held.rejected, stubStake);
   }
 
   const key = modelApiKey();
@@ -526,7 +577,8 @@ export default async function handler(req, res) {
   const { reply, moved } = routeByLibrary(readReply(parsed));
   if (moved) console.error("close_ids_rerouted", moved + " from the wrong list");
   const { kept, rejected } = validateSelection(reply, answers);
-  const held = dropSharedEvidence(validateHeld(reply, answers, isVerbatim), kept);
+  const stake = readStake(reply, answers, isVerbatim);
+  const held = dropSharedEvidence(validateHeld(reply, answers, isVerbatim), kept, stake);
 
   // An empty result is a legitimate answer, not a failure: it is what a
   // well-run piece of work should produce. But an empty result caused by the
@@ -543,7 +595,11 @@ export default async function handler(req, res) {
       const reparsed = routeByLibrary(readReply(extractJson(textOf(again)))).reply;
       const second = validateHeld(reparsed, answers, isVerbatim);
       console.error("close_held_second_pass", second.kept.length ? "found " + second.kept.length : "still none");
-      if (second.kept.length) { held.kept = second.kept; held.rejected = held.rejected.concat(second.rejected); }
+      if (second.kept.length) {
+        const deduped = dropSharedEvidence(second, kept, stake);
+        held.kept = deduped.kept;
+        held.rejected = held.rejected.concat(deduped.rejected);
+      }
     } catch (error) {
       // The first pass already answered. A failed second look costs the
       // visitor nothing and must not turn a closing screen into an error.
@@ -566,5 +622,5 @@ export default async function handler(req, res) {
       JSON.stringify(rejected.concat(held.rejected).map((r) => `${r.id}: ${r.why}`)));
   }
 
-  return answer(res, BUILD, kept, rejected, held.kept, held.rejected);
+  return answer(res, BUILD, kept, rejected, held.kept, held.rejected, stake);
 }

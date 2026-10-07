@@ -339,6 +339,43 @@ check("the restaurant conversation is never called thin", !conversationIsThin(SO
 check("a conversation of refusals still is",
   conversationIsThin(["I used it for a script.", "nothing lol", "no idea", "i would look silly"]));
 
+// ------------------------------------------------------------------ the stake
+//
+// What being wrong would have cost, in their own words.
+//
+// The screen had nowhere to put severity: a gap in a five year supplier
+// lock-in rendered exactly like a gap in a workout plan, because nothing on
+// the page carried the stake. Quoted rather than rated - a three-tier label
+// on somebody's work is a grade however it is worded, and this tool grades
+// nobody - so it has to pass the same verbatim rule as every other span.
+const { readStake } = await import("../api/close.js");
+const COST = "Picking the wrong supplier locks us into five years of higher cost";
+const ACCOUNT = [
+  "I used it to compare three supplier bids and it ranked them.",
+  COST + " and we cannot get out of it."
+];
+check("the stake is read when they said it",
+  readStake({ stake: COST }, ACCOUNT, isVerbatim) === COST);
+check("a stake nobody typed is dropped",
+  readStake({ stake: "this was a very high stakes decision" }, ACCOUNT, isVerbatim) === "");
+check("no stake is a legitimate answer",
+  readStake({ stake: "" }, ACCOUNT, isVerbatim) === ""
+    && readStake({}, ACCOUNT, isVerbatim) === "");
+check("the schema asks the provider for it",
+  SELECT_FORMAT.properties.stake.type === "string"
+    && SELECT_FORMAT.required.includes("stake"));
+check("the prompt asks for it in their words",
+  /What being wrong would have cost/.test(SELECT_SYSTEM)
+    && /"stake"/.test(SELECT_SYSTEM));
+check("the page renders it above the gap, and hides it when absent",
+  /id="s5a-stake-block" hidden/.test(page)
+    && page.indexOf("s5a-stake-block") < page.indexOf('id="s5a-practices"'));
+check("the takeaway finally has a heading over it",
+  /takeaway-head[^>]*>What to do</.test(page),
+  "the one line to act on had no name, and the owner read the screen and missed it");
+check("the ledger records whether the stake rendered",
+  /stake: !!state\.stake/.test(page));
+
 // ------------------------------------------------- when the log is written
 //
 // The contribution has to be sent after the selection resolves, not before.

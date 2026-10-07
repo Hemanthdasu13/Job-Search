@@ -61,7 +61,8 @@ function clean(body) {
       // Which closing was on the screen. Two empty lists are ambiguous
       // without it: the selector found nothing, or the ledger never painted.
       ledger: body?.shown?.ledger === true,
-      nothing: body?.shown?.nothing === true
+      nothing: body?.shown?.nothing === true,
+      stake: body?.shown?.stake === true
     }
   };
 }
