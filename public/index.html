@@ -195,12 +195,18 @@ main{
      is a lot of scrolling for something meant to be taken in at a glance. */
   #s5a,#s5b,#s5c{ max-width:58rem; }
   #s5a>*,#s5b>*,#s5c>*,
-  #s5a-general>*,#s5a-ledger>div>h2,#s5a-ledger>div>.lede,#s5a-ledger>div>.takeaway,
+  #s5a-general>*,#s5b-general>*,
+  #s5a-ledger>div>h2,#s5a-ledger>div>.lede,#s5a-ledger>div>.takeaway,
   #s5a-ledger>div>.takeaway-head,#s5a-ledger>div>#s5a-stake-block{
     max-width:38rem;
     margin-inline:auto;
   }
-  #s5a>#s5a-ledger,#s5a-general{ max-width:none; }
+  /* Not scoped to a parent. The ledger node moves into whichever closing
+     screen is showing, and while this rule named 5A as the parent the ledger
+     kept its full width there and lost it on the verified screen. A test
+     checks no parent is named here, so the selector cannot appear in this
+     comment either. */
+  #s5a-ledger,#s5a-general,#s5b-general{ max-width:none; }
   .practices{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -851,7 +857,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.16.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.17.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -1025,10 +1031,19 @@ h1::before,h2::before{
     <p class="reflection">From what you described — <span id="s5b-reflection-text"></span></p>
     <p class="boundary" id="s5b-boundary" hidden><span id="s5b-boundary-text"></span></p>
   </div>
+  <!-- The fixed argument, replaced by the ledger when the selection has
+       something of theirs to show. Wrapped for the same reason 5A's general
+       closing is: a structural engineer described an independent
+       re-derivation, a validated spreadsheet and a second chartered engineer,
+       and got a page of generic prose about what other people do. The screen
+       shown to the people who did the best work was the only one with none of
+       their own account on it. -->
+  <div id="s5b-general">
   <h2 tabindex="-1">You described a constructed check, not a careful read.</h2>
   <p>Everyone who caught a real error had this in common. Not more attention — something the answer could fail against. A reconciliation. A colleague who knows the area. A check written before the answer existed.</p>
   <p>It's also the first thing to go under time pressure, which is when the decisions that matter get made.</p>
   <p class="beat beat-close"><span>The people who handled it best weren't the ones who knew the most about AI.</span><span>They were the ones who had something to put the answer against when they couldn't tell.</span></p>
+  </div>
   <p class="caveat">This is a read of a few minutes of your account, not an audit of your work. What isn't named here wasn't checked, only unmentioned.</p>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">How I did it</a></span>
@@ -1676,11 +1691,32 @@ h1::before,h2::before{
     }).then(function () { contribute(ending); }, function () { contribute(ending); });
   }
 
+  // The verified closing gets the same ledger. It did not, and that was the
+  // worst-aimed gap in the whole screen: a structural engineer who
+  // re-derived the number himself, checked it against a spreadsheet he had
+  // validated against published worked examples, and had a second chartered
+  // engineer sign it off, read a page of general prose about what other
+  // people do. The strengths side exists so the tool does not only find
+  // fault, and it was switched off for exactly the accounts that earn it.
+  //
+  // One selector call either way, so this costs nothing new. The ledger node
+  // moves into whichever screen is showing, because both screens want the
+  // same thing and duplicating the markup would mean two sets of ids and a
+  // rendering bug that only ever appears on one of them.
   function closeVerified() {
     setBusy(false);
     paintClosing("s5b");
-    contribute("verified");
     show("s5b");
+    selectPractices().then(function (selection) {
+      if (paintLedger(selection)) {
+        var ledger = $("s5a-ledger");
+        $("s5b").insertBefore(ledger, $("s5b-general"));
+        ledger.hidden = false;
+        $("s5b-general").hidden = true;
+        $("s5a-held-head").focus({ preventScroll: true });
+      }
+    }).then(function () { contribute("verified"); },
+            function () { contribute("verified"); });
   }
 
   function closeNeutral() {

@@ -125,6 +125,25 @@ Choosing:
 - Judge only what they described. A thing they did not mention is not a thing
   they did not do, so choose on the strength of the words in front of you and
   nothing else.
+- Some items in the first list claim an absence: nothing outside the model was
+  consulted, no rule existed in advance, nobody who knew saw it. Before
+  choosing one of those, read the WHOLE account again and check it does not
+  contradict the claim. A ward manager described checking the staffing
+  guidance himself and his matron reviewing the cover figures, and the item
+  saying nothing outside the model was consulted was chosen anyway, because
+  one part of his account - an untested assumption about shift fill rates -
+  fitted the shape of it. It was a true finding under a false heading. If they
+  name a document they checked or a person who reviewed it, the item that says
+  nothing was consulted is not available to you, however well it fits the part
+  you were looking at. Find the item that fits what actually happened, or
+  choose nothing.
+- Where two items both fit, take the one a reader could act on tomorrow. A
+  specific thing that existed and was not used beats a missing process, every
+  time. Someone scoring a hundred and twenty grant applications said the
+  budget spreadsheets came as separate attachments and he had not uploaded
+  them, so value for money was scored without them; the item chosen was the
+  one about having no rule decided in advance. Both were arguably true. Only
+  one of them names a file he could go and open.
 - If they described a specific, independent, constructed check that already
   covers the case, choose nothing. An empty list is a valid and often correct
   answer.

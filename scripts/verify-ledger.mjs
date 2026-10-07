@@ -376,6 +376,46 @@ check("the takeaway finally has a heading over it",
 check("the ledger records whether the stake rendered",
   /stake: !!state\.stake/.test(page));
 
+// --------------------------------------------- the verified closing's ledger
+//
+// It had none, and that was the worst-aimed gap on the whole screen.
+//
+// A structural engineer re-derived the load himself, checked it against a
+// spreadsheet he had validated against two published worked examples, and had
+// a second chartered engineer check it against the as-built drawings. A
+// hospital pharmacist checked every flagged interaction against the BNF
+// himself and had a colleague blind-review a random sample of the unflagged
+// lists. Both routed to the verified closing. Both read a page of general
+// prose about what other people do, with nothing of their own account on it
+// beyond the two conclusion lines.
+//
+// The strengths side of the ledger exists so this tool does not only find
+// fault. It was switched off for precisely the accounts that earn it.
+const verifiedFn = page.slice(page.indexOf("function closeVerified"),
+                              page.indexOf("function closeNeutral"));
+check("the verified closing asks for a selection too",
+  verifiedFn.includes("selectPractices()"),
+  "it showed fixed text only, to the people who did the best work");
+check("the verified closing paints the ledger it gets",
+  verifiedFn.includes("paintLedger("));
+check("the verified closing hides its fixed argument when the ledger lands",
+  /s5b-general"\)\.hidden = true/.test(verifiedFn));
+check("a failed selection still contributes the verified conversation",
+  (verifiedFn.match(/contribute\("verified"\)/g) || []).length === 2,
+  "both arms of the then()");
+check("the verified screen has something to replace",
+  /<div id="s5b-general">/.test(page));
+// The ledger node moves between the two screens, so no width rule may be
+// scoped to one of them.
+check("the ledger's width is not scoped to one screen",
+  !/#s5a>#s5a-ledger/.test(page) && /#s5a-ledger,#s5a-general,#s5b-general\{ max-width:none/.test(page));
+
+// The two misreads from the same batch of live runs, pinned as prompt rules.
+check("the prompt forbids an absence item the rest of the account contradicts",
+  /claim an absence/.test(SELECT_SYSTEM) && /is not available to you/.test(SELECT_SYSTEM));
+check("the prompt prefers the item a reader could act on",
+  /could act on tomorrow/.test(SELECT_SYSTEM));
+
 // ------------------------------------------------- when the log is written
 //
 // The contribution has to be sent after the selection resolves, not before.
