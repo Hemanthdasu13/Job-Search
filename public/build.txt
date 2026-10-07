@@ -1,4 +1,4 @@
-Could you tell if it was wrong? — v0.3.0 — what is in this build
+Could you tell what it missed? — v0.3.0 — what is in this build
 
 Beta. The page is set to noindex, and the failing screen shows a reason code
 for diagnosis. Both come out before the link is public.

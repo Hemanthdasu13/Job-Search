@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Could you tell if it was wrong?</title>
+<title>Could you tell what it missed?</title>
 <meta name="description" content="Everyone has the same models now. What separates people is whether they can tell when the answer is wrong. A few questions about one real decision where AI output mattered.">
 <meta name="robots" content="index, follow">
 <!-- Vercel serves this on several hostnames and on a per-deployment URL that
@@ -17,14 +17,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23E2C892'/%3E%3Cg fill='none' stroke='%231C1813' stroke-width='2'%3E%3Cpath d='M3 25h26M7 25v-4M13 25v-3M19 25v-4M25 25v-3'/%3E%3Ccircle cx='16' cy='12' r='6.5'/%3E%3Cpath d='M21 17l5 5'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://reliance-layer.vercel.app/">
-<meta property="og:site_name" content="Could you tell if it was wrong?">
-<meta property="og:title" content="Could you tell if it was wrong?">
-<meta property="og:description" content="Take one real decision where AI output mattered. Could you tell if it was wrong?">
+<meta property="og:site_name" content="Could you tell what it missed?">
+<meta property="og:title" content="Could you tell what it missed?">
+<meta property="og:description" content="Everyone has the same models. What separates people is how they work them. Take one time you used AI on something real.">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image" content="https://reliance-layer.vercel.app/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Could you tell if it was wrong? A tool that asks questions instead of answering them.">
+<meta property="og:image:alt" content="Could you tell what it missed? A tool that asks questions instead of answering them.">
 <style>
 /* Self-hosted rather than fetched from Google. A page that promises not to
    log what you type should not hand your address to a third party to draw
@@ -770,7 +770,7 @@ h1::before,h2::before{
 
 <!-- Screen 1 - Landing -->
 <section class="screen" id="s1">
-  <h1 tabindex="-1">Convincing and correct look the same.</h1>
+  <h1 tabindex="-1">Convincing and complete look the same.</h1>
   <!-- The page used to argue its conclusion here, in seven paragraphs, and
        then ask the question at the end. That ordering is what made it read
        as written by a machine: nobody challenging you explains first. The
@@ -783,26 +783,33 @@ h1::before,h2::before{
        Published work, not this research - see RESEARCH_FACTS.md. -->
   <!-- One idea, one beat. This took three lines to say that everybody has
        the same models, which is a sentence. -->
-  <p class="beat"><span>Everyone has the same models now.</span><span>What separates people is whether they can tell when the answer is wrong.</span></p>
+  <p class="beat"><span>Everyone has the same models now.</span><span>What separates people is how they work them.</span></p>
   <!-- The first thing every reader thinks is "it has been fine for me", and
        the counterfactual problem in 5.3 is why that feeling arrives whether
        or not it has been fine: following the answer produces confirming
        evidence either way, because a wrong answer you took leaves no
        occasion to revisit it. Deviating is the only thing that ever shows
        you the cost of agreeing. -->
-  <p class="beat"><span>If AI has never badly misled you, that isn't evidence that it hasn't.</span><span>A wrong answer you accepted gave you no reason to look again.</span></p>
+  <p class="beat"><span>If AI has never badly misled you, that isn't evidence that it hasn't.</span><span>An answer you acted on gave you no reason to look again.</span></p>
   <!-- The ask, and it was a fragment with no verb - "One decision where AI
        output fed something that mattered." - which reads as a caption rather
        than an instruction and left somebody with nothing to reach for. The
        three examples are what make it possible to start. -->
-  <p class="beat"><span>So take one real decision where AI output mattered.</span><span>A number you quoted, a summary you acted on,</span><span>a recommendation that went to someone.</span></p>
-  <p class="ask">Could you tell if it was wrong?</p>
+  <!-- Added because the page read as being about errors, and the tool is not.
+       Every card in the closing names something that did not come up in the
+       interaction - no source outside the model, no scope set, a silence read
+       as an all-clear. None of them says the answer was wrong. An output can
+       be correct in every line and still be the eighty per cent answer, and
+       nothing about holding it tells you the other twenty was available. -->
+  <p class="beat"><span>It doesn't have to be wrong to cost you something.</span><span>Right isn't the same as the best you could have had.</span></p>
+  <p class="beat"><span>So take one time you used AI on something real.</span><span>A number you quoted, a summary you acted on,</span><span>a recommendation that went to someone.</span></p>
+  <p class="ask">Could you tell what it missed?</p>
   <!-- Deliberately does not promise a gap. Roughly a third of the test set
        is work that was done properly, and a page that promises to find
        something wrong is a page that pressures the thing into inventing it. -->
-  <p class="turn">A few questions, built from my research. Then you decide if there's something to fix.</p>
+  <p class="turn">A few questions, built from my research. Then you decide if anything was left on the table.</p>
   <div class="actions">
-    <button type="button" data-go="s3">Try it on a real decision</button>
+    <button type="button" data-go="s3">Try it on something real</button>
     <button type="button" data-go="s2">See a worked example</button>
   </div>
   </div>
@@ -813,7 +820,7 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.13.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.14.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
@@ -826,7 +833,7 @@ h1::before,h2::before{
   <p><strong>What might be missing?</strong> In enterprise deals nobody charges list. The discounting behaviour that decides this question was never in the data.</p>
   <p>Nothing in it looked wrong. It was answering a different question.</p>
   <div class="actions">
-    <button type="button" data-go="s3">Try it on a real decision</button>
+    <button type="button" data-go="s3">Try it on something real</button>
     <button type="button" data-link="research">How this was researched</button>
   </div>
 </section>
