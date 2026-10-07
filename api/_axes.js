@@ -31,7 +31,19 @@ export const AXES = {
     /source(d|s)?\b/i, /\bmaterial\b/i, /\binputs?\b/i,
     /had no way of seeing/i, /wouldn't have seen/i, /couldn't see/i,
     /identical material/i, /same (brief|prompt|material|data)/i,
-    /accurate|current|recent/i, /dataset|data set/i
+    /accurate|current|recent/i, /dataset|data set/i,
+    // Added from twenty-eight questions this tool actually asked, of which
+    // twenty-one landed on no axis at all - so the ground note read "none
+    // placed" on nearly every turn and the one mechanism meant to stop it
+    // repeating itself was telling it nothing. These are the shapes the live
+    // questions take, not shapes imagined in advance.
+    /\bassume[ds]?\b/i, /\bassumptions?\b/i, /\bassuming\b/i,
+    /what (could|would|did) .*(have )?(known|know)\b/i,
+    /\bin front of (it|him|her|them|you)\b/i,
+    /\btreat(ed)? this as\b/i, /\bdrawn (straight )?from\b/i,
+    /what .*(capture|captured|miss|missed)\b/i,
+    /what .*(say|said) had changed/i,
+    /what .*\b(extract|file|records?)\b.*\b(capture|miss|have|had)\b/i
   ],
   constraints: [
     /what did you (ask|tell) it to (include|use|do)/i,
@@ -41,7 +53,13 @@ export const AXES = {
   reliance: [
     /what (did you do|happened) (with|once|after)/i,
     /acted on/i, /went to/i, /applied that/i, /what it fed/i,
-    /who (acted on|used) it/i, /differently because/i
+    /who (acted on|used) it/i, /differently because/i,
+    /what (was|were) [^?]*\bused (for|in|on)\b/i,
+    /what did you use [^?]*\bfor\b/i,
+    /what happened (next|then|after|afterwards)/i,
+    /\bonce (you|it|they) (had|gave|produced|ran)/i,
+    /who (else )?(saw|read|reviewed|signed|approved|checked) it/i,
+    /\bwent into\b/i, /\bended up\b/i, /\brested on\b/i
   ],
   domain: [
     /you already knew/i, /well enough to judge/i,
@@ -51,7 +69,13 @@ export const AXES = {
   consequence: [
     /what would happen (to|if)/i, /if it (had been|turned out|was) wrong/i,
     /who (would|was) (be )?affected/i, /\bat stake\b/i,
-    /what would have followed/i, /and (for|to) whom/i
+    /what would have followed/i, /and (for|to) whom/i,
+    /what would (it )?(have )?(happen|happened|mean|meant)/i,
+    /^if\b[^?]*\bwhat would\b/i,
+    /who would (have )?(be|been|caught|rely|be relying)/i,
+    /\bcaught short\b/i, /\bwalk (it )?back\b/i,
+    /if [^?]*\b(had been|turned out|was|were|returned|arrived|moved|changed)\b[^?]*\bwrong\b/i,
+    /\bwrongly (removed|flagged|included|excluded)\b/i
   ],
   advantage: [
     /what did (using )?it (actually )?(buy|give) you/i,
@@ -62,7 +86,10 @@ export const AXES = {
     /how (will|would) you (find out|know|catch)/i,
     /what would (alert|tell|warn) you/i,
     /catch an error/i, /before you acted/i, /need to see to catch/i,
-    /came up that weren't/i, /still handles it correctly/i
+    /came up that weren't/i, /still handles it correctly/i,
+    /what checked whether/i, /without you noticing/i,
+    /\bwould have (told|shown|alerted|warned) you\b/i,
+    /what would have shown/i
   ]
 };
 

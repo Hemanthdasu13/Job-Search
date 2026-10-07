@@ -136,6 +136,71 @@ if (caveats < 3) {
   });
 }
 
+// ------------------------------------------------------------------ sentence length
+//
+// Nothing a visitor reads may run past twenty-four words in one sentence.
+//
+// The owner's note: "language punchy and straight, not english professor".
+// He was right. The takeaway on a gap card ran to thirty-five words, the
+// first screen asked for "a recent piece of work where AI output fed into
+// something that mattered. A decision, a recommendation, an analysis someone
+// else relied on" before anyone had typed a word, and a friend of his got two
+// sentences in and said it was too complex.
+//
+// Twenty-four, because the longest thing left after the cut is a
+// twenty-three-word pair of plain clauses and the ones that broke the rule
+// were all stacking subordinate clauses to get there. Paragraphs may be as
+// long as they need to be; the sentences inside them may not.
+const MAX_SENTENCE_WORDS = 24;
+
+// Also splits "...hasn't.A wrong answer..." - visibleStrings joins adjacent
+// elements with no space between them, and without this a pair of short
+// sentences from two tags reads as one long one.
+const sentencesOf = (text) =>
+  String(text).split(/(?<=[.?!])\s+|(?<=[.?!])(?=[A-Z“"])/);
+const countWords = (text) => (String(text).match(/[A-Za-z0-9'\u2019-]+/g) || []).length;
+
+// Where the limit is enforced, and where it is only counted.
+//
+// Enforced on the screens, which is where the reading resistance is: nobody
+// chooses to read those, they are simply in the way.
+//
+// Counted, not enforced, on the research prose - the "why this one keeps
+// coming up" paragraph behind a disclosure, and the research page. Those are
+// findings, written by the researcher, and every claim in them is text a
+// person wrote rather than text a model produced. Splitting one of those
+// sentences is an edit to a research claim and belongs to him, not to a test.
+// So they are reported each run and nobody can forget about them.
+const RESEARCH_PROSE = /^(card why|research page)$/;
+
+const longSentences = [];
+for (const { where, text } of visibleStrings()) {
+  for (const sentence of sentencesOf(text)) {
+    const words = countWords(sentence);
+    if (words > MAX_SENTENCE_WORDS) {
+      longSentences.push({ where, words, sentence: sentence.trim() });
+    }
+  }
+}
+for (const hit of longSentences) {
+  if (RESEARCH_PROSE.test(hit.where)) continue;
+  failures.push({
+    where: hit.where,
+    hit: `${hit.words} words in one sentence`,
+    fix: `at most ${MAX_SENTENCE_WORDS}: break it in two, or cut it`,
+    text: hit.sentence.slice(0, 120)
+  });
+}
+const inResearch = longSentences.filter((h) => RESEARCH_PROSE.test(h.where));
+if (inResearch.length) {
+  console.log(`${inResearch.length} long sentence(s) left in the research prose, `
+    + `longest ${Math.max(...inResearch.map((h) => h.words))} words `
+    + `(not enforced: those are claims he wrote)`);
+}
+console.log(`longest sentence on a screen: ${Math.max(0, ...visibleStrings()
+  .filter((v) => !RESEARCH_PROSE.test(v.where))
+  .flatMap((v) => sentencesOf(v.text).map(countWords)))} words, limit ${MAX_SENTENCE_WORDS}`);
+
 for (const f of failures) {
   console.error(`FAIL ${f.where}: "${f.hit}" - ${f.fix}\n       ${f.text}`);
 }

@@ -312,10 +312,18 @@ On every turn, return two more fields. Both are shown on the closing screen
 only, never during the conversation, and both are about what they described
 and nothing else.
 
-"reflection": one sentence saying what the output was used for, and what if
-anything it was put against. Their own words where their words work, lightly
-cleaned up for grammar, with any client name, price, volume or figure
-replaced by a generic description of the same thing.
+"reflection": what the output was used for, and what if anything it was put
+against. Their own words where their words work, lightly cleaned up for
+grammar, with any client name, price, volume or figure replaced by a generic
+description of the same thing.
+
+Twenty-five words at the very most, and one or two short sentences rather
+than one long one. Asking for a single sentence is what made this go wrong:
+told to fit everything into one, the model stacked clauses, and a visitor's
+closing screen opened with forty-nine words of semicolons and subordinate
+clauses about her own work. Two plain sentences beat one careful one. No
+semicolons, no "nor", no "including", no clause hanging off another clause.
+Short words. If something will not fit, leave it out.
 
 Write it as "I". Never "they", never "the user", never "you". The page puts
 "From what you described" above this line, so a sentence starting "They used
@@ -324,9 +332,13 @@ somebody else, in a place where it is supposed to be handing them back their
 own account. "I used it to get a recommendation" reads as theirs, which it
 is.
 
-"boundary": one sentence saying what that check could have caught and what it
-could not. Where they describe no check, say what nothing in the account
-would have caught. Write about the check and not about them: no "you", no
+"boundary": what that check could have caught and what it could not. Where
+they describe no check, say what nothing in the account would have caught.
+
+Same rules. Twenty-five words at most, one or two short sentences, plain
+words. The shape is simple: what it would catch, then what it would not.
+"Checking the totals would catch bad arithmetic. It would not catch a payment
+arriving in the wrong month." Not thirty-three words with a "nor" in them. Write about the check and not about them: no "you", no
 advice, no instruction, nothing about what they should do next, and no claim
 that reaches beyond the account in front of you. If what they have given you
 is too thin to say anything true, return an empty string rather than
@@ -361,6 +373,20 @@ const MAX_ANSWERS = 12;
 const MAX_ANSWER_CHARS = 2000;
 const MAX_QUESTION_CHARS = 400;
 const MAX_REFLECTION_CHARS = 400;
+
+// What the prompt asks for, so overshooting can be measured rather than
+// guessed at. Not enforced by cutting: half a sentence about someone's own
+// work is worse than a long one, and the page shows whatever came back last.
+// Logged so the next look at the logs says whether the prompt is being obeyed.
+const TARGET_CLOSING_WORDS = 25;
+
+function overLength(label, text) {
+  if (!text) return;
+  const words = (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+  if (words > TARGET_CLOSING_WORDS) {
+    console.error("closing_line_long", `${label} ${words} words, asked for ${TARGET_CLOSING_WORDS}`);
+  }
+}
 const MAX_NOTE_CHARS = 200;
 // Above anything the conversation can actually reach: six probing turns, two
 // free narrower questions and a redirect is about nine answers, and nine at
@@ -542,7 +568,15 @@ const NON_ANSWERS = new Set([
   "no idea", "noidea", "no clue", "dunno", "dont know", "do not know",
   "didnt know", "not sure", "unsure", "cant say", "cannot say", "cant tell",
   "cant remember", "dont remember", "idk", "not really", "nothing really",
-  "no comment", "pass", "skip", "same", "ditto", "unknown"
+  "no comment", "pass", "skip", "same", "ditto", "unknown",
+  // A bare yes answers nothing here. Someone replied "Yes" to "What was the
+  // SQL output used for once you had it?" and it counted as an answer towards
+  // closing the conversation. This tool never asks a question that yes can
+  // answer - a yes/no opening is a hard fault the handler regenerates - so a
+  // one-word agreement is always a turn with nothing in it.
+  "yes", "yeah", "yep", "yup", "yea", "ok", "okay", "k", "sure", "fine",
+  "maybe", "perhaps", "possibly", "probably", "correct", "true", "right",
+  "exactly", "indeed", "agreed", "good", "great", "cool", "nice", "done"
 ]);
 
 export function isNonAnswer(text) {
@@ -949,6 +983,8 @@ export default async function handler(req, res) {
   // person are each a different thing from a description of what they
   // described, and each is dropped rather than shown.
   const offeredBoundary = text_or_null(parsed.boundary, MAX_REFLECTION_CHARS);
+  overLength("reflection", offered);
+  overLength("boundary", offeredBoundary);
   const boundary = offeredBoundary && staysDescriptive(offeredBoundary) ? offeredBoundary : null;
   if (offeredBoundary && !boundary) {
     console.error("boundary_rejected", whyNotDescriptive(offeredBoundary));

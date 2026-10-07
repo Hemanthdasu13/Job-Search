@@ -813,18 +813,18 @@ h1::before,h2::before{
   <path d="M198 12v46" stroke-width="1.8"/>
   <circle cx="174" cy="35" r="3"/><circle cx="222" cy="35" r="3"/>
 </svg></span>
-  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.11.0</span></p>
+  <p class="footnote">Sixteen sectors, investment banking to public healthcare. <a href="/research.html">How I did it</a><br><span id="version">Beta, v0.12.0</span></p>
 </section>
 
 <!-- Screen 2 - Worked example (static) -->
 <section class="screen" id="s2" hidden>
   <h2 tabindex="-1">A pricing recommendation</h2>
-  <p>An analyst asks AI to compare four competitors' pricing and recommend whether to hold or discount. It searches, finds their published rate cards, compares them to the company's own numbers, and recommends holding price. The analysis is clear, well-structured and internally consistent.</p>
+  <p>An analyst asks AI whether to hold price or discount. It finds the competitors' published rate cards, compares them, and says hold. The analysis is clear and consistent throughout.</p>
   <p>Three questions:</p>
   <p><strong>What did it actually have?</strong> Published rate cards. List prices.</p>
   <p><strong>What is it assuming?</strong> That list price is what competitors charge.</p>
   <p><strong>What might be missing?</strong> In enterprise deals nobody charges list. The discounting behaviour that decides this question was never in the data.</p>
-  <p>The output was not wrong in any way the analyst could see. It was answering a different question from the one that mattered.</p>
+  <p>Nothing in it looked wrong. It was answering a different question.</p>
   <div class="actions">
     <button type="button" data-go="s3">Try it on a real decision</button>
     <button type="button" data-link="research">How this was researched</button>
@@ -837,7 +837,7 @@ h1::before,h2::before{
      this is a tool about not being fooled. -->
 <section class="screen" id="s2g" hidden>
   <h2 tabindex="-1">This part runs on a key.</h2>
-  <p class="lede">Every question here is written against what you actually typed, which costs me something each time. So I am handing keys out to a few people rather than leaving it open — and I would rather know who is using it.</p>
+  <p class="lede">Every question is written against what you typed, and each one costs me money. So I hand out keys instead of leaving it open.</p>
   <p>If you have a key, put it in. If you don't, ask me for one — it takes a minute.</p>
 
   <form id="s2g-form" novalidate>
@@ -861,7 +861,7 @@ h1::before,h2::before{
 
 <!-- Screen 3 - Input -->
 <section class="screen" id="s3" hidden>
-  <h2 tabindex="-1" id="s3-prompt">Think of a recent piece of work where AI output fed into something that mattered. A decision, a recommendation, an analysis someone else relied on. What was it?</h2>
+  <h2 tabindex="-1" id="s3-prompt">One piece of work where AI output fed something that mattered. What was it?</h2>
   <p class="note">Please don't include anything confidential.</p>
   <p class="note" id="s3-allowance" hidden>Your key is good for one run, so pick something you actually want to think about.</p>
   <form id="s3-form">
@@ -870,7 +870,7 @@ h1::before,h2::before{
     <p class="consent" id="consent-row" hidden>
       <label>
         <input type="checkbox" id="consent">
-        <span>You can leave this conversation with me, to help improve the questions. I read them myself; nothing is automated. No name, no email, nothing that identifies you.</span>
+        <span>Leave this conversation with me to help improve the questions. I read them myself. No name, no email, nothing that identifies you.</span>
       </label>
     </p>
     <p class="note" id="privacy-line">Nothing you type is stored or logged by this site.</p>
@@ -933,7 +933,7 @@ h1::before,h2::before{
          about as hard as a Soho pub recommendation deserves. -->
     <div id="s5a-nothing" hidden>
       <h2 id="s5a-nothing-head">Nothing here needs fixing</h2>
-      <p>What you described was checked about as hard as being wrong would have cost. That is the judgement the people who handled this well were making, whether or not they said so.</p>
+      <p>You checked it about as hard as being wrong would have cost. That is the judgement, and most people who got this right were making it without saying so.</p>
     </div>
   </div>
 
@@ -943,14 +943,14 @@ h1::before,h2::before{
        card to show for it. -->
   <div id="s5a-general">
   <h2 tabindex="-1">The output was checkable. The inputs were not.</h2>
-  <p>This is the most common position, by some distance. People check what the system produced, because that is what is in front of them. Almost nobody checks what it had to work from, because that is invisible.</p>
-  <p>A group finance director described building a pension model with AI over a weekend. It looked sensible, and it would have been easy to read the first output, see a comfortable retirement and stop there. A separate reconciliation was built to test it against, and it turned up around six errors.</p>
+  <p>This is the commonest position by some distance. People check what the system produced, because that is what they can see. Almost nobody checks what it had to work from.</p>
+  <p>A group finance director built a pension model with AI over a weekend. It looked sensible. It would have been easy to see a comfortable retirement and stop there. He built a separate reconciliation to test it against. It found six errors.</p>
   <p>They were not found because something looked wrong. They were found because something was built to check against.</p>
-  <p><strong>Worth trying:</strong> before accepting an analysis, ask what the system actually had, what it is assuming, and what might be missing. That sequence came out of the research, not from me.</p>
-  <p><strong>One more thing:</strong> of twelve, four had a rule they could state for when to trust AI output. Eight had nothing equivalent. Of the four, three had taken a rule they already used for something else and pointed it at AI, with nobody telling them to.</p>
+  <p><strong>Worth trying:</strong> before you accept an analysis, ask three things. What did it actually have? What is it assuming? What is missing? That order came out of the research.</p>
+  <p><strong>One more thing:</strong> four of twelve could state a rule for when to trust AI output. Eight had none. Three of the four had not invented theirs — they took a rule they already used and pointed it at AI. Nobody told them to.</p>
   <p class="beat beat-close"><span>Maybe the most human thing about an AI answer is not the answer.</span><span>It is us believing it.</span></p>
   </div>
-    <p class="caveat">This is a read of what you described in a few minutes, not an audit of your work. What is not named here was not checked — it only means it did not come up.</p>
+    <p class="caveat">This is a read of a few minutes of your account, not an audit of your work. What is not named here was not checked, only unmentioned.</p>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">How I did it</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
@@ -966,10 +966,10 @@ h1::before,h2::before{
     <p class="boundary" id="s5b-boundary" hidden><span id="s5b-boundary-text"></span></p>
   </div>
   <h2 tabindex="-1">You described a constructed check, not a careful read.</h2>
-  <p>That is what the people who caught real errors had in common. Not more attention, but something independent for the output to fail against: a reconciliation, a second model, a colleague who knows the area, a check written before the answer was produced.</p>
+  <p>Everyone who caught a real error had this in common. Not more attention — something the answer could fail against. A reconciliation. A colleague who knows the area. A check written before the answer existed.</p>
   <p>It is also the first thing to go under time pressure, which is when the decisions that matter tend to get made.</p>
   <p class="beat beat-close"><span>The people who handled it best were not the ones who knew the most about AI.</span><span>They were the ones who had something to put the answer against when they could not tell.</span></p>
-  <p class="caveat">This is a read of what you described in a few minutes, not an audit of your work. What is not named here was not checked — it only means it did not come up.</p>
+  <p class="caveat">This is a read of a few minutes of your account, not an audit of your work. What is not named here was not checked, only unmentioned.</p>
   <p class="links">
     <span data-linkwrap="research"><a href="#" data-link="research">How I did it</a></span>
     <span data-linkwrap="interview"><a href="#" data-link="interview">I'd contribute an interview</a></span>
@@ -1058,7 +1058,7 @@ h1::before,h2::before{
       principle: "Whether you trusted it is not the question. What it touched is.",
       why: "Ten times out of twelve this line was drawn firmly, and unprompted: AI assists, humans decide. The line is real. It also answers a different question from this one, because it describes what you meant to do rather than what the output touched. An output can feed a number, a recommendation, or somebody else's next move while everyone involved says truthfully that they did not trust it.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Trace the output forward rather than asking how much you trusted it. Name what it fed, who acted on it, and what would have been different if it had been wrong."
+      action: "Follow it forward. What did it feed? Who acted on it? What breaks if it was wrong?"
     },
     "independent-source-check": {
       // Findings 4.1.2
@@ -1066,7 +1066,7 @@ h1::before,h2::before{
       principle: "A check that never leaves the model is not a check.",
       why: "One pattern: where the content could not be checked directly, and the generation was not constrained either, the question got sent somewhere that could settle it. A primary document, a policy, a person who would know. It is the cheapest check of the lot and the most portable, because it does not need you to know the answer. It is also the first to go when there is no time to reach anyone.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Before the output moves, name the one source outside the model that would settle it, and go there."
+      action: "Before it moves, name the one source outside the model that settles it. Then go there."
     },
     "constrain-the-generation": {
       // Findings 4.5.3
@@ -1074,15 +1074,15 @@ h1::before,h2::before{
       principle: "What you ruled out shapes the answer more than what you asked for.",
       why: "This turned up twice, in almost the same words: the useful part of a prompt is the prohibition, not the request. An open request gets answered from whatever the model has, including material with no business being in scope. It is the one check that still works when you cannot check the output, because it changes what can be produced instead of inspecting what was.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Write down the exceptions, the entities and the distinctions the answer must preserve, and say it must tell you where it cannot tell. Put all of that in before the question, not after the answer."
+      action: "Say what to leave out before you ask. Name the exceptions, and tell it to flag what it cannot know."
     },
     "constructed-check": {
       // Findings 4.5
       concept: "a constructed check, not a careful read",
-      principle: "Attention does not catch errors. Something independent for the output to fail against does.",
+      principle: "Attention does not catch errors. A check the answer can fail does.",
       why: "Real errors were caught by something built to test the answer against, not by reading it more carefully. A reconciliation, a check written before the output existed, a colleague who knows the area. It is also the first thing to go under time pressure, which is when the decisions that matter get made.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Before accepting an analysis, build the thing you will test it against \u2014 and build it before you read the answer."
+      action: "Build the thing you will test it against. Build it before you read the answer."
     },
     "named-triggers": {
       // Findings 4.4.3
@@ -1090,7 +1090,7 @@ h1::before,h2::before{
       principle: "A standard you set after seeing the answer is not a standard.",
       why: "Four of twelve had a rule they could state for when AI output must be checked before it moves. Eight had nothing. Three of the four had not invented theirs: they took a rule they already used for something else, reversible against irreversible, deterministic against judgement, quantified against qualified, and pointed it at AI. Nobody asked them to, and no employer was described as supplying one.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "You almost certainly already have a rule for which decisions get scrutiny. Write it down, then point it at AI output as it stands."
+      action: "You already have a rule for which decisions get scrutiny. Write it down and point it at AI."
     },
     "silence-is-not-safety": {
       // Findings 4.7.1
@@ -1098,7 +1098,7 @@ h1::before,h2::before{
       principle: "Nothing flagged is not the same as nothing wrong.",
       why: "One failure mode is not error but omission: an answer correct in everything it says and misleading in what it leaves out. The case is a portal query answered accurately, with no mention that the window being asked about had closed years earlier. A system with no way to tell you what it did not consider cannot reassure you by staying quiet.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Ask what a complete answer would have had to mention, then check whether it did. Treat the absence of a caveat as unknown, not clear."
+      action: "Ask what a complete answer would have to mention. Then check it did. No caveat means unknown, not clear."
     },
     "two-failure-modes": {
       // Findings 4.3
@@ -1106,7 +1106,7 @@ h1::before,h2::before{
       principle: "A review calibrated to one kind of mistake will miss the other.",
       why: "The most widely held idea of all is AI as a junior analyst, and it carries a review standard with it: proportionate scrutiny, the way you would check a capable colleague. The objection came up too. That standard assumes the mistakes will be of a recognisable human kind. The case against it was a customer service system inventing events the organisation does not run. If the mistake is a different sort of thing, a review pitched at human error looks in the wrong place.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Name the cost of the opposite mistake before you check. A review that can only find one kind of error will find only that kind."
+      action: "Price the opposite mistake before you check. A review aimed at one error finds only that one."
     },
     "borrowed-rule": {
       // Findings 4.10
@@ -1114,7 +1114,7 @@ h1::before,h2::before{
       principle: "It fitting what you already thought is not evidence that it is right.",
       why: "Seven times, systems produced agreeable output rather than accurate output. One description of the mechanism: it validates your truths. The trouble is that agreement and confirmation look identical from the inside. An answer matching what you already thought feels like two sources meeting, when it may be one source built to meet you.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "When an answer confirms what you expected, that is the moment to check it, not the moment to stop."
+      action: "An answer that agrees with you is the one to check hardest."
     },
     "gut-feel-signal": {
       // Findings 4.12
@@ -1122,7 +1122,7 @@ h1::before,h2::before{
       principle: "The sense that something is off is information. Setting it aside discards it.",
       why: "Six times, error was caught the same way: knowing roughly what the answer should be, then noticing the gap. One case turns on exactly that. A figure came back implausible, a thousand rows were checked by hand, and the real count was four times higher; challenged again, the original source came back with over fourteen times it. Nothing in the process caught that. A feeling did, and then it got chased.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "When something feels off, write down what you expected instead. The gap is usually the thing to check."
+      action: "Something feels off? Write down what you expected instead. The gap is what to check."
     },
     "interaction-audit": {
       // Findings 4.4.2
@@ -1130,7 +1130,7 @@ h1::before,h2::before{
       principle: "If you cannot reconstruct how the answer was produced, you cannot defend it.",
       why: "The most AI-mature organisation of any checks deployed systems against nine elements, and several of them are reconstruction: what was prompted, what was logged, what context passed from one step to the next. That governs engineered systems. Nothing equivalent turned up for someone using a general-purpose assistant inside a judgement, where the interaction is usually unrecorded.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Keep what you asked, which version of the source it used, and who looked at it. Assume you will have to show your work."
+      action: "Keep what you asked, which version it used, and who looked. Assume you will have to show your work."
     },
     "domain-goes-silent": {
       // Findings 4.9.4
@@ -1138,7 +1138,7 @@ h1::before,h2::before{
       principle: "You can only interrogate an answer inside a domain you hold.",
       why: "Output could be interrogated where the domain was held, not where AI was understood. It shows up as a hiring rule: domain expertise first, technical capability second, because a technical expert without the domain cannot read the output correctly. Outside your own domain the exchange becomes acceptance, not through carelessness but because there is nothing to push back with.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Mark the part of the claim you could not challenge if it were wrong, and get it in front of someone who could."
+      action: "Mark the part you could not challenge if it were wrong. Get it in front of someone who could."
     },
     "reproduction-gap": {
       // Findings 4.9.1
@@ -1146,7 +1146,7 @@ h1::before,h2::before{
       principle: "A result nobody can rebuild is a result nobody can defend.",
       why: "One reading, and only one: manual analytical work produces two things, the deliverable and the ability to defend it. AI produces the first and drops the second. The loss stays invisible until somebody asks a question the summary did not cover. That is also the day the path from inputs to answer turns out never to have existed.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Before it goes out, check that someone else could get from the same inputs to the same answer. If they could not, the path is missing, not implicit."
+      action: "Could someone else get from your inputs to your answer? If not, the path is missing, not implied."
     },
     "manufactured-divergence": {
       // Findings 4.6
@@ -1154,7 +1154,7 @@ h1::before,h2::before{
       principle: "Two answers that saw the same material are not two sources.",
       why: "Running a question through two models and comparing is the commonest check of the lot, and it does not hold up. The same system, given the same prompt, returns different answers across runs and across versions. If a model disagrees with itself, disagreement between models tells you less than the practice assumes, and agreement may only mean shared training. Nothing resolves this.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Ask what the second answer saw that the first did not. If the answer is nothing, you have one source twice."
+      action: "Ask what the second answer saw that the first did not. Nothing means one source, twice."
     },
     "speed-not-advantage": {
       // Findings 4.7.2
@@ -1162,7 +1162,7 @@ h1::before,h2::before{
       principle: "Time saved by leaving a control out is borrowed, not earned.",
       why: "One case: AI was used to establish market prices in a trade where prices are not published, because getting them properly would have taken time. The figures were wrong, the price was adjusted again and again, and contracts were lost in the adjusting. The shape is what generalises. The model was asked precisely because the information was hard to get, which is the same reason it had no reliable basis for an answer.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Ask where the time came from. A control you skipped is a cost deferred; a control you can reuse is a real gain."
+      action: "Ask where the time came from. A skipped control is a cost deferred. A reusable one is a real gain."
     },
     "junior-heuristic": {
       // Findings 4.3
@@ -1170,7 +1170,7 @@ h1::before,h2::before{
       principle: "An informal rule carried over from managing people has not been tested on this.",
       why: "Three times, independently, AI was described as a junior analyst. The metaphor carries a whole delegation rule with it: production can be delegated, verification and accountability cannot, and the review standard is proportionate scrutiny. It is coherent and it is widely held. It was also imported from managing people every time, never taught, and never tested on this.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Say out loud which rule of thumb you are running, then ask what it assumes about how this thing fails."
+      action: "Say which rule of thumb you are running. Then ask what it assumes about how this thing fails."
     },
     "examiner-not-originator": {
       // Findings 4.2.1a
@@ -1178,7 +1178,7 @@ h1::before,h2::before{
       principle: "The sequence decides what the answer is worth.",
       why: "The verbs were consistent throughout: validate, sense-check, critique, stress-test. What was withheld was not the use of AI in judgement but the origination of it. A position gets formed first, then handed to the system to be attacked. The clearest version is the one case with no colleagues and no limit on what AI may touch, where the rule kept was about sequence and authority rather than subject.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Form your position first, in writing, then ask the model to break it. An answer that arrived before your view is a different object from one that survived it."
+      action: "Write your view down first, then ask it to break it. An answer that came first is a different thing."
     },
     "structural-not-instructional": {
       // Findings 4.10.2
@@ -1186,7 +1186,7 @@ h1::before,h2::before{
       principle: "Instructing it to disagree with you produces disagreement, not scrutiny.",
       why: "Five had standing instructions telling the system to challenge them. The argument against it came up too: a system optimising for your satisfaction, told to find flaws, will find flaws, including ones that are not there. What does not depend on the model agreeing to disagree is structural rather than instructional. A step in the process about who must look. Or a question that does not ask for an opinion at all.",
       quote: null,          // pinned in evals/quotes.json, not cleared for publication
-      action: "Put the check in the process, not in the prompt: name who must see this before it moves, or ask what it would look like if the decision had already failed."
+      action: "Put the check in the process, not the prompt. Name who must see this before it moves."
     }
   };
 
@@ -1412,7 +1412,7 @@ h1::before,h2::before{
     "named-the-unknowable": {
       concept: "naming what it could not know",
       principle: "You put a limit on the answer rather than a complaint about it.",
-      why: "Asking what a system could have known takes no expertise in the subject, which is why it works where judging the answer does not."
+      why: "You do not need to know the subject to ask what it could have known. That is why it works."
     },
     "independent-knowledge": {
       concept: "a second source that saw something else",

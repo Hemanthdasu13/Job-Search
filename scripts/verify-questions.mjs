@@ -16,6 +16,7 @@
 // a question can still do its job in twenty words of the person's own
 // vocabulary.
 
+import { readFileSync } from "node:fs";
 import { violations, wordCount, introducedWords, MAX_QUESTION_WORDS } from "./_rules.mjs";
 
 // What he typed, in order. A question asked after answer N may only draw on
@@ -315,6 +316,41 @@ if (hardFault(namesTheGap, forecast)) {
   fail(`the handler would still throw away the question that names the gap: ${hardFault(namesTheGap, forecast)}`);
 } else {
   console.log(`  ok  a question may name the thing they did not cover`);
+}
+
+// Every question this tool has actually asked, against the classifier that
+// feeds the ground note.
+//
+// The note is the one mechanism meant to stop it asking the same thing twice:
+// each turn it tells the model which ground its own earlier questions covered.
+// Of twenty-eight real questions it could place seven. On twenty-one turns the
+// note said "ground so far: none placed", so the model was told nothing and
+// asked, in one conversation, "What was the SQL output used for once you had
+// it?" and then "What did you do with the results the query returned?".
+//
+// Those two share no words at all - output and results, SQL and query are
+// synonyms - so no lexical repeat check can see it. The ground note is the
+// only thing that could, and it was blind.
+console.log("\nthe ground note can place every question actually asked:");
+const { classify: classifyAxis } = await import("../api/_axes.js");
+const ASKED = JSON.parse(
+  readFileSync(new URL("../evals/asked-live.json", import.meta.url), "utf8"));
+const unplaced = ASKED.filter((q) => !classifyAxis(q).length);
+if (unplaced.length) {
+  fail(`${unplaced.length} of ${ASKED.length} land on no ground:\n        `
+    + unplaced.map((q) => q.slice(0, 70)).join("\n        "));
+} else {
+  console.log(`  ok  all ${ASKED.length} placed`);
+}
+// And the pair that started it has to land on the same ground, or the note
+// cannot warn about it.
+const sqlPair = ["What was the SQL output used for once you had it?",
+                 "What did you do with the results the query returned?"];
+const [first, second] = sqlPair.map(classifyAxis);
+if (!first.some((a) => second.includes(a))) {
+  fail(`the two SQL questions land on different ground: ${first} vs ${second}`);
+} else {
+  console.log(`  ok  the repeated pair shares ground (${first.filter((a) => second.includes(a))})`);
 }
 
 console.log("");
